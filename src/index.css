@@ -1,0 +1,109 @@
+@import "tailwindcss";
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+@theme {
+  --color-primary: #10b981;
+  --color-primary-light: #34d399;
+  --color-primary-dark: #059669;
+  --color-primary-bg: rgba(16, 185, 129, 0.1);
+  
+  --color-bg-primary: #0b1120;
+  --color-bg-secondary: #111827;
+  --color-bg-card: rgba(17, 24, 39, 0.85);
+  --color-bg-input: rgba(15, 23, 42, 0.8);
+  
+  --color-text-primary: #e2e8f0;
+  --color-text-secondary: #94a3b8;
+  --color-text-muted: #64748b;
+  --color-text-heading: #f8fafc;
+  
+  --shadow-glow: 0 0 20px rgba(16, 185, 129, 0.2);
+}
+
+:root {
+  --sidebar-width: 280px;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: 'Inter', sans-serif;
+  @apply bg-bg-primary text-text-primary min-h-screen antialiased;
+}
+
+/* Scrollbar styling */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(16, 185, 129, 0.3);
+}
+
+/* Animations */
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.4s ease forwards;
+}
+
+@keyframes pulse-slow {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.animate-pulse-slow {
+  animation: pulse-slow 3s infinite;
+}
+
+/* Ant Design Overrides to match theme */
+.ant-table-wrapper {
+  @apply bg-transparent;
+}
+
+.ant-table {
+  @apply bg-transparent! text-text-secondary!;
+}
+
+.ant-table-thead > tr > th {
+  @apply bg-black/20! border-b border-white/5! text-text-muted! uppercase tracking-wider text-[0.65rem] font-black! py-4! px-5!;
+}
+
+.ant-table-tbody > tr > td {
+  @apply border-b border-white/5! text-[0.82rem]! py-3.5! px-5!;
+}
+
+.ant-table-tbody > tr:hover > td {
+  @apply bg-white/5!;
+}
+
+.ant-input, .ant-input-password, .ant-select-selector {
+  @apply bg-bg-input! border-white/10! text-text-primary! rounded-xl!;
+}
+
+.ant-btn-primary {
+  @apply shadow-glow rounded-xl font-bold uppercase tracking-wider;
+}
+
+.badge {
+  @apply px-2 py-0.5 rounded text-[0.7rem] font-bold uppercase tracking-wider;
+}
+
+.badge-success { @apply bg-primary/10 text-primary border border-primary/20; }
+.badge-danger { @apply bg-red-500/10 text-red-500 border border-red-500/20; }
+.badge-warning { @apply bg-amber-500/10 text-amber-500 border border-amber-500/20; }
+.badge-info { @apply bg-blue-500/10 text-blue-500 border border-blue-500/20; }
