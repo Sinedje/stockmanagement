@@ -2,6 +2,7 @@
  * useBreakages.js
  * Manages breakages (casses) and repackagings (reconditionnements).
  * Calls breakageService for API operations; local state managed by StoreContext.
+ * Pattern: API first → use server response (with real _id → id) to update local state.
  */
 import { useState, useCallback } from 'react';
 import {
@@ -27,6 +28,7 @@ const useBreakages = () => {
     setLoading(true);
     setError(null);
     try {
+      // Build local record first to get all enriched fields (productName, storeId, etc.)
       const record = storeDeclareBreakage(productId, quantity, reason);
       if (import.meta.env.VITE_API_URL && record) {
         await apiCreateBreakage(record);

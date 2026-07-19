@@ -401,6 +401,15 @@ export const unlockDelivery = async (req, res, next) => {
 };
 
 // ── Expenses ──────────────────────────────────────────────────
+export const getExpenses = async (req, res, next) => {
+  try {
+    const expenses = await Expense.find({});
+    res.json(expenses);
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const createExpense = async (req, res, next) => {
   try {
     const expense = await Expense.create(req.body);
@@ -411,6 +420,15 @@ export const createExpense = async (req, res, next) => {
 };
 
 // ── Versements ────────────────────────────────────────────────
+export const getVersements = async (req, res, next) => {
+  try {
+    const versements = await Versement.find({});
+    res.json(versements);
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const createVersement = async (req, res, next) => {
   try {
     const versement = await Versement.create(req.body);

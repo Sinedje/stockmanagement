@@ -2,6 +2,7 @@
  * useCustomers.js
  * Manages customer accounts and transactions state.
  * Calls customerService for API operations; local state managed by StoreContext.
+ * Pattern: API first → use server response (with real _id → id) to update local state.
  */
 import { useState, useCallback } from 'react';
 import {
@@ -27,10 +28,14 @@ const useCustomers = () => {
     setLoading(true);
     setError(null);
     try {
-      if (import.meta.env.VITE_API_URL) await apiCreateCustomer(customerData);
+      if (import.meta.env.VITE_API_URL) {
+        const saved = await apiCreateCustomer(customerData);
+        return storeAddCustomer(saved || customerData);
+      }
       return storeAddCustomer(customerData);
     } catch (err) {
       setError(err.message);
+      throw err;
     } finally {
       setLoading(false);
     }
@@ -39,7 +44,9 @@ const useCustomers = () => {
   const addCustomerDeposit = useCallback(async (customerId, amount, method) => {
     setError(null);
     try {
-      if (import.meta.env.VITE_API_URL) await apiAddDeposit(customerId, amount, method);
+      if (import.meta.env.VITE_API_URL) {
+        await apiAddDeposit(customerId, amount, method);
+      }
       return storeAddDeposit(customerId, amount, method);
     } catch (err) {
       setError(err.message);
@@ -49,7 +56,9 @@ const useCustomers = () => {
   const refundCustomer = useCallback(async (customerId, amount) => {
     setError(null);
     try {
-      if (import.meta.env.VITE_API_URL) await apiRefundCustomer(customerId, amount);
+      if (import.meta.env.VITE_API_URL) {
+        await apiRefundCustomer(customerId, amount);
+      }
       return storeRefundCustomer(customerId, amount);
     } catch (err) {
       setError(err.message);

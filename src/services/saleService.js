@@ -88,6 +88,15 @@ export const unlockDelivery = async (saleId) => {
 };
 
 // ── Expenses ──────────────────────────────────────────────────
+export const fetchExpenses = async () => {
+  if (import.meta.env.VITE_API_URL) {
+    const response = await api.get('/expenses');
+    return response.data;
+  }
+  await simulateDelay();
+  return [];
+};
+
 export const createExpense = async (expenseData) => {
   if (import.meta.env.VITE_API_URL) {
     const response = await api.post('/expenses', expenseData);
@@ -98,6 +107,15 @@ export const createExpense = async (expenseData) => {
 };
 
 // ── Versements (cash handover) ────────────────────────────────
+export const fetchVersements = async () => {
+  if (import.meta.env.VITE_API_URL) {
+    const response = await api.get('/versements');
+    return response.data;
+  }
+  await simulateDelay();
+  return [];
+};
+
 export const createVersement = async (versementData) => {
   if (import.meta.env.VITE_API_URL) {
     const response = await api.post('/versements', versementData);
@@ -108,6 +126,15 @@ export const createVersement = async (versementData) => {
 };
 
 // ── Cash session ──────────────────────────────────────────────
+export const fetchCashReports = async () => {
+  if (import.meta.env.VITE_API_URL) {
+    const response = await api.get('/cash/reports');
+    return response.data;
+  }
+  await simulateDelay();
+  return [];
+};
+
 export const initCashFund = async (payload) => {
   if (import.meta.env.VITE_API_URL) {
     const response = await api.post('/cash/init', payload);

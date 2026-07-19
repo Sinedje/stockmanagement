@@ -1,68 +1,19 @@
 import React, { createContext, useContext, useState, useCallback, useMemo } from 'react';
 import AuthContext from './AuthContext';
+import { fetchProducts } from '../services/productService';
+import { fetchSales } from '../services/saleService';
+import { fetchUsers } from '../services/userService';
+import { fetchStores } from '../services/storeService';
+import { fetchTransfers } from '../services/storeService';
+import { fetchStockEntries } from '../services/storeService';
+import { fetchCustomers } from '../services/customerService';
+import { fetchCustomerTransactions } from '../services/customerService';
+import { fetchBreakages } from '../services/breakageService';
+import { fetchRepackagings } from '../services/breakageService';
+import { fetchCompanySettings } from '../services/settingsService';
+import { fetchExpenses, fetchVersements, fetchCashReports } from '../services/saleService';
 
 const StoreContext = createContext();
-
-const initialUsers = [
-  { id: 1, username: 'admin', password: '123', name: 'Administrateur', role: 'manager' },
-  { id: 2, username: 'compta', password: '123', name: 'Comptable', role: 'accountant' },
-  { id: 3, username: 'caisse1', password: '123', name: 'Caissier 1', role: 'cashier' },
-  { id: 4, username: 'caisse2', password: '123', name: 'Caissier 2', role: 'cashier' },
-  { id: 5, username: 'pdg', password: '123', name: 'Directeur Général', role: 'ceo' },
-];
-
-const initialProducts = [
-  { id: 1, name: 'Riz Basmati 5kg', category: 'Alimentation', price: 4500, cost: 3200, stock: 45, physicalStock: 45, minStock: 10 },
-  { id: 2, name: 'Huile Tournesol 5L', category: 'Alimentation', price: 6800, cost: 5100, stock: 30, physicalStock: 30, minStock: 8 },
-  { id: 3, name: 'Sucre en poudre 1kg', category: 'Alimentation', price: 1200, cost: 850, stock: 60, physicalStock: 60, minStock: 15 },
-  { id: 4, name: 'Lait en poudre 400g', category: 'Alimentation', price: 3500, cost: 2600, stock: 25, physicalStock: 25, minStock: 10 },
-  { id: 5, name: 'Savon Marseille', category: 'Hygiène', price: 800, cost: 500, stock: 100, physicalStock: 100, minStock: 20 },
-  { id: 6, name: 'Dentifrice Signal', category: 'Hygiène', price: 1500, cost: 1000, stock: 40, physicalStock: 40, minStock: 12 },
-  { id: 7, name: 'Eau Minérale 1.5L', category: 'Boissons', price: 350, cost: 200, stock: 200, physicalStock: 200, minStock: 50 },
-  { id: 8, name: 'Jus d\'Orange 1L', category: 'Boissons', price: 1800, cost: 1200, stock: 35, physicalStock: 35, minStock: 10 },
-  { id: 9, name: 'Cahier 200 pages', category: 'Fournitures', price: 900, cost: 600, stock: 80, physicalStock: 80, minStock: 20 },
-  { id: 10, name: 'Stylo BIC bleu', category: 'Fournitures', price: 250, cost: 150, stock: 150, physicalStock: 150, minStock: 30 },
-  { id: 11, name: 'Farine de blé 1kg', category: 'Alimentation', price: 1100, cost: 750, stock: 55, physicalStock: 55, minStock: 15 },
-  { id: 12, name: 'Pâtes Spaghetti 500g', category: 'Alimentation', price: 950, cost: 650, stock: 70, physicalStock: 70, minStock: 20 },
-  { id: 13, name: 'Shampooing Dove', category: 'Hygiène', price: 2800, cost: 1900, stock: 3, physicalStock: 3, minStock: 10 },
-  { id: 14, name: 'Détergent OMO 1kg', category: 'Ménage', price: 3200, cost: 2300, stock: 5, physicalStock: 5, minStock: 8 },
-  { id: 15, name: 'Thé vert Lipton', category: 'Boissons', price: 2200, cost: 1500, stock: 28, physicalStock: 28, minStock: 8 },
-  { id: 16, name: 'Café moulu 250g', category: 'Boissons', price: 3800, cost: 2700, stock: 18, physicalStock: 18, minStock: 5 },
-  { id: 17, name: 'Biscuits Petit Beurre', category: 'Alimentation', price: 650, cost: 400, stock: 90, physicalStock: 90, minStock: 25 },
-  { id: 18, name: 'Papier toilette x4', category: 'Ménage', price: 1400, cost: 900, stock: 45, physicalStock: 45, minStock: 15 },
-];
-
-const generateSalesHistory = () => {
-  const sales = [];
-  const today = new Date();
-  for (let i = 0; i < 30; i++) {
-    const date = new Date(today);
-    date.setDate(date.getDate() - Math.floor(Math.random() * 30));
-    date.setHours(8 + Math.floor(Math.random() * 10), Math.floor(Math.random() * 60));
-    const numItems = Math.floor(Math.random() * 4) + 1;
-    const items = [];
-    let total = 0;
-    for (let j = 0; j < numItems; j++) {
-      const product = initialProducts[Math.floor(Math.random() * initialProducts.length)];
-      const qty = Math.floor(Math.random() * 3) + 1;
-      items.push({ productId: product.id, name: product.name, price: product.price, quantity: qty });
-      total += product.price * qty;
-    }
-    sales.push({
-      id: i + 1,
-      date: date.toISOString(),
-      items,
-      total,
-      paymentMethod: Math.random() > 0.3 ? 'Espèces' : 'Carte',
-      cashier: Math.random() > 0.5 ? 'Caissier 1' : 'Caissier 2',
-      invoiceNumber: `MOCK-${1000 + i}`,
-      storeId: 1,
-      deliveryStatus: 'delivered',
-      items: items.map(item => ({ ...item, isDelivered: true })) // Marquer les articles existants comme livrés
-    });
-  }
-  return sales.sort((a, b) => new Date(b.date) - new Date(a.date));
-};
 
 export const formatPrice = (amount) => {
   if (amount === undefined || amount === null || isNaN(amount)) return '0 FCFA';
@@ -74,18 +25,16 @@ export const StoreProvider = ({ children }) => {
   // This keeps full backward-compat with components that use useStore().currentUser
   const authCtx = useContext(AuthContext);
   const currentUser = authCtx?.currentUser ?? null;
-  const [stores, setStores] = useState([
-    { id: 1, name: 'Magasin Principal', location: 'Siège' }
-  ]);
-  const [activeStoreId, setActiveStoreId] = useState(1);
-  const [categories, setCategories] = useState([...new Set(initialProducts.map(p => p.category))]);
+  const [stores, setStores] = useState([]);
+  const [activeStoreId, setActiveStoreId] = useState(null);
+  const [categories, setCategories] = useState([]);
 
-  // Initialize products and sales with storeId: 1
-  const [allProducts, setAllProducts] = useState(initialProducts.map(p => ({ ...p, storeId: 1 })));
-  const [allSales, setAllSales] = useState(generateSalesHistory().map(s => ({ ...s, storeId: 1 })));
+  // Initialize products and sales
+  const [allProducts, setAllProducts] = useState([]);
+  const [allSales, setAllSales] = useState([]);
 
   const [cart, setCart] = useState([]);
-  const [users, setUsers] = useState(initialUsers.map(u => ({ ...u, isActive: true, storeId: 1 })));
+  const [users, setUsers] = useState([]);
   const [invoiceCounters, setInvoiceCounters] = useState({});
   const [transfers, setTransfers] = useState([]);
   const [stockEntries, setStockEntries] = useState([]);
@@ -99,23 +48,16 @@ export const StoreProvider = ({ children }) => {
   const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'light');
 
   // Paramètres globaux de l'entreprise
-  const [companySettings, setCompanySettings] = useState(() => {
-    const saved = localStorage.getItem('companySettings');
-    return saved ? JSON.parse(saved) : {
-      name: 'GROUPE T. GRAND ZAO INTER SARL',
-      activity: 'COMMERCE GENERAL ET PRESTATION DE SERVICES',
-      phones: '659 146 882 / 672 126 507 / 699 900 658',
-      ncc: 'M042318164160W',
-      rccm: '1391CH/N°94C1175/71994'
-    };
+  const [companySettings, setCompanySettings] = useState({
+    name: 'FEU FLAMENCO',
+    activity: 'VENTE DE MATERIELS SECURITE INCENDIE ET ACCESSOIRES',
+    phones: '+225 07 48 48 55 90 / +225 05 05 57 26 01',
+    ncc: '1947852 B',
+    rccm: 'CI-ABJ-03-2019-B13-17654'
   });
 
   const updateCompanySettings = useCallback((newSettings) => {
-    setCompanySettings(prev => {
-      const updated = { ...prev, ...newSettings };
-      localStorage.setItem('companySettings', JSON.stringify(updated));
-      return updated;
-    });
+    setCompanySettings(prev => ({ ...prev, ...newSettings }));
   }, []);
 
   const [expenses, setExpenses] = useState([]);
@@ -124,7 +66,68 @@ export const StoreProvider = ({ children }) => {
   const [isCashFundInitialized, setIsCashFundInitialized] = useState(false);
   const [cashInitializationDate, setCashInitializationDate] = useState(null);
   const [lastClosingBalance, setLastClosingBalance] = useState(0);
-  const [cashReports, setCashReports] = useState(() => JSON.parse(localStorage.getItem('cashReports')) || []);
+  const [cashReports, setCashReports] = useState([]);
+
+  // Fetch initial data from server if currentUser is set (authenticated)
+  React.useEffect(() => {
+    if (!currentUser) return;
+
+    // Normalize MongoDB _id → id so all legacy components work transparently
+    const norm = (arr) => {
+      if (!Array.isArray(arr)) return arr;
+      return arr.map(item => ({ ...item, id: item._id || item.id }));
+    };
+
+    const loadData = async () => {
+      const results = await Promise.allSettled([
+        fetchStores(),
+        fetchProducts(),
+        fetchSales(),
+        fetchUsers(),
+        fetchTransfers(),
+        fetchStockEntries(),
+        fetchCustomers(),
+        fetchCustomerTransactions(),
+        fetchBreakages(),
+        fetchRepackagings(),
+        fetchCompanySettings(),
+        fetchExpenses(),
+        fetchVersements(),
+        fetchCashReports()
+      ]);
+
+      const get = (i) => results[i].status === 'fulfilled' ? results[i].value : null;
+      const storesData = get(0);
+      if (storesData) {
+        const stores = norm(storesData);
+        setStores(stores);
+        if (stores.length > 0) {
+          const userStoreId = currentUser.storeId;
+          const match = stores.find(s => s._id === userStoreId || s.id === userStoreId);
+          setActiveStoreId(match ? (match._id || match.id) : (stores[0]._id || stores[0].id));
+        }
+      }
+      if (get(1)) { setAllProducts(norm(get(1))); const uniqueCats = [...new Set(get(1).map(p => p.category).filter(Boolean))]; setCategories(uniqueCats); }
+      if (get(2)) setAllSales(norm(get(2)));
+      if (get(3)) setUsers(norm(get(3)));
+      if (get(4)) setTransfers(norm(get(4)));
+      if (get(5)) setStockEntries(norm(get(5)));
+      if (get(6)) setCustomers(norm(get(6)));
+      if (get(7)) setCustomerTransactions(norm(get(7)));
+      if (get(8)) setBreakages(norm(get(8)));
+      if (get(9)) setRepackagings(norm(get(9)));
+      if (get(10)) setCompanySettings(get(10));
+      if (get(11)) setExpenses(norm(get(11)));
+      if (get(12)) setVersements(norm(get(12)));
+      if (get(13)) setCashReports(norm(get(13)));
+
+      results.forEach((r, i) => {
+        if (r.status === 'rejected') console.warn(`⚠️ loadData[${i}] failed:`, r.reason?.message);
+      });
+    };
+
+    loadData();
+  }, [currentUser]);
 
   // Hydrate per-cashier cash fund state whenever the logged-in user changes
   React.useEffect(() => {
@@ -169,23 +172,28 @@ export const StoreProvider = ({ children }) => {
     }
   }, [currentUser]);
   const addUser = useCallback((user) => {
-    setUsers(prev => [...prev, {
-      ...user,
-      id: Math.max(...prev.map(u => u.id), 0) + 1,
-      isActive: true
-    }]);
+    // When server returns user, it has _id. Map it to id for legacy component compat.
+    const normalized = { ...user, id: user._id || user.id, isActive: user.isActive ?? true };
+    setUsers(prev => [...prev, normalized]);
   }, []);
 
   const updateUser = useCallback((id, updates) => {
-    setUsers(prev => prev.map(u => u.id === id ? { ...u, ...updates } : u));
+    // id can be _id string or numeric id
+    setUsers(prev => prev.map(u =>
+      (u._id === id || u.id === id) ? { ...u, ...updates } : u
+    ));
   }, []);
 
   const toggleUserStatus = useCallback((id) => {
-    setUsers(prev => prev.map(u => u.id === id ? { ...u, isActive: !u.isActive } : u));
+    setUsers(prev => prev.map(u =>
+      (u._id === id || u.id === id) ? { ...u, isActive: !u.isActive } : u
+    ));
   }, []);
 
   const addStore = useCallback((store) => {
-    setStores(prev => [...prev, { ...store, id: Math.max(...prev.map(s => s.id), 0) + 1 }]);
+    // Server returns store with _id. Map to id for legacy compat.
+    const normalized = { ...store, id: store._id || store.id };
+    setStores(prev => [...prev, normalized]);
   }, []);
 
   const switchStore = useCallback((id) => {
@@ -211,25 +219,32 @@ export const StoreProvider = ({ children }) => {
   }, []);
 
   const addProduct = useCallback((product) => {
-    setAllProducts(prev => [...prev, {
+    // If called with server-returned product, it already has id set.
+    // Otherwise (offline/mock mode) generate a local id.
+    const hasServerId = product.id || product._id;
+    const normalized = {
       ...product,
-      id: Math.max(...prev.map(p => p.id), 0) + 1,
-      storeId: activeStoreId,
-      physicalStock: product.stock // Initialiser le stock physique au même niveau que le théorique
-    }]);
+      id: product._id || product.id || (Date.now()),
+      storeId: product.storeId || activeStoreId,
+      physicalStock: product.physicalStock ?? product.stock
+    };
+    setAllProducts(prev => [...prev, normalized]);
   }, [activeStoreId]);
 
   const updateProduct = useCallback((id, updates) => {
-    setAllProducts(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p));
+    setAllProducts(prev => prev.map(p =>
+      (p._id === id || p.id === id) ? { ...p, ...updates } : p
+    ));
   }, []);
 
   const deleteProduct = useCallback((id) => {
-    setAllProducts(prev => prev.filter(p => p.id !== id));
+    setAllProducts(prev => prev.filter(p => p._id !== id && p.id !== id));
   }, []);
 
   const bulkUpdateStock = useCallback((items, entryMeta = {}) => {
     setAllProducts(prev => prev.map(p => {
-      const entry = items.find(item => item.productId === p.id);
+      // Match by either MongoDB string id or legacy numeric id
+      const entry = items.find(item => item.productId === p._id || item.productId === p.id);
       if (entry) {
         return {
           ...p,
@@ -242,7 +257,7 @@ export const StoreProvider = ({ children }) => {
     }));
     // Record the stock entry for accounting
     setStockEntries(prev => [{
-      id: prev.length + 1,
+      id: Date.now(),
       reference: entryMeta.reference || `ENT-${String(prev.length + 1).padStart(4, '0')}`,
       date: new Date().toISOString(),
       supplier: entryMeta.supplier || 'Non spécifié',
@@ -262,7 +277,7 @@ export const StoreProvider = ({ children }) => {
 
     setAllProducts(prev => {
       const newProducts = [...prev];
-      const productIndex = newProducts.findIndex(p => p.id === productId);
+      const productIndex = newProducts.findIndex(p => p._id === productId || p.id === productId);
 
       if (productIndex !== -1) {
         sourceProduct = { ...newProducts[productIndex] };
@@ -285,13 +300,12 @@ export const StoreProvider = ({ children }) => {
             physicalStock: newProducts[breakageProductIndex].physicalStock + quantity
           };
         } else {
-          // Créer le produit dérivé "Casse"
-          const maxId = Math.max(...newProducts.map(p => p.id), 0);
+          // Créer le produit dérivé "Casse" avec un id temporaire (sera remplacé par _id du serveur)
           newProducts.push({
-            id: maxId + 1,
+            id: `local-${Date.now()}`,
             name: newProductName,
             category: 'Cartons Cassés',
-            price: sourceProduct.price, // Prix modifiable ensuite par le caissier
+            price: sourceProduct.price,
             cost: sourceProduct.cost,
             stock: quantity,
             physicalStock: quantity,
@@ -405,7 +419,7 @@ export const StoreProvider = ({ children }) => {
       }
       if (!product.isNonInventory && product.stock <= 0) return prev;
       return [...prev, {
-        productId: product.id,
+        productId: product._id || product.id,
         name: product.name,
         designation: product.designation,
         price: product.price,
@@ -455,7 +469,7 @@ export const StoreProvider = ({ children }) => {
     };
     // Decrease stock for each product (except non-inventory)
     setAllProducts(prev => prev.map(p => {
-      const cartItem = cart.find(item => item.productId === p.id);
+      const cartItem = cart.find(item => item.productId === p._id || item.productId === p.id);
       if (cartItem && !p.isNonInventory) {
         return { ...p, stock: Math.max(0, p.stock - cartItem.quantity) };
       }
@@ -514,33 +528,42 @@ export const StoreProvider = ({ children }) => {
   }, [currentUser, activeStoreId]);
 
   const addExpense = useCallback((expense) => {
-    setExpenses(prev => [{
-      ...expense,
-      id: Date.now(),
+    // If called with server-returned expense (has id from DB), use it directly
+    const normalized = {
       date: new Date().toISOString(),
       cashier: currentUser?.name || 'Inconnu',
-      storeId: activeStoreId
-    }, ...prev]);
+      storeId: activeStoreId,
+      ...expense,
+      id: expense._id || expense.id || Date.now(),
+    };
+    setExpenses(prev => [normalized, ...prev]);
   }, [currentUser, activeStoreId]);
 
   const addVersement = useCallback((amount) => {
-    setVersements(prev => [{
+    // amount may be a number (local) or a server-returned versement object
+    const isObject = typeof amount === 'object' && amount !== null;
+    const normalized = isObject ? {
+      ...amount,
+      id: amount._id || amount.id || Date.now(),
+    } : {
       id: Date.now(),
       amount,
       date: new Date().toISOString(),
       cashier: currentUser?.name || 'Inconnu',
       storeId: activeStoreId
-    }, ...prev]);
+    };
+    setVersements(prev => [normalized, ...prev]);
   }, [currentUser, activeStoreId]);
 
   // Customer account management
   const addCustomer = useCallback((customerData) => {
+    // When called with server-returned customer, use real id/_id
     const newCustomer = {
-      ...customerData,
-      id: Date.now(),
       balance: 0,
       totalSpent: 0,
       createdAt: new Date().toISOString(),
+      ...customerData,
+      id: customerData._id || customerData.id || Date.now(),
     };
     setCustomers(prev => [...prev, newCustomer]);
     return newCustomer;
@@ -558,15 +581,16 @@ export const StoreProvider = ({ children }) => {
       storeId: activeStoreId,
       reference: `DEP-${Date.now()}`,
     };
+    // Match by either MongoDB string _id or local numeric id
     setCustomers(prev => prev.map(c =>
-      c.id === customerId ? { ...c, balance: c.balance + amount } : c
+      (c._id === customerId || c.id === customerId) ? { ...c, balance: c.balance + amount } : c
     ));
     setCustomerTransactions(prev => [txn, ...prev]);
     return txn;
   }, [currentUser, activeStoreId]);
 
   const refundCustomer = useCallback((customerId, amount) => {
-    const customer = customers.find(c => c.id === customerId);
+    const customer = customers.find(c => c._id === customerId || c.id === customerId);
     if (!customer || customer.balance < amount) return null;
     const txn = {
       id: Date.now(),
@@ -580,7 +604,7 @@ export const StoreProvider = ({ children }) => {
       reference: `RMB-${Date.now()}`,
     };
     setCustomers(prev => prev.map(c =>
-      c.id === customerId ? { ...c, balance: c.balance - amount } : c
+      (c._id === customerId || c.id === customerId) ? { ...c, balance: c.balance - amount } : c
     ));
     setCustomerTransactions(prev => [txn, ...prev]);
     return txn;

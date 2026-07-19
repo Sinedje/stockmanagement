@@ -70,7 +70,7 @@ export const logoutRequest = async () => {
 export const fetchCurrentUser = async () => {
   if (import.meta.env.VITE_API_URL) {
     const response = await api.get('/auth/me');
-    return response.data.user;
+    return response.data;
   }
   // Mock: restore from localStorage
   const raw = localStorage.getItem('auth_user');

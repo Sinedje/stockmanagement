@@ -28,7 +28,7 @@ export const fetchCustomerTransactions = async (customerId) => {
   if (import.meta.env.VITE_API_URL) {
     const endpoint = customerId
       ? `/customers/${customerId}/transactions`
-      : '/customer-transactions';
+      : '/customers/transactions';
     const response = await api.get(endpoint);
     return response.data;
   }

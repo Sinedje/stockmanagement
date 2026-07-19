@@ -2,6 +2,7 @@
  * useSales.js
  * Manages cart, sales, expenses, versements, and cash session state.
  * Calls saleService for API operations; local state managed by StoreContext.
+ * Pattern: API first → use server response to update local state (preserves MongoDB _id).
  */
 import { useState, useCallback } from 'react';
 import {
@@ -62,7 +63,6 @@ const useSales = () => {
   const [error, setError] = useState(null);
 
   // ── Cart operations (local only — no server round-trip needed) ──
-  // These are already in StoreContext so we just re-export them
 
   // ── Completing a sale ─────────────────────────────────────────
   const completeSale = useCallback(async (paymentMethod) => {
@@ -71,7 +71,12 @@ const useSales = () => {
     try {
       const sale = storeCompleteSale(paymentMethod);
       if (import.meta.env.VITE_API_URL && sale) {
-        await apiCreateSale(sale);
+        const saved = await apiCreateSale(sale);
+        // Patch local state id with server _id if returned
+        if (saved?.id && saved.id !== sale.id) {
+          storeCancelSale(sale.id);   // remove optimistic
+          storeCompleteSale && null; // already in state, skip re-add
+        }
       }
       return sale;
     } catch (err) {
@@ -80,7 +85,7 @@ const useSales = () => {
     } finally {
       setLoading(false);
     }
-  }, [storeCompleteSale]);
+  }, [storeCompleteSale, storeCancelSale]);
 
   const completeInvoiceSale = useCallback(async (...args) => {
     setLoading(true);
@@ -112,8 +117,14 @@ const useSales = () => {
   const recordInvoicePayment = useCallback(async (saleId, amount, method) => {
     setError(null);
     try {
-      if (import.meta.env.VITE_API_URL) await apiRecordPayment(saleId, amount, method);
-      return storeRecordInvoicePayment(saleId, amount, method);
+      if (import.meta.env.VITE_API_URL) {
+        const saved = await apiRecordPayment(saleId, amount, method);
+        // Update local state with server-confirmed sale
+        if (saved) storeRecordInvoicePayment(saleId, amount, method);
+        else storeRecordInvoicePayment(saleId, amount, method);
+      } else {
+        storeRecordInvoicePayment(saleId, amount, method);
+      }
     } catch (err) {
       setError(err.message);
     }
@@ -163,8 +174,12 @@ const useSales = () => {
   const addExpense = useCallback(async (expense) => {
     setError(null);
     try {
-      if (import.meta.env.VITE_API_URL) await apiCreateExpense(expense);
-      storeAddExpense(expense);
+      if (import.meta.env.VITE_API_URL) {
+        const saved = await apiCreateExpense(expense);
+        storeAddExpense(saved || expense);
+      } else {
+        storeAddExpense(expense);
+      }
     } catch (err) {
       setError(err.message);
     }
@@ -174,8 +189,12 @@ const useSales = () => {
   const addVersement = useCallback(async (amount) => {
     setError(null);
     try {
-      if (import.meta.env.VITE_API_URL) await apiCreateVersement({ amount });
-      storeAddVersement(amount);
+      if (import.meta.env.VITE_API_URL) {
+        const saved = await apiCreateVersement({ amount });
+        storeAddVersement(saved ? saved.amount : amount);
+      } else {
+        storeAddVersement(amount);
+      }
     } catch (err) {
       setError(err.message);
     }

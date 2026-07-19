@@ -5,6 +5,7 @@
  */
 import { useState, useCallback } from 'react';
 import {
+  fetchUsers as apiFetchUsers,
   createUser as apiCreateUser,
   updateUser as apiUpdateUser,
   toggleUserStatus as apiToggleUserStatus,
@@ -28,10 +29,16 @@ const useUsers = () => {
     setLoading(true);
     setError(null);
     try {
-      if (import.meta.env.VITE_API_URL) await apiCreateUser(userData);
-      storeAddUser(userData);
+      if (import.meta.env.VITE_API_URL) {
+        const saved = await apiCreateUser(userData);
+        // Use the server-returned user (with real _id) for local state
+        storeAddUser(saved || userData);
+      } else {
+        storeAddUser(userData);
+      }
     } catch (err) {
       setError(err.message);
+      throw err;
     } finally {
       setLoading(false);
     }
@@ -40,8 +47,12 @@ const useUsers = () => {
   const updateUser = useCallback(async (id, updates) => {
     setError(null);
     try {
-      if (import.meta.env.VITE_API_URL) await apiUpdateUser(id, updates);
-      storeUpdateUser(id, updates);
+      if (import.meta.env.VITE_API_URL) {
+        const saved = await apiUpdateUser(id, updates);
+        storeUpdateUser(id, saved || updates);
+      } else {
+        storeUpdateUser(id, updates);
+      }
     } catch (err) {
       setError(err.message);
     }
@@ -50,7 +61,9 @@ const useUsers = () => {
   const toggleUserStatus = useCallback(async (id) => {
     setError(null);
     try {
-      if (import.meta.env.VITE_API_URL) await apiToggleUserStatus(id);
+      if (import.meta.env.VITE_API_URL) {
+        await apiToggleUserStatus(id);
+      }
       storeToggleUserStatus(id);
     } catch (err) {
       setError(err.message);

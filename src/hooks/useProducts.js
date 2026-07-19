@@ -13,12 +13,6 @@ import {
 } from '../services/productService';
 import { useStore } from '../context/StoreContext';
 
-/**
- * useProducts()
- * Returns the products array and CRUD operations for the active store.
- * Delegates to StoreContext for the underlying state (to maintain full compatibility
- * with existing components) while routing write operations through the service layer.
- */
 const useProducts = () => {
   const {
     products,
@@ -31,6 +25,7 @@ const useProducts = () => {
     addCategory: storeAddCategory,
     lowStockProducts,
     totalStockValue,
+    activeStoreId,
   } = useStore();
 
   const [loading, setLoading] = useState(false);
@@ -40,8 +35,15 @@ const useProducts = () => {
     setLoading(true);
     setError(null);
     try {
-      await apiCreateProduct(productData);
-      storeAddProduct(productData); // Update local state
+      // Inject the current activeStoreId if not already present
+      const payload = { ...productData, storeId: productData.storeId || activeStoreId };
+      if (import.meta.env.VITE_API_URL) {
+        const saved = await apiCreateProduct(payload);
+        // Use server-returned product (with real _id → id) for local state
+        storeAddProduct(saved || payload);
+      } else {
+        storeAddProduct(payload);
+      }
     } catch (err) {
       setError(err.message);
       throw err;
@@ -54,8 +56,12 @@ const useProducts = () => {
     setLoading(true);
     setError(null);
     try {
-      await apiUpdateProduct(id, updates);
-      storeUpdateProduct(id, updates);
+      if (import.meta.env.VITE_API_URL) {
+        const saved = await apiUpdateProduct(id, updates);
+        storeUpdateProduct(id, saved || updates);
+      } else {
+        storeUpdateProduct(id, updates);
+      }
     } catch (err) {
       setError(err.message);
       throw err;
@@ -68,7 +74,7 @@ const useProducts = () => {
     setLoading(true);
     setError(null);
     try {
-      await apiDeleteProduct(id);
+      if (import.meta.env.VITE_API_URL) await apiDeleteProduct(id);
       storeDeleteProduct(id);
     } catch (err) {
       setError(err.message);
@@ -82,7 +88,7 @@ const useProducts = () => {
     setLoading(true);
     setError(null);
     try {
-      await apiBulkUpdateStock(items, entryMeta);
+      if (import.meta.env.VITE_API_URL) await apiBulkUpdateStock(items, entryMeta);
       storeBulkUpdateStock(items, entryMeta);
     } catch (err) {
       setError(err.message);
@@ -95,7 +101,7 @@ const useProducts = () => {
   const addCategory = useCallback(async (name) => {
     setError(null);
     try {
-      await apiCreateCategory(name);
+      if (import.meta.env.VITE_API_URL) await apiCreateCategory(name);
       storeAddCategory(name);
     } catch (err) {
       setError(err.message);

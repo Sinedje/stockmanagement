@@ -40,10 +40,16 @@ const useStores = () => {
     setLoading(true);
     setError(null);
     try {
-      await apiCreateStore(storeData);
-      storeAddStore(storeData);
+      if (import.meta.env.VITE_API_URL) {
+        const saved = await apiCreateStore(storeData);
+        // Use server-returned store (with real _id) for local state
+        storeAddStore(saved || storeData);
+      } else {
+        storeAddStore(storeData);
+      }
     } catch (err) {
       setError(err.message);
+      throw err;
     } finally {
       setLoading(false);
     }
@@ -52,8 +58,12 @@ const useStores = () => {
   const updateStore = useCallback(async (id, updates) => {
     setError(null);
     try {
-      await apiUpdateStore(id, updates);
-      storeUpdateStore(id, updates);
+      if (import.meta.env.VITE_API_URL) {
+        const saved = await apiUpdateStore(id, updates);
+        storeUpdateStore(id, saved || updates);
+      } else {
+        storeUpdateStore(id, updates);
+      }
     } catch (err) {
       setError(err.message);
     }
@@ -62,7 +72,7 @@ const useStores = () => {
   const deleteStore = useCallback(async (id) => {
     setError(null);
     try {
-      await apiDeleteStore(id);
+      if (import.meta.env.VITE_API_URL) await apiDeleteStore(id);
       storeDeleteStore(id);
     } catch (err) {
       setError(err.message);
