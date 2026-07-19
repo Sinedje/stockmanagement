@@ -3,17 +3,23 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: #0b1120;
+  background-color: var(--bg-primary);
   padding: 20px;
+  transition: background-color 0.3s ease;
 }
 
 .login-card {
   width: 100%;
   max-width: 440px;
-  background: #111827;
-  border: 1px solid #1f2937;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
   border-radius: 20px;
   padding: 50px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+}
+
+.dark .login-card {
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
 }
 
@@ -38,34 +44,34 @@
 .login-title {
   font-size: 24px;
   font-weight: 800;
-  color: #10b981;
+  color: var(--color-primary);
   letter-spacing: 2px;
   margin-bottom: 8px;
 }
 
 .login-subtitle {
   font-size: 14px;
-  color: #94a3b8;
+  color: var(--text-secondary);
 }
 
 .demo-credentials {
   margin-top: 30px;
   padding-top: 20px;
-  border-top: 1px solid #1f2937;
+  border-top: 1px solid var(--border-color);
   text-align: center;
 }
 
 .demo-title {
   font-size: 12px;
   text-transform: uppercase;
-  color: #64748b;
+  color: var(--text-muted);
   margin-bottom: 12px;
   letter-spacing: 1px;
 }
 
 .demo-item {
   font-size: 13px;
-  color: #94a3b8;
+  color: var(--text-secondary);
   margin-bottom: 5px;
 }
 
@@ -74,24 +80,24 @@
   margin-bottom: 8px;
   font-size: 13px;
   font-weight: 600;
-  color: #94a3b8;
+  color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 1px;
 }
 
 .custom-antd-input {
   height: 48px !important;
-  background-color: #0f172a !important;
-  border: 1px solid #1f2937 !important;
+  background-color: var(--bg-input) !important;
+  border: 1px solid var(--border-color) !important;
   border-radius: 10px !important;
-  color: #f8fafc !important;
+  color: var(--text-primary) !important;
   transition: all 0.3s ease !important;
 }
 
 .custom-antd-input:hover, 
 .custom-antd-input:focus {
-  border-color: #10b981 !important;
-  background-color: #111827 !important;
+  border-color: var(--color-primary) !important;
+  background-color: var(--bg-secondary) !important;
   box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.1) !important;
 }
 

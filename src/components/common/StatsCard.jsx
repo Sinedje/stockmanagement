@@ -3,7 +3,7 @@ import React from 'react';
 const StatsCard = ({ icon: Icon, label, value, change, changeDir, color = 'green', accentColor }) => {
   return (
     <div 
-      className="bg-bg-card backdrop-blur-md border border-white/5 rounded-2xl p-6 transition-all duration-300 hover:border-white/10 hover:shadow-xl group"
+      className="bg-bg-card backdrop-blur-md border border-black/5 dark:border-white/5 rounded-2xl p-6 transition-all duration-300 hover:border-black/10 dark:hover:border-white/10 hover:shadow-xl group"
       style={accentColor ? { borderTop: `4px solid ${accentColor}` } : undefined}
     >
       <div className="flex items-center justify-between mb-5">
@@ -22,8 +22,10 @@ const StatsCard = ({ icon: Icon, label, value, change, changeDir, color = 'green
           </span>
         )}
       </div>
-      <div className="text-text-secondary text-[0.75rem] font-bold uppercase tracking-wider mb-1 opacity-50">{label}</div>
-      <div className="text-text-heading text-2xl font-black tracking-tight leading-tight">{value}</div>
+      <div className="space-y-1">
+        <div className="text-[0.7rem] font-black text-text-secondary dark:text-text-muted uppercase tracking-widest">{label}</div>
+        <div className="text-2xl font-black text-text-heading tracking-tight">{value}</div>
+      </div>
     </div>
   );
 };

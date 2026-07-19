@@ -3,10 +3,12 @@ import { useStore, formatPrice } from '../../context/StoreContext';
 import StatsCard from '../common/StatsCard';
 import Card from '../common/Card';
 import DataTable from '../common/DataTable';
-import { Package, DollarSign, ShoppingCart, AlertTriangle, TrendingUp, Clock } from 'lucide-react';
+import { Package, DollarSign, ShoppingCart, AlertTriangle, TrendingUp, Clock, Truck, CreditCard } from 'lucide-react';
 
 const DashboardHome = () => {
-  const { products, sales, totalRevenue, todaySales, todayRevenue, lowStockProducts, totalStockValue } = useStore();
+  const { products, sales, allSales, totalRevenue, todaySales, todayRevenue, lowStockProducts, totalStockValue, stores, allCashierProducts } = useStore();
+  const pendingDeliveriesCount = allSales.filter(s => s.status !== 'cancelled' && s.deliveryStatus !== 'delivered').length;
+  const totalUnpaid = allSales.reduce((sum, s) => sum + (s.amountDue || 0), 0);
 
   const recentSales = sales.slice(0, 8);
   const totalProfit = sales.reduce((sum, s) => sum + s.total * 0.25, 0);
@@ -34,6 +36,12 @@ const DashboardHome = () => {
         <StatsCard icon={AlertTriangle} label="Stock Faible" value={lowStockProducts.length} color="red" accentColor="#ef4444" changeDir="down" change="Alerte" />
       </div>
 
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <StatsCard icon={Truck} label="Livraisons en Attente" value={pendingDeliveriesCount} color="orange" accentColor="#f97316" changeDir={pendingDeliveriesCount > 0 ? 'down' : 'up'} change={pendingDeliveriesCount > 0 ? 'À traiter' : 'Tout livré ✅'} />
+        <StatsCard icon={CreditCard} label="Créances en Attente" value={formatPrice(totalUnpaid)} color="red" accentColor="#ef4444" changeDir="down" change="À recouvrer" />
+        <StatsCard icon={TrendingUp} label="Bénéfice Estimé" value={formatPrice(totalProfit)} color="green" accentColor="#10b981" />
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card title="Ventes Récentes" icon={Clock} noPadding>
           <div className="bg-bg-secondary rounded-xl overflow-hidden border border-white/5">
@@ -55,9 +63,22 @@ const DashboardHome = () => {
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-        <StatsCard icon={TrendingUp} label="Bénéfice Estimé" value={formatPrice(totalProfit)} color="green" accentColor="#10b981" />
-        <StatsCard icon={Package} label="Valeur du Stock" value={formatPrice(totalStockValue)} color="blue" accentColor="#3b82f6" />
+      <h3 className="text-lg font-bold text-text-heading mt-8 mb-4">Valeur du Stock par Magasin</h3>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {stores.map(store => {
+          const storeProducts = allCashierProducts.filter(p => p.storeId === store.id);
+          const value = storeProducts.reduce((sum, p) => sum + (p.cost * p.stock), 0);
+          return (
+            <StatsCard 
+              key={store.id} 
+              icon={Package} 
+              label={`Stock (Prix d'achat): ${store.name}`} 
+              value={formatPrice(value)} 
+              color="blue" 
+              accentColor="#3b82f6" 
+            />
+          );
+        })}
       </div>
     </div>
   );

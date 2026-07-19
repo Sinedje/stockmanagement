@@ -20,7 +20,7 @@ const SearchComponent = ({
         size="large"
         onChange={onChange}
         value={value}
-        className="h-11 rounded-xl bg-white/5 border-white/10 hover:border-primary/50 focus:border-primary transition-all duration-300 shadow-inner"
+        className="h-11 rounded-xl bg-bg-input border-black/10 dark:border-white/10 hover:border-primary/50 focus:border-primary transition-all duration-300 shadow-sm"
         {...props}
       />
     </div>

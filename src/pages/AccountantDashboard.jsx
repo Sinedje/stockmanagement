@@ -2,52 +2,56 @@ import React, { useState } from 'react';
 import DashboardLayout from '../components/layouts/DashboardLayout';
 import FinancialSummary from '../components/accountant/FinancialSummary';
 import TransactionsTable from '../components/accountant/TransactionsTable';
-import { BarChart3, Receipt } from 'lucide-react';
+import StockMovementsPanel from '../components/accountant/StockMovementsPanel';
+import ReleaseNotes from '../components/manager/ReleaseNotes';
+import ClosureHistory from '../components/common/ClosureHistory';
+import CEODashboardHome from '../components/ceo/DashboardHome';
+import { BarChart3, Receipt, FileText, ClipboardList, TrendingUp, Truck } from 'lucide-react';
 
 const sidebarItems = [
   { id: 'summary', label: 'Résumé Financier', icon: BarChart3 },
+  { id: 'strategic', label: 'Vue Stratégique', icon: TrendingUp },
   { id: 'transactions', label: 'Transactions', icon: Receipt },
+  { id: 'movements', label: 'Mouvements de Stock', icon: Truck },
+  { id: 'reports', label: 'Liste des Bilans', icon: ClipboardList },
+  { id: 'releases', label: 'Bon de Sortie', icon: FileText },
 ];
 
 const AccountantDashboard = () => {
   const [activeTab, setActiveTab] = useState('summary');
 
-  const titles = { summary: 'Résumé Financier', transactions: 'Historique des Transactions' };
-  const subtitles = { summary: 'Aperçu de la performance financière', transactions: 'Détails de toutes les transactions' };
+  const titles = { 
+    summary: 'Résumé Financier', 
+    strategic: 'Vue Stratégique',
+    transactions: 'Historique des Transactions',
+    movements: 'Mouvements de Stock',
+    reports: 'Liste des Bilans de Caisse',
+    releases: 'Bons de Sortie Marchandises'
+  };
+  const subtitles = { 
+    summary: 'Aperçu de la performance financière', 
+    strategic: 'Performances globales, stocks et analyse du catalogue',
+    transactions: 'Détails de toutes les transactions',
+    movements: 'Entrées fournisseurs et transferts inter-magasins avec prix d\'achat',
+    reports: 'Historique des clôtures journalières par caisse',
+    releases: 'Suivi et export des sorties marchandises'
+  };
 
   return (
     <DashboardLayout
-      showSidebar={false}
       items={sidebarItems}
       activeItem={activeTab}
       onItemClick={setActiveTab}
       title={titles[activeTab]}
       subtitle={subtitles[activeTab]}
     >
-      <div className="animate-fade-in space-y-8">
-        {/* Inline Navigation Tabs */}
-        <div className="flex gap-2 p-1.5 bg-white/5 rounded-2xl w-fit border border-white/5 backdrop-blur-md">
-          {sidebarItems.map(item => (
-            <button
-              key={item.id}
-              onClick={() => setActiveTab(item.id)}
-              className={`
-                flex items-center gap-3 px-6 py-3 rounded-xl text-sm font-bold transition-all duration-300
-                ${activeTab === item.id 
-                  ? 'bg-primary text-black shadow-lg shadow-primary/20 scale-105' 
-                  : 'text-text-secondary hover:text-text-primary hover:bg-white/5'}
-              `}
-            >
-              <item.icon size={18} strokeWidth={2.5} />
-              <span>{item.label}</span>
-            </button>
-          ))}
-        </div>
-
-        <div className="min-h-[600px]">
-          {activeTab === 'summary' && <FinancialSummary />}
-          {activeTab === 'transactions' && <TransactionsTable />}
-        </div>
+      <div className="animate-fade-in min-h-[600px]">
+        {activeTab === 'summary' && <FinancialSummary />}
+        {activeTab === 'strategic' && <CEODashboardHome />}
+        {activeTab === 'transactions' && <TransactionsTable />}
+        {activeTab === 'movements' && <StockMovementsPanel />}
+        {activeTab === 'reports' && <ClosureHistory />}
+        {activeTab === 'releases' && <ReleaseNotes />}
       </div>
     </DashboardLayout>
   );

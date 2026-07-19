@@ -1,17 +1,29 @@
 import React, { useState } from 'react';
 import DashboardLayout from '../components/layouts/DashboardLayout';
-import ProductGrid from '../components/cashier/ProductGrid';
+import InvoiceBuilder from '../components/cashier/InvoiceBuilder';
+import InvoiceList from '../components/cashier/InvoiceList';
+import CustomerList from '../components/cashier/CustomerList';
+import ProductList from '../components/cashier/ProductList';
+import FinancialReport from '../components/cashier/FinancialReport';
 import Cart from '../components/cashier/Cart';
 import PaymentModal from '../components/cashier/PaymentModal';
-import { LayoutGrid } from 'lucide-react';
+import ClosureHistory from '../components/common/ClosureHistory';
+import StockEntryPanel from '../components/manager/StockEntryPanel';
+import { FileText, ShoppingCart, List, Users, Package, BarChart3, History, PlusSquare } from 'lucide-react';
 import { useStore, formatPrice } from '../context/StoreContext';
 
 const sidebarItems = [
-  { id: 'pos', label: 'Point de Vente', icon: LayoutGrid },
+  { id: 'invoice', label: 'Facturation', icon: FileText },
+  { id: 'invoices', label: 'Liste des factures', icon: List },
+  { id: 'customers', label: 'Liste des clients', icon: Users },
+  { id: 'products', label: 'Liste des articles', icon: Package },
+  { id: 'catalog', label: 'Catalogue & Entrées', icon: PlusSquare },
+  { id: 'report', label: 'Bilan financier', icon: BarChart3 },
+  { id: 'history', label: 'Liste des bilans', icon: History },
 ];
 
 const CashierPOS = () => {
-  const [activeTab, setActiveTab] = useState('pos');
+  const [activeTab, setActiveTab] = useState('invoice');
   const [showPayment, setShowPayment] = useState(false);
   const { cart, cartTotal } = useStore();
 
@@ -29,24 +41,48 @@ const CashierPOS = () => {
     </div>
   );
 
+  const titles = {
+    invoice: 'Facturation',
+    invoices: 'Liste des factures',
+    customers: 'Liste des clients',
+    products: 'Liste des articles',
+    catalog: 'Catalogue & Entrées de Stock',
+    report: 'Bilan Financier',
+    history: 'Historique des Bilans',
+  };
+  const subtitles = {
+    invoice: 'Créez et encaissez des factures multi-magasins',
+    invoices: 'Consultez et réimprimez vos factures établies',
+    customers: 'Gérez vos clients et consultez leur historique d\'achats',
+    products: 'Consultez les stocks disponibles par magasin',
+    catalog: 'Gérez le catalogue et réceptionnez la marchandise pour votre magasin',
+    report: 'Arrêtez vos comptes et visualisez vos rapports de vente',
+    history: 'Consultez vos anciennes clôtures de caisse',
+  };
+
   return (
     <DashboardLayout
-      showSidebar={false}
       items={sidebarItems}
       activeItem={activeTab}
       onItemClick={setActiveTab}
-      title="Point de Vente"
-      subtitle="Sélectionnez des produits et encaissez rapidement"
+      title={titles[activeTab]}
+      subtitle={subtitles[activeTab]}
       headerActions={<CartSummary />}
     >
-      <div className="flex flex-col xl:flex-row gap-8 h-[calc(100vh-280px)] min-h-[600px]">
-        <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
-          <ProductGrid />
-        </div>
-        <div className="w-full xl:w-[420px] shrink-0 h-full flex flex-col">
-          <Cart onCheckout={() => setShowPayment(true)} />
-        </div>
-      </div>
+      {activeTab === 'invoice' && <InvoiceBuilder />}
+      
+      {activeTab === 'invoices' && <InvoiceList />}
+
+      {activeTab === 'customers' && <CustomerList />}
+
+      {activeTab === 'products' && <ProductList />}
+      
+      {activeTab === 'catalog' && <StockEntryPanel />}
+
+      {activeTab === 'report' && <FinancialReport />}
+      
+      {activeTab === 'history' && <ClosureHistory />}
+
       {showPayment && <PaymentModal onClose={() => setShowPayment(false)} />}
     </DashboardLayout>
   );

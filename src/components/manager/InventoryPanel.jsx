@@ -8,7 +8,17 @@ import SearchComponent from '../common/SearchComponent';
 import { Plus, Edit3, Trash2, Package } from 'lucide-react';
 import { Button, Space, Popconfirm } from 'antd';
 
-const emptyProduct = { name: '', category: '', price: '', cost: '', stock: '', minStock: '' };
+const emptyProduct = { 
+  name: '', 
+  category: '', 
+  price: '', 
+  cost: '', 
+  stock: '', 
+  minStock: '', 
+  image: '',
+  supplier: '',
+  deliveryNote: ''
+};
 
 const InventoryPanel = () => {
   const { products, categories, addProduct, updateProduct, deleteProduct } = useStore();
@@ -17,6 +27,8 @@ const InventoryPanel = () => {
   const [showModal, setShowModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
   const [form, setForm] = useState(emptyProduct);
+  const [newCategory, setNewCategory] = useState('');
+  const [isAddingNewCategory, setIsAddingNewCategory] = useState(false);
 
   const filtered = products.filter(p => {
     const matchSearch = p.name.toLowerCase().includes(search.toLowerCase());
@@ -24,7 +36,15 @@ const InventoryPanel = () => {
     return matchSearch && matchCat;
   });
 
-  const openAdd = () => { setEditingProduct(null); setForm(emptyProduct); setShowModal(true); };
+  const { addCategory } = useStore();
+
+  const openAdd = () => { 
+    setEditingProduct(null); 
+    setForm(emptyProduct); 
+    setIsAddingNewCategory(false);
+    setNewCategory('');
+    setShowModal(true); 
+  };
   const openEdit = (p) => { 
     setEditingProduct(p); 
     setForm({ 
@@ -34,33 +54,61 @@ const InventoryPanel = () => {
       stock: String(p.stock), 
       minStock: String(p.minStock) 
     }); 
+    setIsAddingNewCategory(false);
     setShowModal(true); 
   };
 
   const handleSave = () => {
+    let finalCategory = form.category;
+    if (isAddingNewCategory && newCategory.trim()) {
+      addCategory(newCategory.trim());
+      finalCategory = newCategory.trim();
+    }
+
     const data = { 
       ...form, 
+      category: finalCategory,
       price: Number(form.price), 
       cost: Number(form.cost), 
       stock: Number(form.stock), 
       minStock: Number(form.minStock) 
     };
-    if (!data.name || !data.price) return;
+    if (!data.name || !data.price || !data.category) return;
     if (editingProduct) { updateProduct(editingProduct.id, data); }
     else { addProduct(data); }
     setShowModal(false);
   };
 
   const columns = [
+    { key: 'image', title: '', width: '60px', render: (val) => (
+      <div className="w-10 h-10 rounded-lg overflow-hidden bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5 flex items-center justify-center">
+        {val ? (
+          <img src={val} alt="" className="w-full h-full object-cover" />
+        ) : (
+          <Package size={16} className="opacity-20" />
+        )}
+      </div>
+    )},
     { key: 'name', title: 'Produit', render: (val) => <span className="font-semibold text-text-heading">{val}</span> },
     { key: 'category', title: 'Catégorie', render: (val) => <span className="badge badge-info">{val}</span> },
     { key: 'price', title: 'Prix', render: (val) => <span className="font-bold text-primary">{formatPrice(val)}</span> },
     { key: 'cost', title: 'Coût', render: (val) => formatPrice(val) },
-    { key: 'stock', title: 'Stock', render: (val, row) => <span className={`font-black ${val <= row.minStock ? 'text-red-500' : 'text-text-primary'}`}>{val}</span> },
+    { key: 'stock', title: 'Stock Vente', render: (val, row) => (
+      <div className="flex flex-col">
+        <span className={`font-black ${val <= row.minStock ? 'text-red-500' : 'text-text-primary'}`}>{val}</span>
+        <span className="text-[0.6rem] text-text-muted uppercase font-bold tracking-tighter">Théorique</span>
+      </div>
+    )},
+    { key: 'physicalStock', title: 'Stock Magasin', render: (val, row) => (
+      <div className="flex flex-col">
+        <span className={`font-black ${val <= row.minStock ? 'text-purple-500' : 'text-text-primary'}`}>{val}</span>
+        <span className="text-[0.6rem] text-text-muted uppercase font-bold tracking-tighter">Physique</span>
+      </div>
+    )},
     { key: 'minStock', title: 'Min' },
     { key: 'status', title: 'État', render: (_, row) => (
-      <span className={`badge ${row.stock <= 5 ? 'badge-danger' : row.stock <= row.minStock ? 'badge-warning' : 'badge-success'}`}>
-        {row.stock <= 5 ? 'Critique' : row.stock <= row.minStock ? 'Bas' : 'OK'}
+      <span className={`badge ${row.physicalStock <= 5 ? 'badge-danger' : row.physicalStock <= row.minStock ? 'badge-warning' : 'badge-success'}`}>
+        {row.physicalStock <= 5 ? 'Critique' : row.physicalStock <= row.minStock ? 'Bas' : 'OK'}
       </span>
     )},
     { key: 'actions', title: 'Actions', align: 'right', render: (_, row) => (
@@ -92,7 +140,7 @@ const InventoryPanel = () => {
 
   return (
     <div className="animate-fade-in space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white/5 p-6 rounded-2xl border border-white/5">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-bg-card p-6 rounded-2xl border border-black/5 dark:border-white/5">
         <SearchComponent
           placeholder="Rechercher un produit..."
           value={search}
@@ -111,7 +159,7 @@ const InventoryPanel = () => {
         </Button>
       </div>
 
-      <div className="flex flex-wrap gap-2 p-1.5 bg-black/20 rounded-xl w-fit border border-white/5">
+      <div className="flex flex-wrap gap-2 p-1.5 bg-black/5 dark:bg-black/20 rounded-xl w-fit border border-black/5 dark:border-white/5">
         {['Tous', ...categories].map(cat => (
           <button 
             key={cat} 
@@ -119,7 +167,7 @@ const InventoryPanel = () => {
               px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200
               ${filterCat === cat 
                 ? 'bg-primary text-black shadow-lg shadow-primary/20' 
-                : 'text-text-secondary hover:text-text-primary hover:bg-white/5'}
+                : 'text-text-secondary hover:text-text-primary hover:bg-black/5 dark:hover:bg-white/5'}
             `} 
             onClick={() => setFilterCat(cat)}
           >
@@ -128,7 +176,7 @@ const InventoryPanel = () => {
         ))}
       </div>
 
-      <div className="bg-bg-secondary rounded-2xl border border-white/5 overflow-hidden shadow-2xl">
+      <div className="bg-bg-secondary rounded-2xl border border-black/5 dark:border-white/5 overflow-hidden shadow-2xl">
         <DataTable
           columns={columns}
           data={filtered}
@@ -165,13 +213,39 @@ const InventoryPanel = () => {
               onChange={e => setForm({ ...form, name: e.target.value })}
               placeholder="Ex: Riz Basmati 5kg"
             />
-            <Select
-              label="Catégorie"
-              value={form.category}
-              onChange={e => setForm({ ...form, category: e.target.value })}
-              options={[...categories, 'Autre']}
-              placeholder="Sélectionner..."
-            />
+            
+            {!isAddingNewCategory ? (
+              <Select
+                label="Catégorie"
+                value={form.category}
+                onChange={val => {
+                  if (val === 'ADD_NEW') {
+                    setIsAddingNewCategory(true);
+                  } else {
+                    setForm({ ...form, category: val });
+                  }
+                }}
+                options={[...categories, { label: '+ Nouveau...', value: 'ADD_NEW' }]}
+                placeholder="Sélectionner..."
+              />
+            ) : (
+              <div className="space-y-2">
+                <Input
+                  label="Nouvelle Catégorie"
+                  value={newCategory}
+                  onChange={e => setNewCategory(e.target.value)}
+                  placeholder="Ex: Surgelés, Electronique..."
+                  autoFocus
+                />
+                <button 
+                  className="text-primary text-[0.7rem] font-bold uppercase tracking-wider hover:underline"
+                  onClick={() => setIsAddingNewCategory(false)}
+                >
+                  Choisir une catégorie existante
+                </button>
+              </div>
+            )}
+
             <div className="grid grid-cols-2 gap-4">
               <Input
                 label="Prix de Vente"
@@ -203,6 +277,67 @@ const InventoryPanel = () => {
                 onChange={e => setForm({ ...form, minStock: e.target.value })}
                 placeholder="0"
               />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 border-t border-black/5 dark:border-white/5 pt-4">
+              <Input
+                label="Fournisseur"
+                value={form.supplier || ''}
+                onChange={e => setForm({ ...form, supplier: e.target.value })}
+                placeholder="Nom du fournisseur"
+              />
+              <Input
+                label="N° Bon (Livraison/Commande)"
+                value={form.deliveryNote || ''}
+                onChange={e => setForm({ ...form, deliveryNote: e.target.value })}
+                placeholder="Ex: BL-2024-001"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-[0.65rem] font-black text-text-muted uppercase tracking-widest px-1">Image du Produit</label>
+              <div className="flex items-center gap-4 p-4 bg-black/5 dark:bg-white/5 border border-dashed border-black/20 dark:border-white/20 rounded-2xl transition-all hover:border-primary/50">
+                <div className="w-20 h-20 rounded-xl overflow-hidden bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5 flex items-center justify-center flex-shrink-0">
+                  {form.image ? (
+                    <img src={form.image} alt="Preview" className="w-full h-full object-cover" />
+                  ) : (
+                    <Package size={24} className="opacity-20" />
+                  )}
+                </div>
+                <div className="flex-1 space-y-1">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    id="product-image"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files[0];
+                      if (file) {
+                        const reader = new FileReader();
+                        reader.onloadend = () => {
+                          setForm({ ...form, image: reader.result });
+                        };
+                        reader.readAsDataURL(file);
+                      }
+                    }}
+                  />
+                  <label 
+                    htmlFor="product-image"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-black text-xs font-black rounded-lg cursor-pointer hover:bg-primary/90 transition-all uppercase tracking-tighter"
+                  >
+                    Choisir une image
+                  </label>
+                  <p className="text-[0.6rem] text-text-muted">PNG, JPG ou GIF (Max 2MB recommandé)</p>
+                </div>
+                {form.image && (
+                  <button 
+                    onClick={() => setForm({ ...form, image: '' })}
+                    className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
+                  >
+                    Effacer
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </Modal>
