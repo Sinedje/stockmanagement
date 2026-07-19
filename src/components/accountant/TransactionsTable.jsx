@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
-import { useStore, formatPrice } from '../../context/StoreContext';
+import { formatPrice } from '../../context/StoreContext';
+import { useSales } from '../../hooks';
 import SearchComponent from '../common/SearchComponent';
 import DataTable from '../common/DataTable';
 import Modal from '../common/Modal';
 import { Receipt, FileText, ShoppingBag, CreditCard, Tag } from 'lucide-react';
 
 const TransactionsTable = () => {
-  const { sales } = useStore();
+  const { sales } = useSales();
   const [search, setSearch] = useState('');
   const [filterMethod, setFilterMethod] = useState('Tous');
   const [selectedTransaction, setSelectedTransaction] = useState(null);

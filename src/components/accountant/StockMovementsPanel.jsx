@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import { useStore, formatPrice } from '../../context/StoreContext';
+import { formatPrice } from '../../context/StoreContext';
+import { useStores, useUsers } from '../../hooks';
 import { Truck, ArrowRightLeft, Package, Store, User, Calendar, Search, FileText, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button, Select, DatePicker, ConfigProvider, Tag } from 'antd';
 import frFR from 'antd/locale/fr_FR';
@@ -11,7 +12,7 @@ const { RangePicker } = DatePicker;
 
 // ─── STOCK ENTRIES TAB ───────────────────────────────────────────────────────
 const StockEntriesTab = () => {
-  const { stockEntries = [], stores = [] } = useStore();
+  const { stockEntries = [], stores = [] } = useStores();
   const [search, setSearch] = useState('');
   const [selectedStore, setSelectedStore] = useState('all');
   const [dateRange, setDateRange] = useState(null);
@@ -181,7 +182,8 @@ const StockEntriesTab = () => {
 
 // ─── TRANSFERS TAB ────────────────────────────────────────────────────────────
 const TransfersTab = () => {
-  const { transfers = [], stores = [], allCashierProducts = [] } = useStore();
+  const { transfers = [], stores = [] } = useStores();
+  const { allCashierProducts = [] } = useUsers();
   const [search, setSearch] = useState('');
   const [selectedStore, setSelectedStore] = useState('all');
   const [dateRange, setDateRange] = useState(null);

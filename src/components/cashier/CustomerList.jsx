@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
-import { useStore, formatPrice } from '../../context/StoreContext';
-import { Users, Search, Eye, ArrowLeft, Receipt, Plus, TrendingUp, TrendingDown, Wallet, ArrowDownToLine, ArrowUpFromLine, Phone } from 'lucide-react';
+import { formatPrice } from '../../context/StoreContext';
+import { useCustomers, useSales, useSettings, useStores } from '../../hooks';
+import { Users, Search, Eye, ArrowLeft, Receipt, Plus, TrendingUp, TrendingDown, Wallet, ArrowDownToLine, ArrowUpFromLine, Phone, Printer } from 'lucide-react';
 import ReceiptView from './ReceiptView';
+import { numberToWords } from './InvoicePrintTemplate';
 import { Button, Modal, InputNumber, Select, Tag, message, Popconfirm } from 'antd';
 
 // --- Deposit / Refund Modal ---
@@ -114,44 +116,224 @@ const TxnBadge = ({ type }) => {
 };
 
 // --- Print Deposit Receipt ---
-const printDepositReceipt = (customer, txn, storeName = 'STOCK EXPERT') => {
+const printDepositReceipt = (customer, txn, companySettings, stores) => {
   const win = window.open('', '_blank');
+  if (!win) return;
   const isDeposit = txn.type === 'deposit';
+  
+  const date = new Date(txn.date);
+  const dateStr = date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: '2-digit' });
+  const timeStr = date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+  const saleStore = stores?.find(s => s.id === txn.storeId);
+  const agencyName = saleStore ? `AGENCE ${saleStore.name.toUpperCase()}` : 'AGENCE FEU FLAMENCO';
+
+  const amountVal = Math.abs(txn.amount);
+  const amountInWords = numberToWords(amountVal);
+
+  const documentTitle = isDeposit ? 'Reçu de Dépôt' : 'Reçu de Remboursement';
+  const totalLabel = isDeposit ? 'NET DÉPOSÉ' : 'NET REMBOURSÉ';
+  
+  const soldeAvant = customer.balance;
+  const soldeApres = customer.balance + txn.amount;
+
   win.document.write(`
-    <html><head><title>${txn.reference}</title>
-    <style>
-      body { font-family: monospace; padding: 40px; max-width: 320px; margin: auto; }
-      h2 { text-align: center; margin-bottom: 4px; }
-      .sub { text-align: center; font-size: 11px; opacity: 0.6; margin-bottom: 20px; }
-      .row { display: flex; justify-content: space-between; margin: 6px 0; }
-      .divider { border-top: 1px dashed #000; margin: 12px 0; }
-      .total { font-size: 18px; font-weight: bold; text-align: center; margin: 16px 0; }
-      .footer { text-align: center; margin-top: 24px; font-size: 11px; }
-      .sig { border-top: 1px solid #000; margin-top: 50px; padding-top: 6px; font-size: 11px; }
-    </style></head>
-    <body>
-      <h2>${storeName}</h2>
-      <div class="sub">${new Date(txn.date).toLocaleString('fr-FR')}</div>
-      <div class="divider"></div>
-      <div class="row"><span>Réf:</span><span>${txn.reference}</span></div>
-      <div class="row"><span>Client:</span><span>${customer.name}</span></div>
-      ${customer.phone ? `<div class="row"><span>Téléphone:</span><span>${customer.phone}</span></div>` : ''}
-      <div class="row"><span>Caissier:</span><span>${txn.cashier}</span></div>
-      <div class="divider"></div>
-      <div class="total">${isDeposit ? 'DÉPÔT' : 'REMBOURSEMENT'}: ${formatPrice(Math.abs(txn.amount))}</div>
-      ${isDeposit ? `<div class="row"><span>Mode:</span><span>${txn.method}</span></div>` : ''}
-      <div class="divider"></div>
-      <div class="row"><span>Solde avant:</span><span>${formatPrice(customer.balance + (isDeposit ? 0 : txn.amount))}</span></div>
-      <div class="footer">Merci de conserver ce reçu</div>
-      <div class="sig">Signature client</div>
-      <script>window.onload = () => window.print();</script>
-    </body></html>
+    <html>
+      <head>
+        <title>${txn.reference}</title>
+        <style>
+          @page { margin: 5mm; size: A5 landscape; }
+          body { 
+            font-family: Arial, sans-serif; 
+            margin: 0; 
+            padding: 16px;
+            background: white;
+            color: black;
+            font-size: 11px;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+          * { box-sizing: border-box; }
+          .header-table { width: 100%; border-collapse: collapse; border-bottom: 1px solid #000; padding-bottom: 6px; margin-bottom: 4px; }
+          .header-table td { padding: 4px 6px; vertical-align: top; }
+          .title-table { width: 100%; border-collapse: collapse; border-bottom: 1px solid #000; margin: 4px 0; }
+          .title-table td { padding: 3px 4px; }
+          .items-table { width: 100%; border-collapse: collapse; margin-top: 4px; }
+          .items-table th { 
+            padding: 3px 6px; 
+            font-weight: bold; 
+            font-size: 10px; 
+            background: #f0f0f0; 
+            border-bottom: 1.5px solid #000; 
+            border-top: 1px solid #000;
+            text-align: left;
+          }
+          .items-table td { padding: 3px 6px; font-size: 10px; border-bottom: 1px solid #ddd; }
+          .total-table { width: 100%; border-collapse: collapse; border-top: 1.5px solid #000; margin-top: 4px; }
+          .total-table td { padding: 4px 6px; vertical-align: top; }
+          .signatures-table { width: 100%; border-collapse: collapse; border-top: 1.5px solid #000; margin-top: 4px; }
+          .signatures-table td { padding: 5px 8px; text-align: center; }
+        </style>
+      </head>
+      <body>
+        <!-- ── EN-TÊTE ── -->
+        <table class="header-table">
+          <tbody>
+            <tr>
+              <!-- Gauche -->
+              <td style="width: 55%; border-right: 1px solid #000; padding-right: 12px;">
+                <div style="font-weight: bold; font-size: 13px;">${companySettings?.name || 'GROUPE T. GRAND ZAO INTER SARL'}</div>
+                <div style="font-size: 9.5px; margin-top: 1px;">${companySettings?.activity || 'COMMERCE GENERAL ET PRESTATION DE SERVICES'}</div>
+                <div style="font-size: 9.5px; margin-top: 1px; font-weight: bold;">${agencyName}</div>
+                <div style="font-size: 9.5px; margin-top: 1px;">TEL : ${companySettings?.phones || '659 146 882 / 672 126 507'}</div>
+                <div style="font-size: 9px; margin-top: 3px; display: flex; gap: 24px;">
+                  <span>NCC : ${companySettings?.ncc || 'M042318164160W'}</span>
+                  <span style="margin-left: 20px;">RCC : ${companySettings?.rccm || '1391CH/N°94C1175/71994'}</span>
+                </div>
+              </td>
+              <!-- Droite -->
+              <td style="padding-left: 12px;">
+                <div style="display: flex; gap: 20px; margin-bottom: 6px; font-weight: normal;">
+                  <span><strong>Date :</strong> ${dateStr}</span>
+                  <span style="margin-left: 15px;">${timeStr}</span>
+                </div>
+                <div>
+                  <strong>Client :</strong>
+                  <span style="margin-left: 8px; font-weight: bold; font-size: 11px;">
+                    ${customer.name}
+                  </span>
+                </div>
+                ${customer.phone ? `
+                  <div style="font-size: 9px; margin-top: 2px;">
+                    Tél: ${customer.phone}
+                  </div>
+                ` : ''}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- ── LIGNE REÇU / N° / CAISSE ── -->
+        <table class="title-table">
+          <tbody>
+            <tr>
+              <td style="width: 30%;">
+                <span style="font-weight: bold; font-style: italic; font-size: 16px;">${documentTitle}</span>
+              </td>
+              <td style="width: 35%;">
+                <span style="font-weight: bold; font-size: 11px;">N° : ${txn.reference}</span>
+              </td>
+              <td style="width: 35%;">
+                <span style="font-weight: bold;">CAISSE : </span>
+                <span style="font-size: 10px;">${txn.cashier}</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- ── TABLEAU DES DETAILS ── -->
+        <table class="items-table">
+          <thead>
+            <tr>
+              <th style="width: 15%; border-right: 1px solid #999;">Référence</th>
+              <th style="width: 45%; border-right: 1px solid #999;">Désignation</th>
+              <th style="width: 10%; border-right: 1px solid #999; text-align: center;">Qté</th>
+              <th style="width: 15%; border-right: 1px solid #999; text-align: right;">Prix unitaire</th>
+              <th style="width: 15%; text-align: right;">Montant HT</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style="border-right: 1px solid #ddd;">${txn.reference}</td>
+              <td style="border-right: 1px solid #ddd; font-weight: bold;">
+                ${(isDeposit ? 'DÉPÔT SUR COMPTE CLIENT' : 'REMBOURSEMENT COMPTE CLIENT')}
+              </td>
+              <td style="border-right: 1px solid #ddd; text-align: center;">1.00</td>
+              <td style="border-right: 1px solid #ddd; text-align: right;">
+                ${amountVal.toLocaleString('fr-FR', { minimumFractionDigits: 2 })}
+              </td>
+              <td style="text-align: right;">
+                ${amountVal.toLocaleString('fr-FR', { minimumFractionDigits: 2 })}
+              </td>
+            </tr>
+            <!-- Lignes vides pour correspondre au design de la facture -->
+            <tr style="height: 18px;">
+              <td style="border-bottom: 1px solid #eee; border-right: 1px solid #ddd;"></td>
+              <td style="border-bottom: 1px solid #eee; border-right: 1px solid #ddd;"></td>
+              <td style="border-bottom: 1px solid #eee; border-right: 1px solid #ddd;"></td>
+              <td style="border-bottom: 1px solid #eee; border-right: 1px solid #ddd;"></td>
+              <td style="border-bottom: 1px solid #eee;"></td>
+            </tr>
+            <tr style="height: 18px;">
+              <td style="border-bottom: 1px solid #eee; border-right: 1px solid #ddd;"></td>
+              <td style="border-bottom: 1px solid #eee; border-right: 1px solid #ddd;"></td>
+              <td style="border-bottom: 1px solid #eee; border-right: 1px solid #ddd;"></td>
+              <td style="border-bottom: 1px solid #eee; border-right: 1px solid #ddd;"></td>
+              <td style="border-bottom: 1px solid #eee;"></td>
+            </tr>
+            <tr style="height: 18px;">
+              <td style="border-bottom: 1px solid #eee; border-right: 1px solid #ddd;"></td>
+              <td style="border-bottom: 1px solid #eee; border-right: 1px solid #ddd;"></td>
+              <td style="border-bottom: 1px solid #eee; border-right: 1px solid #ddd;"></td>
+              <td style="border-bottom: 1px solid #eee; border-right: 1px solid #ddd;"></td>
+              <td style="border-bottom: 1px solid #eee;"></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- ── TOTAL & SOLDE INFO ── -->
+        <table class="total-table">
+          <tbody>
+            <tr>
+              <td style="width: 50%; font-size: 10px;">
+                <div style="font-style: italic; margin-bottom: 4px;">${amountInWords}</div>
+                <div style="border-top: 1px dashed #ddd; padding-top: 4px; color: #333;">
+                  <strong>Solde avant :</strong> ${formatPrice(soldeAvant)} &nbsp;&nbsp;|&nbsp;&nbsp; 
+                  <strong>Nouveau solde :</strong> ${formatPrice(soldeApres)}
+                  ${isDeposit ? `&nbsp;&nbsp;|&nbsp;&nbsp; <strong>Mode :</strong> ${txn.method}` : ''}
+                </div>
+              </td>
+              <td style="text-align: right; font-weight: bold; font-size: 10px; border-left: 1px solid #000; width: 22%; padding-top: 8px;">
+                ${totalLabel}
+              </td>
+              <td style="text-align: right; font-weight: bold; font-size: 11px; border-left: 1px solid #000; width: 28%; padding-top: 8px;">
+                ${amountVal.toLocaleString('fr-FR', { minimumFractionDigits: 2 })} FCFA
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- ── SIGNATURES ── -->
+        <table class="signatures-table">
+          <tbody>
+            <tr>
+              <td style="width: 18%; font-weight: bold; font-size: 10px; border-right: 1px solid #000;">
+                CLIENT
+              </td>
+              <td style="font-size: 9px; font-style: italic;">
+                Merci de conserver ce reçu
+              </td>
+              <td style="width: 18%; font-weight: bold; font-size: 10px; border-left: 1px solid #000;">
+                VENDEUR
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <script>
+          setTimeout(() => {
+            window.print();
+            window.close();
+          }, 300);
+        </script>
+      </body>
+    </html>
   `);
   win.document.close();
 };
 
 const InvoicePaymentModal = ({ sale, onClose }) => {
-  const { recordInvoicePayment } = useStore();
+  const { recordInvoicePayment } = useSales();
   const [amount, setAmount] = useState('');
   const [method, setMethod] = useState('Espèces');
 
@@ -212,7 +394,10 @@ const InvoicePaymentModal = ({ sale, onClose }) => {
 
 // ========= MAIN COMPONENT =========
 const CustomerList = () => {
-  const { customers, customerTransactions, sales, addCustomer, addCustomerDeposit, refundCustomer } = useStore();
+  const { customers, customerTransactions, addCustomer, addCustomerDeposit, refundCustomer } = useCustomers();
+  const { sales } = useSales();
+  const { companySettings } = useSettings();
+  const { stores } = useStores();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [selectedInvoice, setSelectedInvoice] = useState(null);
@@ -247,7 +432,7 @@ const CustomerList = () => {
       message.success(`Remboursement de ${formatPrice(amount)} effectué !`);
     }
     // Print receipt
-    if (txn) printDepositReceipt(selectedCustomer, txn);
+    if (txn) printDepositReceipt(selectedCustomer, txn, companySettings, stores, selectedCustomer.balance);
     setActionModal(null);
   };
 
@@ -346,8 +531,27 @@ const CustomerList = () => {
                       </div>
                     </div>
                   </div>
-                  <div className={`text-base font-black ${txn.amount >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
-                    {txn.amount >= 0 ? '+' : ''}{formatPrice(Math.abs(txn.amount))}
+                  <div className="flex items-center gap-3">
+                    <div className={`text-base font-black ${txn.amount >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
+                      {txn.amount >= 0 ? '+' : ''}{formatPrice(Math.abs(txn.amount))}
+                    </div>
+                    {(txn.type === 'deposit' || txn.type === 'refund') && (
+                      <button
+                        onClick={() => {
+                          const idx = txns.findIndex(t => t.id === txn.id);
+                          let sum = 0;
+                          for (let i = 0; i <= idx; i++) {
+                            sum += txns[i].amount;
+                          }
+                          const soldeAvant = selectedCustomer.balance - sum;
+                          printDepositReceipt(selectedCustomer, txn, companySettings, stores, soldeAvant);
+                        }}
+                        className="w-8 h-8 rounded-lg bg-black/5 dark:bg-white/5 text-text-muted hover:text-primary hover:bg-primary/10 flex items-center justify-center transition-all"
+                        title="Imprimer le reçu"
+                      >
+                        <Printer size={14} />
+                      </button>
+                    )}
                   </div>
                 </div>
               ))}

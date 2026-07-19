@@ -1,10 +1,13 @@
 import React, { useMemo, useState } from 'react';
-import { useStore, formatPrice } from '../../context/StoreContext';
+import { formatPrice } from '../../context/StoreContext';
+import { useSales } from '../../hooks';
+import { useAuth } from '../../context/AuthContext';
 import { History, Calendar, User, Wallet, TrendingUp, MinusCircle, ArrowUpCircle, CheckCircle2, FileText, Search, Printer } from 'lucide-react';
 import DataTable from './DataTable';
 
 const ClosureHistory = () => {
-  const { cashReports = [], currentUser } = useStore();
+  const { cashReports = [] } = useSales();
+  const { currentUser } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
 
   // Filtrage selon le rôle et la recherche

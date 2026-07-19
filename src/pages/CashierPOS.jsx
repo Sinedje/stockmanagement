@@ -10,7 +10,8 @@ import PaymentModal from '../components/cashier/PaymentModal';
 import ClosureHistory from '../components/common/ClosureHistory';
 import StockEntryPanel from '../components/manager/StockEntryPanel';
 import { FileText, ShoppingCart, List, Users, Package, BarChart3, History, PlusSquare } from 'lucide-react';
-import { useStore, formatPrice } from '../context/StoreContext';
+import { formatPrice } from '../context/StoreContext';
+import { useSales } from '../hooks';
 
 const sidebarItems = [
   { id: 'invoice', label: 'Facturation', icon: FileText },
@@ -25,7 +26,7 @@ const sidebarItems = [
 const CashierPOS = () => {
   const [activeTab, setActiveTab] = useState('invoice');
   const [showPayment, setShowPayment] = useState(false);
-  const { cart, cartTotal } = useStore();
+  const { cart, cartTotal } = useSales();
 
   const CartSummary = () => (
     <div className="flex items-center gap-4">

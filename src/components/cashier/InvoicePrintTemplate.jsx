@@ -1,8 +1,8 @@
 import React from 'react';
-import { useStore } from '../../context/StoreContext';
+import { useStores, useUsers, useSettings } from '../../hooks';
 
 // Convertit un montant en lettres (français, FCFA)
-const numberToWords = (num) => {
+export const numberToWords = (num) => {
   if (!num || num === 0) return 'Zéro franc CFA';
   const ones = ['', 'un', 'deux', 'trois', 'quatre', 'cinq', 'six', 'sept', 'huit', 'neuf',
     'dix', 'onze', 'douze', 'treize', 'quatorze', 'quinze', 'seize', 'dix-sept', 'dix-huit', 'dix-neuf'];
@@ -13,26 +13,27 @@ const numberToWords = (num) => {
     if (n < 100) {
       const t = Math.floor(n / 10);
       const o = n % 10;
-      if (t === 7 || t === 9) return tens[t] + '-' + ones[10 + o];
-      if (t === 8) return 'quatre-vingt' + (o > 0 ? '-' + ones[o] : 's');
-      return tens[t] + (o > 0 ? (o === 1 ? '-et-' : '-') + ones[o] : '');
+      if (t === 7 || t === 9) {
+        return tens[t] + '-' + ones[o + 10];
+      }
+      return tens[t] + (o === 1 ? '-et-' : '-') + ones[o];
     }
     if (n < 1000) {
       const h = Math.floor(n / 100);
       const r = n % 100;
-      return (h === 1 ? 'cent' : ones[h] + ' cent') + (r > 0 ? ' ' + convert(r) : (h > 1 ? 's' : ''));
+      return (h > 1 ? ones[h] + ' ' : '') + 'cent' + (r > 0 ? ' ' + convert(r) : '');
     }
     if (n < 1000000) {
       const th = Math.floor(n / 1000);
       const r = n % 1000;
-      return (th === 1 ? 'mille' : convert(th) + ' mille') + (r > 0 ? ' ' + convert(r) : '');
+      return (th > 1 ? convert(th) + ' ' : '') + 'mille' + (r > 0 ? ' ' + convert(r) : '');
     }
-    return n.toString();
+    const m = Math.floor(n / 1000000);
+    const r = n % 1000000;
+    return convert(m) + ' million' + (m > 1 ? 's' : '') + (r > 0 ? ' ' + convert(r) : '');
   };
 
-  const intPart = Math.floor(num);
-  const word = convert(intPart);
-  return word.charAt(0).toUpperCase() + word.slice(1) + ' franc' + (intPart > 1 ? 's' : '') + ' CFA';
+  return convert(num).charAt(0).toUpperCase() + convert(num).slice(1) + ' francs CFA';
 };
 
 // Styles partagés
@@ -60,7 +61,9 @@ const S = {
 };
 
 const InvoicePrintTemplate = ({ sale }) => {
-  const { stores, allCashierProducts, companySettings } = useStore();
+  const { stores } = useStores();
+  const { allCashierProducts } = useUsers();
+  const { companySettings } = useSettings();
   if (!sale) return null;
 
   const date = new Date(sale.date);

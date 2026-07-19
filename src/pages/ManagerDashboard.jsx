@@ -15,7 +15,8 @@ import ClosureHistory from '../components/common/ClosureHistory';
 import TransferManager from '../components/manager/TransferManager';
 import BreakagePanel from '../components/manager/BreakagePanel';
 import { LayoutDashboard, Package, History, Home, Users, Wallet, FileText, ShoppingBag, Truck, PlusCircle, BarChart3, ClipboardCheck, ArrowRightLeft, TrendingUp, PackageOpen } from 'lucide-react';
-import { useStore } from '../context/StoreContext';
+import { useAuth } from '../context/AuthContext';
+import { useStores, useProducts } from '../hooks';
 
 const sidebarItems = [
   { id: 'dashboard', label: 'Tableau de Bord', icon: LayoutDashboard },
@@ -35,7 +36,9 @@ const sidebarItems = [
 ];
 
 const ManagerDashboard = () => {
-  const { activeStore, logout, lowStockProducts, transfers, activeStoreId } = useStore();
+  const { logout } = useAuth();
+  const { activeStore, activeStoreId, transfers } = useStores();
+  const { lowStockProducts } = useProducts();
   const [activeTab, setActiveTab] = useState('dashboard');
 
   const pendingIncomingTransfers = transfers.filter(t => t.toStoreId === activeStoreId && t.status === 'in_transit').length;

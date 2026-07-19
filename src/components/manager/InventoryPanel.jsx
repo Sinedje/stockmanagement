@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { useStore, formatPrice } from '../../context/StoreContext';
+import { formatPrice } from '../../context/StoreContext';
+import { useProducts } from '../../hooks';
 import Modal from '../common/Modal';
 import Input from '../common/Input';
 import Select from '../common/Select';
@@ -21,7 +22,7 @@ const emptyProduct = {
 };
 
 const InventoryPanel = () => {
-  const { products, categories, addProduct, updateProduct, deleteProduct } = useStore();
+  const { products, categories, addProduct, updateProduct, deleteProduct, addCategory } = useProducts();
   const [search, setSearch] = useState('');
   const [filterCat, setFilterCat] = useState('Tous');
   const [showModal, setShowModal] = useState(false);
@@ -36,7 +37,7 @@ const InventoryPanel = () => {
     return matchSearch && matchCat;
   });
 
-  const { addCategory } = useStore();
+
 
   const openAdd = () => { 
     setEditingProduct(null); 

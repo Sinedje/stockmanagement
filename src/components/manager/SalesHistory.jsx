@@ -1,12 +1,15 @@
 import React, { useState } from 'react';
-import { useStore, formatPrice } from '../../context/StoreContext';
+import { formatPrice } from '../../context/StoreContext';
+import { useAuth } from '../../context/AuthContext';
+import { useSales } from '../../hooks';
 import SearchComponent from '../common/SearchComponent';
 import DataTable from '../common/DataTable';
 import { History, XCircle, AlertCircle } from 'lucide-react';
 import { Popconfirm, Button, Tooltip, message } from 'antd';
 
 const SalesHistory = () => {
-  const { sales, cancelSale, currentUser } = useStore();
+  const { currentUser } = useAuth();
+  const { sales, cancelSale } = useSales();
   const [search, setSearch] = useState('');
   const [expandedSale, setExpandedSale] = useState(null);
 

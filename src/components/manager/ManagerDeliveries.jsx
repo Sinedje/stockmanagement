@@ -1,11 +1,14 @@
 import React, { useState, useMemo } from 'react';
-import { useStore, formatPrice } from '../../context/StoreContext';
+import { formatPrice } from '../../context/StoreContext';
+import { useSales, useStores, useSettings } from '../../hooks';
 import DataTable from '../common/DataTable';
 import { Truck, CheckCircle, Package, User, Store, Search, Clock, AlertCircle, Printer } from 'lucide-react';
 import { Tag, Tooltip, Button } from 'antd';
 
 const ManagerDeliveries = () => {
-  const { allSales, stores, unlockDelivery, companySettings } = useStore();
+  const { allSales, unlockDelivery } = useSales();
+  const { stores } = useStores();
+  const { companySettings } = useSettings();
   const [searchTerm, setSearchTerm] = useState('');
 
   const filteredSales = useMemo(() => {

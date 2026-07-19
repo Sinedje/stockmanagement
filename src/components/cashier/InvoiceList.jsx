@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
-import { useStore, formatPrice } from '../../context/StoreContext';
+import { formatPrice } from '../../context/StoreContext';
+import { useSales } from '../../hooks';
+import { useAuth } from '../../context/AuthContext';
 import { FileText, Search, Printer, Eye, XCircle, AlertCircle, RefreshCw } from 'lucide-react';
 import { Button, Popconfirm, message, Tooltip, Modal, Tag, InputNumber, Select } from 'antd';
 import ReceiptView from './ReceiptView';
 import ReturnModal from './ReturnModal';
 
 const InvoicePaymentModal = ({ sale, onClose }) => {
-  const { recordInvoicePayment } = useStore();
+  const { recordInvoicePayment } = useSales();
   const [amount, setAmount] = useState('');
   const [method, setMethod] = useState('Espèces');
 
@@ -67,7 +69,8 @@ const InvoicePaymentModal = ({ sale, onClose }) => {
 
 
 const InvoiceList = () => {
-  const { sales, currentUser, cancelSale } = useStore();
+  const { sales, cancelSale } = useSales();
+  const { currentUser } = useAuth();
   const [selectedSale, setSelectedSale] = useState(null);
   const [returnSale, setReturnSale] = useState(null);
   const [paymentSale, setPaymentSale] = useState(null);

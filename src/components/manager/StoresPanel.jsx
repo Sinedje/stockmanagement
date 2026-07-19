@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useStore } from '../../context/StoreContext';
+import { useStores } from '../../hooks';
 import Modal from '../common/Modal';
 import Input from '../common/Input';
 import DataTable from '../common/DataTable';
@@ -9,7 +9,7 @@ import { Button, Space, Popconfirm } from 'antd';
 const emptyStore = { name: '', location: '' };
 
 const StoresPanel = () => {
-  const { stores, activeStoreId, addStore, updateStore, deleteStore, switchStore } = useStore();
+  const { stores, activeStoreId, addStore, updateStore, deleteStore, switchStore } = useStores();
   const [showModal, setShowModal] = useState(false);
   const [editingStore, setEditingStore] = useState(null);
   const [form, setForm] = useState(emptyStore);

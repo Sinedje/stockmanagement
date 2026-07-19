@@ -1,9 +1,13 @@
 import React, { useMemo } from 'react';
-import { useStore, formatPrice } from '../../context/StoreContext';
-import { Wallet, MinusCircle, ArrowUpCircle, User, Store, Calculator, CheckCircle2, TrendingUp, PackageOpen, Package } from 'lucide-react';
+import { formatPrice } from '../../context/StoreContext';
+import { useSales, useUsers, useStores, useCustomers } from '../../hooks';
+import { Wallet, MinusCircle, ArrowUpCircle, User, Store, Calculator, CheckCircle2, TrendingUp, PackageOpen, Package, PlusCircle } from 'lucide-react';
 
 const GlobalFinancialReport = () => {
-  const { allSales = [], users = [], expenses = [], versements = [], stores = [] } = useStore();
+  const { allSales = [], expenses = [], versements = [] } = useSales();
+  const { users = [] } = useUsers();
+  const { stores = [] } = useStores();
+  const { customerTransactions = [] } = useCustomers();
 
   const cashiers = useMemo(() => users.filter(u => u.role === 'cashier'), [users]);
 
@@ -12,10 +16,14 @@ const GlobalFinancialReport = () => {
       const cashierSales = allSales.filter(s => s.cashier === cashier.name && s.paymentMethod === 'Espèces');
       const cashierExpenses = expenses.filter(e => e.cashier === cashier.name);
       const cashierVersements = versements.filter(v => v.cashier === cashier.name);
+      const cashierDeposits = customerTransactions.filter(t => t.cashier === cashier.name && t.type === 'deposit');
+      const cashierRefunds = customerTransactions.filter(t => t.cashier === cashier.name && t.type === 'refund');
 
       const totalSales = cashierSales.reduce((s, v) => s + v.total, 0);
       const totalExpenses = cashierExpenses.reduce((s, e) => s + e.amount, 0);
       const totalVersements = cashierVersements.reduce((s, v) => s + v.amount, 0);
+      const totalDeposits = cashierDeposits.reduce((s, t) => s + t.amount, 0);
+      const totalRefunds = cashierRefunds.reduce((s, t) => s + Math.abs(t.amount), 0);
       
       // Note: In a real app, initial fund should be per-cashier-session. 
       // For now we use the global initialCashFund if applicable or 0 if not tracked per cashier in the mock.
@@ -42,13 +50,15 @@ const GlobalFinancialReport = () => {
         sampleSales,
         totalExpenses,
         totalVersements,
-        balance: totalSales - totalExpenses - totalVersements,
+        totalDeposits,
+        totalRefunds,
+        balance: totalSales + totalDeposits - totalExpenses - totalVersements - totalRefunds,
         expenseCount: cashierExpenses.length,
         versementCount: cashierVersements.length,
         storeName: stores.find(s => s.id === cashier.storeId)?.name || 'N/A'
       };
     });
-  }, [cashiers, allSales, expenses, versements, stores]);
+  }, [cashiers, allSales, expenses, versements, stores, customerTransactions]);
 
   const totals = useMemo(() => {
     return cashierReports.reduce((acc, report) => ({
@@ -58,8 +68,10 @@ const GlobalFinancialReport = () => {
       sampleSales: (acc.sampleSales || 0) + report.sampleSales,
       expenses: acc.expenses + report.totalExpenses,
       versements: acc.versements + report.totalVersements,
+      deposits: (acc.deposits || 0) + report.totalDeposits,
+      refunds: (acc.refunds || 0) + report.totalRefunds,
       balance: acc.balance + report.balance
-    }), { sales: 0, standardSales: 0, breakageSales: 0, sampleSales: 0, expenses: 0, versements: 0, balance: 0 });
+    }), { sales: 0, standardSales: 0, breakageSales: 0, sampleSales: 0, expenses: 0, versements: 0, deposits: 0, refunds: 0, balance: 0 });
   }, [cashierReports]);
 
   return (
@@ -71,6 +83,8 @@ const GlobalFinancialReport = () => {
           { label: 'CA Standard', value: formatPrice(totals.standardSales), icon: TrendingUp, color: 'text-primary' },
           { label: 'CA Casses', value: formatPrice(totals.breakageSales), icon: PackageOpen, color: 'text-orange-500' },
           { label: 'CA Échantillons', value: formatPrice(totals.sampleSales), icon: Package, color: 'text-purple-500' },
+          { label: 'Dépôts Clients (Total)', value: formatPrice(totals.deposits), icon: PlusCircle, color: 'text-emerald-400' },
+          { label: 'Remboursements (Total)', value: formatPrice(totals.refunds), icon: MinusCircle, color: 'text-rose-400' },
           { label: 'Dépenses Totales', value: formatPrice(totals.expenses), icon: MinusCircle, color: 'text-red-500' },
           { label: 'Versements Reçus', value: formatPrice(totals.versements), icon: ArrowUpCircle, color: 'text-blue-500' },
           { label: 'Solde Global', value: formatPrice(totals.balance), icon: Calculator, color: 'text-black' },
@@ -130,6 +144,11 @@ const GlobalFinancialReport = () => {
                     <div className="text-[0.55rem] font-bold text-text-muted uppercase mt-1">
                       Std: {formatPrice(report.standardSales)} | Casses: {formatPrice(report.breakageSales)} | Échan: {formatPrice(report.sampleSales)}
                     </div>
+                    {(report.totalDeposits > 0 || report.totalRefunds > 0) && (
+                      <div className="text-[0.55rem] font-bold text-emerald-600 dark:text-emerald-500 uppercase mt-0.5">
+                        Dépôts: +{formatPrice(report.totalDeposits)} | Remb: -{formatPrice(report.totalRefunds)}
+                      </div>
+                    )}
                   </td>
                   <td className="px-8 py-5 text-right font-black text-red-500 text-sm">
                     -{formatPrice(report.totalExpenses)}

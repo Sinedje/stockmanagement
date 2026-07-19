@@ -1,10 +1,14 @@
 import React, { useState } from 'react';
-import { useStore, formatPrice } from '../../context/StoreContext';
+import { formatPrice } from '../../context/StoreContext';
+import { useUsers, useProducts, useSales, useStores } from '../../hooks';
 import SearchComponent from '../common/SearchComponent';
 import { Store } from 'lucide-react';
 
 const ProductGrid = () => {
-  const { allCashierProducts, categories, addToCart, stores } = useStore();
+  const { allCashierProducts } = useUsers();
+  const { categories } = useProducts();
+  const { addToCart } = useSales();
+  const { stores } = useStores();
   const [search, setSearch] = useState('');
   const [filterCat, setFilterCat] = useState('Tous');
   const [filterStore, setFilterStore] = useState('Tous');

@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import Modal from '../common/Modal';
-import { useStore, formatPrice } from '../../context/StoreContext';
+import { formatPrice } from '../../context/StoreContext';
+import { useSales } from '../../hooks';
 import { Package, Minus, Plus, RefreshCw, AlertTriangle } from 'lucide-react';
 import { Button, message } from 'antd';
 
 const ReturnModal = ({ sale, onClose }) => {
-  const { processReturn } = useStore();
+  const { processReturn } = useSales();
   const [returnQuantities, setReturnQuantities] = useState(
     sale.items.reduce((acc, item) => ({ ...acc, [item.productId]: 0 }), {})
   );

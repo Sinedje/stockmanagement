@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { useStore, formatPrice } from '../../context/StoreContext';
+import { formatPrice } from '../../context/StoreContext';
+import { useSales } from '../../hooks';
 import Modal from '../common/Modal';
 import InvoicePrintTemplate from './InvoicePrintTemplate';
 import { printInvoice } from '../../utils/printInvoice';
@@ -7,7 +8,7 @@ import { CreditCard, Banknote, CheckCircle, Printer, FileText } from 'lucide-rea
 import { Button } from 'antd';
 
 const PaymentModal = ({ onClose }) => {
-  const { cart, cartTotal, completeSale, nextInvoiceNumber } = useStore();
+  const { cart, cartTotal, completeSale, nextInvoiceNumber } = useSales();
   const [step, setStep] = useState('method'); // method, receipt
   const [completedSale, setCompletedSale] = useState(null);
 

@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
-import { useStore } from '../../context/StoreContext';
+import { useUsers, useStores } from '../../hooks';
+import { useAuth } from '../../context/AuthContext';
 import DataTable from '../common/DataTable';
 import Modal from '../common/Modal';
 import { Users, UserPlus, Shield, Store, Edit2, Ban, CheckCircle, Lock, AlertCircle } from 'lucide-react';
 
 const UserManagement = () => {
-  const { users, stores, addUser, updateUser, toggleUserStatus, currentUser } = useStore();
+  const { users, addUser, updateUser, toggleUserStatus } = useUsers();
+  const { stores } = useStores();
+  const { currentUser } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState(null);

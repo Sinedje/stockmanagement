@@ -1,11 +1,13 @@
 import React from 'react';
-import { useStore, formatPrice } from '../../context/StoreContext';
+import { formatPrice } from '../../context/StoreContext';
+import { useSales, useProducts } from '../../hooks';
 import StatsCard from '../common/StatsCard';
 import Card from '../common/Card';
 import { DollarSign, TrendingUp, ShoppingCart, Package, ArrowUpRight, ArrowDownRight, BarChart3 } from 'lucide-react';
 
 const FinancialSummary = () => {
-  const { totalRevenue, todayRevenue, todaySales, sales, totalStockValue, products } = useStore();
+  const { totalRevenue, todayRevenue, todaySales, sales } = useSales();
+  const { totalStockValue, products } = useProducts();
 
   const totalCost = sales.reduce((sum, s) => {
     return sum + s.items.reduce((itemSum, item) => {

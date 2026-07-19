@@ -1,10 +1,13 @@
 import React from 'react';
-import { useStore } from '../../context/StoreContext';
+import { useAuth } from '../../context/AuthContext';
+import { useStores, useTheme } from '../../hooks';
 import { useNavigate } from 'react-router-dom';
 import { LogOut, Package, ChevronRight, MapPin, Store, ChevronDown, Sun, Moon } from 'lucide-react';
 
 const Sidebar = ({ items, activeItem, onItemClick }) => {
-  const { currentUser, logout, activeStore, stores, switchStore, theme, toggleTheme } = useStore();
+  const { currentUser, logout } = useAuth();
+  const { activeStore, stores, switchStore } = useStores();
+  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
 
   const isManager = currentUser?.role === 'manager';

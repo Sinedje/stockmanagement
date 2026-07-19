@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { useStore } from '../../context/StoreContext';
+import { useSettings } from '../../hooks';
 import { Settings, Building, Phone, Hash, FileText, CheckCircle } from 'lucide-react';
 import { message } from 'antd';
 
 const CompanySettings = () => {
-  const { companySettings, updateCompanySettings } = useStore();
+  const { companySettings, updateCompanySettings } = useSettings();
   const [formData, setFormData] = useState({ ...companySettings });
   const [isSaving, setIsSaving] = useState(false);
 

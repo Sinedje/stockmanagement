@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { useStore, formatPrice } from '../../context/StoreContext';
+import { formatPrice } from '../../context/StoreContext';
+import { useProducts, useBreakages } from '../../hooks';
 import DataTable from '../common/DataTable';
 import Select from '../common/Select';
 import Input from '../common/Input';
@@ -7,13 +8,13 @@ import { Button, message, Tabs, Alert } from 'antd';
 import { AlertTriangle, PackageOpen, ArrowRight } from 'lucide-react';
 
 const BreakagePanel = () => {
+  const { products } = useProducts();
   const {
-    products,
     breakages,
     repackagings,
     declareBreakage,
     createRepackaging
-  } = useStore();
+  } = useBreakages();
 
   const [activeTab, setActiveTab] = useState('declare');
 

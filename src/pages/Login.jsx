@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useStore } from '../context/StoreContext';
+import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { Lock, User } from 'lucide-react';
 import Input from '../components/common/Input';
@@ -7,28 +7,36 @@ import AuthLayout from '../components/layouts/AuthLayout';
 import { Button, Alert } from 'antd';
 
 const Login = () => {
-  const { login } = useStore();
+  // useAuth — this is the only component that should trigger login
+  const { login, authError } = useAuth();
   const navigate = useNavigate();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [localError, setLocalError] = useState('');
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
-    
-    if (login(username, password)) {
+    setLocalError('');
+    setLoading(true);
+
+    const result = await login(username, password);
+
+    setLoading(false);
+    if (result.success) {
       navigate('/');
     } else {
-      setError('Identifiants incorrects');
+      setLocalError(result.error || 'Identifiants incorrects');
     }
   };
 
+  const displayError = localError || authError;
+
   return (
     <AuthLayout subtitle="Connexion à votre espace">
-      {error && (
+      {displayError && (
         <Alert
-          message={error}
+          message={displayError}
           type="error"
           showIcon
           style={{ marginBottom: '20px' }}
@@ -55,11 +63,12 @@ const Login = () => {
           required
         />
 
-        <Button 
-          type="primary" 
-          htmlType="submit" 
-          size="large" 
-          block 
+        <Button
+          type="primary"
+          htmlType="submit"
+          size="large"
+          block
+          loading={loading}
           style={{ height: '50px', fontWeight: 'bold' }}
         >
           Se Connecter

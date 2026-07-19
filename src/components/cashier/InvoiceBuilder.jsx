@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { useStore, formatPrice } from '../../context/StoreContext';
+import { formatPrice } from '../../context/StoreContext';
 import Modal from '../common/Modal';
 import {
   Search, Trash2, FileText, Store,
@@ -229,10 +229,13 @@ const PaymentModal = ({ total, invoiceNumber, onPay, onClose, customerBalance = 
 /* ══════════════════════════════════════════
    MAIN COMPONENT
 ══════════════════════════════════════════ */
+import { useUsers, useStores, useSales, useCustomers } from '../../hooks';
+
 const InvoiceBuilder = () => {
-  const {
-    allCashierProducts, stores, nextInvoiceNumber, completeInvoiceSale, customers,
-  } = useStore();
+  const { allCashierProducts } = useUsers();
+  const { stores } = useStores();
+  const { nextInvoiceNumber, completeInvoiceSale } = useSales();
+  const { customers } = useCustomers();
 
   const [customer, setCustomer] = useState({ name: '', phone: '' });
   const [lines, setLines] = useState([]);

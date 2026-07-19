@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import { useStore, formatPrice } from '../../context/StoreContext';
+import { formatPrice } from '../../context/StoreContext';
+import { useSales, useStores, useUsers } from '../../hooks';
 import { FileText, Download, Filter, Search, Calendar as CalendarIcon, Store, User, Package, Printer } from 'lucide-react';
 import { Button, Select, DatePicker, ConfigProvider } from 'antd';
 import frFR from 'antd/locale/fr_FR';
@@ -11,7 +12,9 @@ dayjs.locale('fr');
 const { RangePicker } = DatePicker;
 
 const ReleaseNotes = () => {
-  const { allSales = [], stores = [], users = [] } = useStore();
+  const { allSales = [] } = useSales();
+  const { stores = [] } = useStores();
+  const { users = [] } = useUsers();
   const [dateRange, setDateRange] = useState([dayjs().startOf('day'), dayjs().endOf('day')]);
   const [selectedStore, setSelectedStore] = useState('all');
   const [selectedCashier, setSelectedCashier] = useState('all');

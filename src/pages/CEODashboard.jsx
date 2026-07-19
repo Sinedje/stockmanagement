@@ -4,7 +4,6 @@ import CEODashboardHome from '../components/ceo/DashboardHome';
 import UserManagement from '../components/ceo/UserManagement';
 import CompanySettings from '../components/ceo/CompanySettings';
 import { LayoutDashboard, Users, Building } from 'lucide-react';
-import { useStore } from '../context/StoreContext';
 
 const sidebarItems = [
   { id: 'dashboard', label: 'Vue Stratégique', icon: LayoutDashboard },

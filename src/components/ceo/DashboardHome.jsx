@@ -1,12 +1,15 @@
 import React, { useMemo, useState } from 'react';
-import { useStore, formatPrice } from '../../context/StoreContext';
+import { formatPrice } from '../../context/StoreContext';
+import { useSales, useStores, useUsers } from '../../hooks';
 import StatsCard from '../common/StatsCard';
 import Card from '../common/Card';
 import DataTable from '../common/DataTable';
 import { DollarSign, Package, TrendingUp, Building2, Landmark, AlertTriangle, Briefcase, Calendar, X } from 'lucide-react';
 
 const CEODashboardHome = () => {
-  const { allSales, stores, allCashierProducts, versements } = useStore();
+  const { allSales, versements } = useSales();
+  const { stores } = useStores();
+  const { allCashierProducts } = useUsers();
 
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');

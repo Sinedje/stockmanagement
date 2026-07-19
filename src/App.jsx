@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { StoreProvider, useStore } from './context/StoreContext';
+import { StoreProvider } from './context/StoreContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
 
 import Login from './pages/Login';
 import ManagerDashboard from './pages/ManagerDashboard';
@@ -9,33 +10,43 @@ import AccountantDashboard from './pages/AccountantDashboard';
 import StorekeeperDashboard from './pages/StorekeeperDashboard';
 import CEODashboard from './pages/CEODashboard';
 
+// ── Protected Route — uses AuthContext ────────────────────────
 const ProtectedRoute = ({ children, allowedRoles }) => {
-  const { currentUser } = useStore();
-  
-  if (!currentUser) {
-    return <Navigate to="/login" replace />;
+  const { currentUser, authLoading } = useAuth();
+
+  if (authLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-bg-secondary">
+        <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
   }
 
+  if (!currentUser) return <Navigate to="/login" replace />;
+
   if (allowedRoles && !allowedRoles.includes(currentUser.role)) {
-    return <Navigate to="/" replace />; // Ou une page d'accès refusé
+    return <Navigate to="/" replace />;
   }
 
   return children;
 };
 
+// ── App routes — uses AuthContext ─────────────────────────────
 const AppRoutes = () => {
-  const { currentUser } = useStore();
+  const { currentUser, authLoading } = useAuth();
+
+  if (authLoading) return null;
 
   return (
     <Routes>
       <Route path="/login" element={!currentUser ? <Login /> : <Navigate to="/" replace />} />
-      
-      {/* Route de redirection par défaut selon le rôle */}
+
+      {/* Default redirect by role */}
       <Route path="/" element={
         !currentUser ? <Navigate to="/login" replace /> :
-        currentUser.role === 'ceo' ? <Navigate to="/ceo" replace /> :
-        currentUser.role === 'manager' ? <Navigate to="/manager" replace /> :
-        currentUser.role === 'cashier' ? <Navigate to="/pos" replace /> :
+        currentUser.role === 'ceo'         ? <Navigate to="/ceo" replace /> :
+        currentUser.role === 'manager'     ? <Navigate to="/manager" replace /> :
+        currentUser.role === 'cashier'     ? <Navigate to="/pos" replace /> :
         currentUser.role === 'storekeeper' ? <Navigate to="/storekeeper" replace /> :
         <Navigate to="/accountant" replace />
       } />
@@ -75,7 +86,9 @@ const AppRoutes = () => {
 
 import { ConfigProvider, theme as antTheme } from 'antd';
 import { themeConfig } from './theme';
+import { useStore } from './context/StoreContext';
 
+// Theme wrapper still uses StoreContext for the dark/light toggle
 const ThemeAppWrapper = () => {
   const { theme } = useStore();
   const isDark = theme === 'dark';
@@ -119,9 +132,13 @@ const ThemeAppWrapper = () => {
 
 const App = () => {
   return (
-    <StoreProvider>
-      <ThemeAppWrapper />
-    </StoreProvider>
+    // AuthProvider wraps everything — auth state is independent of store data
+    <AuthProvider>
+      {/* StoreProvider uses AuthContext internally via useAuth for user-scoped state */}
+      <StoreProvider>
+        <ThemeAppWrapper />
+      </StoreProvider>
+    </AuthProvider>
   );
 };
 

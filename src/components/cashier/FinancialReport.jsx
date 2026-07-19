@@ -1,16 +1,20 @@
 import React, { useState, useMemo } from 'react';
-import { useStore, formatPrice } from '../../context/StoreContext';
+import { formatPrice } from '../../context/StoreContext';
+import { useAuth } from '../../context/AuthContext';
+import { useSales, useCustomers } from '../../hooks';
 import Modal from '../common/Modal';
 import { BarChart3, Calendar, FileText, Calculator, Printer, CheckCircle2, TrendingUp, Wallet, CreditCard, MinusCircle, PlusCircle, AlertCircle, ArrowUpCircle, Lock, PackageOpen, Package } from 'lucide-react';
 import { Button } from 'antd';
 
 const FinancialReport = () => {
+  const { currentUser } = useAuth();
   const { 
-    sales, currentUser, expenses, addExpense, 
+    sales, expenses, addExpense, 
     initialCashFund, isCashFundInitialized, initializeCashFund, cashInitializationDate,
     versements, addVersement, currentCashBalance,
-    lastClosingBalance, closeCashSession, customerTransactions
-  } = useStore();
+    lastClosingBalance, closeCashSession
+  } = useSales();
+  const { customerTransactions, customers } = useCustomers();
 
   const [startInvoice, setStartInvoice] = useState('');
   const [endInvoice, setEndInvoice] = useState('');
@@ -191,7 +195,9 @@ const FinancialReport = () => {
       totalPeriodExpenses, totalPeriodVersements,
       totalPeriodDeposits, totalPeriodRefunds,
       calculatedBalance, invoicesList,
-      expensesList: periodExpenses
+      expensesList: periodExpenses,
+      depositsList: periodDeposits,
+      refundsList: periodRefunds
     };
   }, [filteredSales, myExpenses, myVersements, myDeposits, myRefunds, initialCashFund, invoiceNumbers, endInvoice]);
 
@@ -590,6 +596,18 @@ const FinancialReport = () => {
               <span className="font-black text-gray-800">Recettes Espèces / Mixte</span>
               <span className="font-black text-emerald-600">+{formatPrice(stats.cashSales)}</span>
             </div>
+            {stats.totalPeriodDeposits > 0 && (
+              <div className="flex justify-between items-center text-lg border-b border-gray-300 pb-4">
+                <span className="font-black text-gray-800">Dépôts Clients (Espèces)</span>
+                <span className="font-black text-emerald-600">+{formatPrice(stats.totalPeriodDeposits)}</span>
+              </div>
+            )}
+            {stats.totalPeriodRefunds > 0 && (
+              <div className="flex justify-between items-center text-lg border-b border-gray-300 pb-4">
+                <span className="font-bold text-gray-600">Remboursements Clients</span>
+                <span className="font-bold text-red-600">-{formatPrice(stats.totalPeriodRefunds)}</span>
+              </div>
+            )}
             
             {stats.expensesList && stats.expensesList.length > 0 ? (
               <div className="border-b border-gray-300 pb-4">
@@ -646,6 +664,43 @@ const FinancialReport = () => {
               </table>
             ) : (
               <p className="text-center text-gray-500 text-sm font-bold mt-4">Aucune facture dans cette plage / période.</p>
+            )}
+
+            {((stats.depositsList && stats.depositsList.length > 0) || (stats.refundsList && stats.refundsList.length > 0)) && (
+              <div className="mt-12">
+                <h4 className="text-lg font-black uppercase tracking-widest text-center mb-4 border-b border-gray-200 pb-2">Détail des dépôts & remboursements inclus</h4>
+                <table className="w-full text-left border-collapse mt-4">
+                  <thead>
+                    <tr className="bg-gray-100">
+                      <th className="px-4 py-2 border border-gray-300 text-sm font-bold uppercase tracking-widest">Type / Référence</th>
+                      <th className="px-4 py-2 border border-gray-300 text-sm font-bold uppercase tracking-widest">Client / Infos</th>
+                      <th className="px-4 py-2 border border-gray-300 text-sm font-bold uppercase tracking-widest text-right">Montant</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {stats.depositsList?.map(dep => {
+                      const client = customers?.find(c => c.id === dep.customerId);
+                      return (
+                        <tr key={dep.id}>
+                          <td className="px-4 py-2 border border-gray-300 font-bold">Dépôt client - {dep.reference}</td>
+                          <td className="px-4 py-2 border border-gray-300">{client?.name || `ID Client: ${dep.customerId}`} (${dep.method})</td>
+                          <td className="px-4 py-2 border border-gray-300 text-right font-black text-emerald-600">+{formatPrice(dep.amount)}</td>
+                        </tr>
+                      );
+                    })}
+                    {stats.refundsList?.map(ref => {
+                      const client = customers?.find(c => c.id === ref.customerId);
+                      return (
+                        <tr key={ref.id}>
+                          <td className="px-4 py-2 border border-gray-300 font-bold">Remboursement - {ref.reference}</td>
+                          <td className="px-4 py-2 border border-gray-300">{client?.name || `ID Client: ${ref.customerId}`}</td>
+                          <td className="px-4 py-2 border border-gray-300 text-right font-black text-red-600">-{formatPrice(Math.abs(ref.amount))}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             )}
             <div className="mt-4 text-center text-sm font-bold text-gray-500 pt-6">
               Plage couverte : <span className="text-black">{`${startInvoice || invoiceNumbers[0] || 'N/A'} - ${endInvoice || invoiceNumbers[invoiceNumbers.length - 1] || 'N/A'}`}</span>

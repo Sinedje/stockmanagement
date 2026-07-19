@@ -1,11 +1,15 @@
 import React, { useState, useMemo } from 'react';
-import { useStore, formatPrice } from '../../context/StoreContext';
+import { formatPrice } from '../../context/StoreContext';
+import { useSales, useStores } from '../../hooks';
+import { useAuth } from '../../context/AuthContext';
 import DataTable from '../common/DataTable';
 import { Truck, CheckCircle, Package, User, Store, Search, Clock, AlertCircle } from 'lucide-react';
 import { Button, Tag, Modal, InputNumber, message } from 'antd';
 
 const DeliveriesPanel = () => {
-  const { allSales, stores, currentUser, deliverPartial } = useStore();
+  const { allSales, deliverPartial } = useSales();
+  const { stores } = useStores();
+  const { currentUser } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedSale, setSelectedSale] = useState(null);

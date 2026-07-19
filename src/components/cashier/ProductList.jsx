@@ -1,9 +1,13 @@
 import React, { useState, useMemo } from 'react';
-import { useStore, formatPrice } from '../../context/StoreContext';
+import { formatPrice } from '../../context/StoreContext';
+import { useAuth } from '../../context/AuthContext';
+import { useUsers, useStores } from '../../hooks';
 import { Package, Search, Filter, SortAsc, LayoutGrid, List as ListIcon, Store } from 'lucide-react';
 
 const ProductList = () => {
-  const { allCashierProducts, stores, categories, currentUser } = useStore();
+  const { currentUser } = useAuth();
+  const { allCashierProducts } = useUsers();
+  const { stores } = useStores();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStore, setSelectedStore] = useState('Tous');
   const [sortBy, setSortBy] = useState('name'); // 'name' or 'category'

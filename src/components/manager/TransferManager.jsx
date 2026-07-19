@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { useStore } from '../../context/StoreContext';
+import { useStores, useProducts } from '../../hooks';
 import { ArrowRightLeft, Plus, CheckCircle, Package, Search, Printer, ArrowRight, ArrowDownToLine, ArrowUpFromLine, FileText } from 'lucide-react';
 import { Button, message, Popconfirm, Tag, Modal, Select, InputNumber } from 'antd';
 import DataTable from '../common/DataTable';
@@ -9,10 +9,10 @@ const TransferManager = () => {
     transfers, 
     activeStoreId, 
     stores, 
-    products, 
     createTransfer, 
     receiveTransfer 
-  } = useStore();
+  } = useStores();
+  const { products } = useProducts();
   
   const [activeTab, setActiveTab] = useState('outgoing');
   const [isModalVisible, setIsModalVisible] = useState(false);

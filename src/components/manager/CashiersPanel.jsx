@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useStore } from '../../context/StoreContext';
+import { useUsers, useStores } from '../../hooks';
 import Modal from '../common/Modal';
 import Input from '../common/Input';
 import Select from '../common/Select';
@@ -10,7 +10,8 @@ import { Button, Space, Switch, Tag } from 'antd';
 const emptyUser = { username: '', password: '', name: '', role: 'cashier', storeId: '' };
 
 const StaffPanel = () => {
-  const { staffWithCodes, stores, activeStoreId, addUser, updateUser, toggleUserStatus } = useStore();
+  const { staffWithCodes, addUser, updateUser, toggleUserStatus } = useUsers();
+  const { stores, activeStoreId } = useStores();
   const [showModal, setShowModal] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
   const [form, setForm] = useState(emptyUser);

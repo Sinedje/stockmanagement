@@ -1,11 +1,13 @@
 import React, { useState, useMemo } from 'react';
-import { useStore, formatPrice } from '../../context/StoreContext';
+import { formatPrice } from '../../context/StoreContext';
+import { useProducts, useStores } from '../../hooks';
 import { ClipboardCheck, Store, AlertTriangle, CheckCircle, RefreshCcw, Package, Download, Printer } from 'lucide-react';
 import { Button, message, Popconfirm, Tag, InputNumber } from 'antd';
 import DataTable from '../common/DataTable';
 
 const PhysicalInventory = () => {
-  const { products, stores, activeStoreId, updateProduct } = useStore();
+  const { products, updateProduct } = useProducts();
+  const { stores, activeStoreId } = useStores();
   const [counts, setCounts] = useState({}); // { productId: physicalCount }
   const [isValidating, setIsValidating] = useState(false);
 
@@ -30,14 +32,14 @@ const PhysicalInventory = () => {
 
   const handleValidateAudit = () => {
     setIsValidating(true);
-    
+
     // Process all adjustments
     auditData.forEach(item => {
       if (item.discrepancy !== 0) {
         // Sync both theoretical and physical stock to the new count
-        updateProduct(item.id, { 
+        updateProduct(item.id, {
           stock: item.count,
-          physicalStock: item.count 
+          physicalStock: item.count
         });
       }
     });
@@ -73,7 +75,7 @@ const PhysicalInventory = () => {
         bottom: { style: 'thin' },
         right: { style: 'thin' }
       };
-      
+
       // Yellow background for DESCRIPTION, STOCK A JOUR, VENTE, INVENTAIRE
       if (colNumber > 1) {
         cell.fill = {
@@ -108,7 +110,7 @@ const PhysicalInventory = () => {
           bottom: { style: 'thin' },
           right: { style: 'thin' }
         };
-        
+
         // Custom alignments and backgrounds
         if (colNumber === 2) {
           cell.alignment = { horizontal: 'center' };
@@ -128,7 +130,7 @@ const PhysicalInventory = () => {
     const buffer = await workbook.xlsx.writeBuffer();
     const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
     const url = URL.createObjectURL(blob);
-    
+
     const link = document.createElement("a");
     link.href = url;
     link.download = `Inventaire_${currentStore?.name || 'Magasin'}_${new Date().toLocaleDateString()}.xlsx`;
@@ -143,21 +145,21 @@ const PhysicalInventory = () => {
   };
 
   const columns = [
-    { 
-      key: 'category', 
-      title: 'Catégorie', 
+    {
+      key: 'category',
+      title: 'Catégorie',
       render: (val) => <Tag color="blue">{val}</Tag>,
       sorter: (a, b) => a.category.localeCompare(b.category)
     },
-    { 
-      key: 'name', 
-      title: 'Article', 
+    {
+      key: 'name',
+      title: 'Article',
       render: (val) => <span className="font-bold text-text-heading">{val}</span>,
       sorter: (a, b) => a.name.localeCompare(b.name)
     },
-    { 
-      key: 'stock', 
-      title: 'Stock Système', 
+    {
+      key: 'stock',
+      title: 'Stock Système',
       render: (val) => (
         <div className="flex flex-col">
           <span className="font-black text-text-muted">{val}</span>
@@ -165,21 +167,21 @@ const PhysicalInventory = () => {
         </div>
       )
     },
-    { 
-      key: 'count', 
-      title: 'Comptage Réel', 
+    {
+      key: 'count',
+      title: 'Comptage Réel',
       render: (_, row) => (
-        <InputNumber 
-          min={0} 
-          value={row.count} 
+        <InputNumber
+          min={0}
+          value={row.count}
           onChange={(val) => handleCountChange(row.id, val)}
           className="w-24 font-black text-primary border-primary/30"
         />
       )
     },
-    { 
-      key: 'discrepancy', 
-      title: 'Écart', 
+    {
+      key: 'discrepancy',
+      title: 'Écart',
       render: (val) => {
         if (val === 0) return <Tag color="success">OK (0)</Tag>;
         if (val < 0) return <Tag color="error">Perte ({val})</Tag>;
@@ -207,41 +209,41 @@ const PhysicalInventory = () => {
           </div>
 
           <div className="flex gap-3">
-            <Button 
-                icon={<Download size={16} />} 
-                onClick={handleExportExcel}
-                className="h-11 rounded-xl font-bold bg-emerald-500/10 text-emerald-600 border-emerald-500/20 hover:bg-emerald-500/20!"
+            <Button
+              icon={<Download size={16} />}
+              onClick={handleExportExcel}
+              className="h-11 rounded-xl font-bold bg-emerald-500/10 text-emerald-600 border-emerald-500/20 hover:bg-emerald-500/20!"
             >
-                Excel
+              Excel
             </Button>
-            <Button 
-                icon={<Printer size={16} />} 
-                onClick={handlePrint}
-                className="h-11 rounded-xl font-bold"
+            <Button
+              icon={<Printer size={16} />}
+              onClick={handlePrint}
+              className="h-11 rounded-xl font-bold"
             >
-                Imprimer PDF
+              Imprimer PDF
             </Button>
-            <Button 
-                icon={<RefreshCcw size={16} />} 
-                onClick={() => setCounts({})}
-                className="h-11 rounded-xl font-bold"
+            <Button
+              icon={<RefreshCcw size={16} />}
+              onClick={() => setCounts({})}
+              className="h-11 rounded-xl font-bold"
             >
-                Réinitialiser
+              Réinitialiser
             </Button>
             <Popconfirm
-                title="Valider l'inventaire ?"
-                description="Cela mettra à jour les stocks du système pour correspondre à votre comptage réel."
-                onConfirm={handleValidateAudit}
+              title="Valider l'inventaire ?"
+              description="Cela mettra à jour les stocks du système pour correspondre à votre comptage réel."
+              onConfirm={handleValidateAudit}
             >
-                <Button 
-                    type="primary" 
-                    size="large" 
-                    icon={<CheckCircle size={18} />}
-                    disabled={totalDiscrepancies === 0}
-                    className="h-11 px-8 rounded-xl font-bold uppercase tracking-widest"
-                >
-                    Valider le comptage
-                </Button>
+              <Button
+                type="primary"
+                size="large"
+                icon={<CheckCircle size={18} />}
+                disabled={totalDiscrepancies === 0}
+                className="h-11 px-8 rounded-xl font-bold uppercase tracking-widest"
+              >
+                Valider le comptage
+              </Button>
             </Popconfirm>
           </div>
         </div>
@@ -259,9 +261,9 @@ const PhysicalInventory = () => {
         )}
 
         <div className="bg-bg-secondary rounded-2xl border border-black/5 dark:border-white/5 overflow-hidden no-print">
-          <DataTable 
-            columns={columns} 
-            data={auditData} 
+          <DataTable
+            columns={columns}
+            data={auditData}
             emptyIcon={Package}
             emptyTitle="Aucun produit"
             emptyDescription="Ajoutez des produits au catalogue pour commencer l'inventaire."

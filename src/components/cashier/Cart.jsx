@@ -1,11 +1,12 @@
 import React from 'react';
-import { useStore, formatPrice } from '../../context/StoreContext';
+import { formatPrice } from '../../context/StoreContext';
+import { useSales } from '../../hooks';
 import EmptyState from '../common/EmptyState';
 import { ShoppingCart, Trash2, Minus, Plus, FileText, Store } from 'lucide-react';
 import { Button } from 'antd';
 
 const Cart = ({ onCheckout }) => {
-  const { cart, cartTotal, updateCartQuantity, clearCart, nextInvoiceNumber } = useStore();
+  const { cart, cartTotal, updateCartQuantity, clearCart, nextInvoiceNumber } = useSales();
 
   const Header = () => (
     <div className="flex items-center justify-between p-5 border-b border-white/5 bg-black/10">

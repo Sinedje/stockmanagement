@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import { useStore, formatPrice } from '../../context/StoreContext';
+import { formatPrice } from '../../context/StoreContext';
+import { useProducts, useStores, useSettings } from '../../hooks';
 import Modal from '../common/Modal';
 import Input from '../common/Input';
 import MySelect from '../common/Select';
@@ -8,7 +9,9 @@ import { Button, message, Popconfirm } from 'antd';
 import CatalogManagement from './CatalogManagement';
 
 const StockEntryPanel = () => {
-  const { products, stores, activeStoreId, bulkUpdateStock, categories, addProduct, companySettings, stockEntries } = useStore();
+  const { products, categories, bulkUpdateStock, addProduct, addCategory } = useProducts();
+  const { stores, activeStoreId, stockEntries } = useStores();
+  const { companySettings } = useSettings();
   const [supplier, setSupplier] = useState('');
   const [noteNumber, setNoteNumber] = useState('');
   const [entryItems, setEntryItems] = useState([]); // { productId, name, quantity, cost }
@@ -24,7 +27,7 @@ const StockEntryPanel = () => {
   const [historySearchTerm, setHistorySearchTerm] = useState('');
   const [selectedPastEntry, setSelectedPastEntry] = useState(null);
 
-  const { addCategory } = useStore();
+
 
   const currentStore = stores.find(s => s.id === activeStoreId);
 

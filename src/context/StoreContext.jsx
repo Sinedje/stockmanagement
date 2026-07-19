@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, useMemo } from 'react';
+import AuthContext from './AuthContext';
 
 const StoreContext = createContext();
 
@@ -69,17 +70,20 @@ export const formatPrice = (amount) => {
 };
 
 export const StoreProvider = ({ children }) => {
-  const [currentUser, setCurrentUser] = useState(null);
+  // Auth state lives in AuthContext — StoreContext reads it from there.
+  // This keeps full backward-compat with components that use useStore().currentUser
+  const authCtx = useContext(AuthContext);
+  const currentUser = authCtx?.currentUser ?? null;
   const [stores, setStores] = useState([
     { id: 1, name: 'Magasin Principal', location: 'Siège' }
   ]);
   const [activeStoreId, setActiveStoreId] = useState(1);
   const [categories, setCategories] = useState([...new Set(initialProducts.map(p => p.category))]);
-  
+
   // Initialize products and sales with storeId: 1
   const [allProducts, setAllProducts] = useState(initialProducts.map(p => ({ ...p, storeId: 1 })));
   const [allSales, setAllSales] = useState(generateSalesHistory().map(s => ({ ...s, storeId: 1 })));
-  
+
   const [cart, setCart] = useState([]);
   const [users, setUsers] = useState(initialUsers.map(u => ({ ...u, isActive: true, storeId: 1 })));
   const [invoiceCounters, setInvoiceCounters] = useState({});
@@ -87,13 +91,13 @@ export const StoreProvider = ({ children }) => {
   const [stockEntries, setStockEntries] = useState([]);
   const [customers, setCustomers] = useState([]);
   const [customerTransactions, setCustomerTransactions] = useState([]);
-  
+
   // Nouveau: Gestion des casses et reconditionnements
   const [breakages, setBreakages] = useState([]);
   const [repackagings, setRepackagings] = useState([]);
-  
+
   const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'light');
-  
+
   // Paramètres globaux de l'entreprise
   const [companySettings, setCompanySettings] = useState(() => {
     const saved = localStorage.getItem('companySettings');
@@ -116,11 +120,27 @@ export const StoreProvider = ({ children }) => {
 
   const [expenses, setExpenses] = useState([]);
   const [versements, setVersements] = useState([]);
-  const [initialCashFund, setInitialCashFund] = useState(() => parseFloat(localStorage.getItem('initialCashFund')) || 0);
-  const [isCashFundInitialized, setIsCashFundInitialized] = useState(() => localStorage.getItem('isCashFundInitialized') === 'true');
-  const [cashInitializationDate, setCashInitializationDate] = useState(() => localStorage.getItem('cashInitializationDate'));
-  const [lastClosingBalance, setLastClosingBalance] = useState(() => parseFloat(localStorage.getItem('lastClosingBalance')) || 0);
+  const [initialCashFund, setInitialCashFund] = useState(0);
+  const [isCashFundInitialized, setIsCashFundInitialized] = useState(false);
+  const [cashInitializationDate, setCashInitializationDate] = useState(null);
+  const [lastClosingBalance, setLastClosingBalance] = useState(0);
   const [cashReports, setCashReports] = useState(() => JSON.parse(localStorage.getItem('cashReports')) || []);
+
+  // Hydrate per-cashier cash fund state whenever the logged-in user changes
+  React.useEffect(() => {
+    if (currentUser) {
+      const keyPrefix = `cashFund_${activeStoreId}_${currentUser.id}_`;
+      setInitialCashFund(parseFloat(localStorage.getItem(keyPrefix + 'initialCashFund')) || 0);
+      setIsCashFundInitialized(localStorage.getItem(keyPrefix + 'isCashFundInitialized') === 'true');
+      setCashInitializationDate(localStorage.getItem(keyPrefix + 'cashInitializationDate') || null);
+      setLastClosingBalance(parseFloat(localStorage.getItem(keyPrefix + 'lastClosingBalance')) || 0);
+    } else {
+      setInitialCashFund(0);
+      setIsCashFundInitialized(false);
+      setCashInitializationDate(null);
+      setLastClosingBalance(0);
+    }
+  }, [currentUser, activeStoreId]);
 
   const toggleTheme = useCallback(() => {
     setTheme(prev => {
@@ -140,20 +160,17 @@ export const StoreProvider = ({ children }) => {
   // Filter products and sales for the active store
   const products = allProducts.filter(p => p.storeId === activeStoreId);
   const sales = allSales.filter(s => s.storeId === activeStoreId);
-  const login = useCallback((username, password) => {
-    const user = users.find(u => u.username === username && u.password === password);
-    if (user && user.isActive) { 
-      setCurrentUser({ ...user }); 
-      if (user.storeId) setActiveStoreId(user.storeId);
-      return true; 
-    }
-    return false;
-  }, [users]);
 
-  const logout = useCallback(() => { setCurrentUser(null); setCart([]); }, []);
+  // Sync activeStoreId whenever the logged-in user changes
+  React.useEffect(() => {
+    if (currentUser?.storeId) {
+      setActiveStoreId(currentUser.storeId);
+      setCart([]);
+    }
+  }, [currentUser]);
   const addUser = useCallback((user) => {
-    setUsers(prev => [...prev, { 
-      ...user, 
+    setUsers(prev => [...prev, {
+      ...user,
       id: Math.max(...prev.map(u => u.id), 0) + 1,
       isActive: true
     }]);
@@ -194,8 +211,8 @@ export const StoreProvider = ({ children }) => {
   }, []);
 
   const addProduct = useCallback((product) => {
-    setAllProducts(prev => [...prev, { 
-      ...product, 
+    setAllProducts(prev => [...prev, {
+      ...product,
       id: Math.max(...prev.map(p => p.id), 0) + 1,
       storeId: activeStoreId,
       physicalStock: product.stock // Initialiser le stock physique au même niveau que le théorique
@@ -246,7 +263,7 @@ export const StoreProvider = ({ children }) => {
     setAllProducts(prev => {
       const newProducts = [...prev];
       const productIndex = newProducts.findIndex(p => p.id === productId);
-      
+
       if (productIndex !== -1) {
         sourceProduct = { ...newProducts[productIndex] };
         // Déduire le stock du produit d'origine
@@ -257,10 +274,10 @@ export const StoreProvider = ({ children }) => {
         };
 
         newProductName = `[Casse] ${sourceProduct.name}`;
-        
+
         // Chercher si le produit dérivé "Casse" existe déjà dans ce magasin
         const breakageProductIndex = newProducts.findIndex(p => p.name === newProductName && p.storeId === activeStoreId);
-        
+
         if (breakageProductIndex !== -1) {
           newProducts[breakageProductIndex] = {
             ...newProducts[breakageProductIndex],
@@ -301,7 +318,7 @@ export const StoreProvider = ({ children }) => {
         costValue: sourceProduct.cost * quantity
       };
       setBreakages(prev => [breakageRecord, ...prev]);
-      
+
       // S'assurer que la catégorie "Cartons Cassés" existe
       setCategories(prev => prev.includes('Cartons Cassés') ? prev : [...prev, 'Cartons Cassés']);
     }
@@ -316,7 +333,7 @@ export const StoreProvider = ({ children }) => {
     setAllProducts(prev => {
       const newProducts = [...prev];
       const brokenProductIndex = newProducts.findIndex(p => p.id === brokenProductId);
-      
+
       if (brokenProductIndex !== -1) {
         const brokenProduct = newProducts[brokenProductIndex];
         // Déduire le stock des cartons cassés utilisés
@@ -331,7 +348,7 @@ export const StoreProvider = ({ children }) => {
 
         // Chercher si le nouveau produit "Sac" existe déjà
         const newProductIndex = newProducts.findIndex(p => p.name === newProductName && p.storeId === activeStoreId);
-        
+
         if (newProductIndex !== -1) {
           newProducts[newProductIndex] = {
             ...newProducts[newProductIndex],
@@ -453,7 +470,7 @@ export const StoreProvider = ({ children }) => {
   const initializeCashFund = useCallback((amount) => {
     // Retrouver la dernière clôture de ce caissier pour ce magasin
     const myLastReport = cashReports.find(r => r.cashier === (currentUser?.name || 'Inconnu') && r.storeId === activeStoreId);
-    
+
     // Si une clôture précédente existe, la nouvelle session démarre exactement à l'heure de cette clôture.
     // Cela permet d'inclure toutes les factures faites entre la clôture et la nouvelle ouverture.
     const startDate = myLastReport ? myLastReport.date : new Date().toISOString();
@@ -461,9 +478,12 @@ export const StoreProvider = ({ children }) => {
     setInitialCashFund(amount);
     setIsCashFundInitialized(true);
     setCashInitializationDate(startDate);
-    localStorage.setItem('initialCashFund', amount);
-    localStorage.setItem('isCashFundInitialized', 'true');
-    localStorage.setItem('cashInitializationDate', startDate);
+    if (currentUser) {
+      const keyPrefix = `cashFund_${activeStoreId}_${currentUser.id}_`;
+      localStorage.setItem(keyPrefix + 'initialCashFund', amount);
+      localStorage.setItem(keyPrefix + 'isCashFundInitialized', 'true');
+      localStorage.setItem(keyPrefix + 'cashInitializationDate', startDate);
+    }
   }, [cashReports, currentUser, activeStoreId]);
 
   const closeCashSession = useCallback((finalBalance, sessionStats = {}) => {
@@ -485,9 +505,12 @@ export const StoreProvider = ({ children }) => {
     setLastClosingBalance(finalBalance);
     setIsCashFundInitialized(false);
     setCashInitializationDate(null);
-    localStorage.setItem('lastClosingBalance', finalBalance);
-    localStorage.setItem('isCashFundInitialized', 'false');
-    localStorage.removeItem('cashInitializationDate');
+    if (currentUser) {
+      const keyPrefix = `cashFund_${activeStoreId}_${currentUser.id}_`;
+      localStorage.setItem(keyPrefix + 'lastClosingBalance', finalBalance);
+      localStorage.setItem(keyPrefix + 'isCashFundInitialized', 'false');
+      localStorage.removeItem(keyPrefix + 'cashInitializationDate');
+    }
   }, [currentUser, activeStoreId]);
 
   const addExpense = useCallback((expense) => {
@@ -664,7 +687,7 @@ export const StoreProvider = ({ children }) => {
         reference: `PMT-${invoiceNumber}-CASH`
       });
     }
-    
+
     const sale = {
       id: allSales.length + 1,
       date: new Date().toISOString(),
@@ -761,7 +784,7 @@ export const StoreProvider = ({ children }) => {
           if (item.storeId === storeId) {
             // Déduire du stock physique si ce n'était pas déjà fait et si c'est pas un article hors-stock
             if (!item.isDelivered && !item.isNonInventory) {
-              setAllProducts(pPrev => pPrev.map(p => 
+              setAllProducts(pPrev => pPrev.map(p =>
                 p.id === item.productId ? { ...p, physicalStock: Math.max(0, p.physicalStock - item.quantity) } : p
               ));
             }
@@ -773,10 +796,10 @@ export const StoreProvider = ({ children }) => {
         // Vérifier si tous les articles de la facture (tous magasins confondus) sont livrés
         const allDelivered = updatedItems.every(i => i.isDelivered);
 
-        return { 
-          ...sale, 
-          items: updatedItems, 
-          deliveryStatus: allDelivered ? 'delivered' : 'partially_delivered' 
+        return {
+          ...sale,
+          items: updatedItems,
+          deliveryStatus: allDelivered ? 'delivered' : 'partially_delivered'
         };
       });
     });
@@ -838,9 +861,9 @@ export const StoreProvider = ({ children }) => {
           // On restaure le stock physique uniquement en fonction de ce qui a été réellement sorti
           const qtyAlreadyOut = item.quantityDelivered ?? (item.isDelivered ? item.quantity : 0);
           let newPhysicalStock = p.physicalStock + qtyAlreadyOut;
-          
-          return { 
-            ...p, 
+
+          return {
+            ...p,
             stock: newStock,
             physicalStock: newPhysicalStock
           };
@@ -857,11 +880,11 @@ export const StoreProvider = ({ children }) => {
     setAllSales(prev => prev.map(sale => {
       if (sale.id !== saleId || sale.amountDue <= 0) return sale;
       const actualAmount = Math.min(amount, sale.amountDue || sale.total);
-      
+
       const newAmountPaid = (sale.amountPaid || sale.total) + actualAmount;
       const newAmountDue = sale.total - newAmountPaid;
       const newPaymentStatus = newAmountDue <= 0 ? 'fully_paid' : 'partial';
-      
+
       newTxn = {
         id: Date.now(),
         date: new Date().toISOString(),
@@ -870,9 +893,9 @@ export const StoreProvider = ({ children }) => {
         cashier: currentUser?.name || 'Inconnu',
         reference: `PMT-${sale.invoiceNumber}-${(sale.paymentHistory?.length || 0) + 1}`
       };
-      
+
       const newHistory = [...(sale.paymentHistory || []), newTxn];
-      
+
       return {
         ...sale,
         amountPaid: newAmountPaid,
@@ -885,16 +908,16 @@ export const StoreProvider = ({ children }) => {
   }, [currentUser]);
 
   const unlockDelivery = useCallback((saleId) => {
-    setAllSales(prev => prev.map(sale => 
+    setAllSales(prev => prev.map(sale =>
       sale.id === saleId ? { ...sale, deliveryUnlocked: true } : sale
     ));
   }, []);
-  
+
   const processReturn = useCallback((originalSale, itemsToReturn) => {
     if (!itemsToReturn || itemsToReturn.length === 0) return null;
-    
+
     const returnTotal = itemsToReturn.reduce((s, i) => s + i.price * i.quantity, 0);
-    
+
     const returnEntry = {
       id: allSales.length + 1,
       type: 'return',
@@ -915,8 +938,8 @@ export const StoreProvider = ({ children }) => {
     setAllProducts(prev => prev.map(p => {
       const returnedItem = itemsToReturn.find(i => i.productId === p.id);
       if (returnedItem && !p.isNonInventory) {
-        return { 
-          ...p, 
+        return {
+          ...p,
           stock: p.stock + returnedItem.quantity,
           physicalStock: p.physicalStock + returnedItem.quantity
         };
@@ -930,7 +953,7 @@ export const StoreProvider = ({ children }) => {
 
   const createTransfer = useCallback((toStoreId, items, notes = '') => {
     if (!items || items.length === 0) return null;
-    
+
     const newTransfer = {
       id: transfers.length + 1,
       reference: `TRF-${String(transfers.length + 1).padStart(4, '0')}`,
@@ -949,8 +972,8 @@ export const StoreProvider = ({ children }) => {
     setAllProducts(prev => prev.map(p => {
       const transferItem = items.find(i => i.productId === p.id);
       if (transferItem && p.storeId === activeStoreId) {
-        return { 
-          ...p, 
+        return {
+          ...p,
           stock: Math.max(0, p.stock - transferItem.quantity),
           physicalStock: Math.max(0, p.physicalStock - transferItem.quantity)
         };
@@ -966,9 +989,9 @@ export const StoreProvider = ({ children }) => {
     const transfer = transfers.find(t => t.id === transferId);
     if (!transfer || transfer.status !== 'in_transit') return;
 
-    setTransfers(prev => prev.map(t => 
-      t.id === transferId 
-        ? { ...t, status: 'completed', receivedBy: currentUser?.name || 'Inconnu', receivedDate: new Date().toISOString() } 
+    setTransfers(prev => prev.map(t =>
+      t.id === transferId
+        ? { ...t, status: 'completed', receivedBy: currentUser?.name || 'Inconnu', receivedDate: new Date().toISOString() }
         : t
     ));
 
@@ -980,7 +1003,7 @@ export const StoreProvider = ({ children }) => {
       transfer.items.forEach(item => {
         // Find if product exists in destination store by name
         const existingProduct = newProducts.find(p => p.storeId === transfer.toStoreId && p.name === item.name);
-        
+
         if (existingProduct) {
           existingProduct.stock += item.quantity;
           existingProduct.physicalStock += item.quantity;
@@ -1004,7 +1027,7 @@ export const StoreProvider = ({ children }) => {
   }, [transfers, currentUser]);
 
   const value = {
-    currentUser, login, logout,
+    currentUser,
     stores, activeStoreId, activeStore, addStore, switchStore, updateStore, deleteStore,
     products, addProduct, updateProduct, deleteProduct, bulkUpdateStock, categories, addCategory,
     cart, addToCart, removeFromCart, updateCartQuantity, clearCart, cartTotal, completeSale,
@@ -1012,7 +1035,7 @@ export const StoreProvider = ({ children }) => {
     users, addUser, updateUser, toggleUserStatus,
     // Cashier multi-store & invoice features
     allCashierProducts, nextInvoiceNumber, currentCashierCode, staffWithCodes, invoiceCounters,
-    completeInvoiceSale, expenses, addExpense, 
+    completeInvoiceSale, expenses, addExpense,
     initialCashFund, isCashFundInitialized, initializeCashFund, cashInitializationDate,
     versements, addVersement, currentCashBalance,
     allSales, deliverSale, deliverPartial, cancelSale, processReturn, recordInvoicePayment, unlockDelivery,

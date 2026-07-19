@@ -1,6 +1,6 @@
 import React from 'react';
 import Sidebar from '../common/Sidebar';
-import { useStore } from '../../context/StoreContext';
+import { useAuth } from '../../context/AuthContext';
 import { LogOut, User } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -14,7 +14,7 @@ const DashboardLayout = ({
   headerActions,
   showSidebar = true 
 }) => {
-  const { currentUser, logout } = useStore();
+  const { currentUser, logout } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = () => {

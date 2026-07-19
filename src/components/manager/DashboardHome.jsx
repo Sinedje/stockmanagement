@@ -1,12 +1,16 @@
 import React from 'react';
-import { useStore, formatPrice } from '../../context/StoreContext';
+import { formatPrice } from '../../context/StoreContext';
+import { useProducts, useSales, useStores, useUsers } from '../../hooks';
 import StatsCard from '../common/StatsCard';
 import Card from '../common/Card';
 import DataTable from '../common/DataTable';
 import { Package, DollarSign, ShoppingCart, AlertTriangle, TrendingUp, Clock, Truck, CreditCard } from 'lucide-react';
 
 const DashboardHome = () => {
-  const { products, sales, allSales, totalRevenue, todaySales, todayRevenue, lowStockProducts, totalStockValue, stores, allCashierProducts } = useStore();
+  const { products, lowStockProducts, totalStockValue } = useProducts();
+  const { sales, allSales, totalRevenue, todaySales, todayRevenue } = useSales();
+  const { stores } = useStores();
+  const { allCashierProducts } = useUsers();
   const pendingDeliveriesCount = allSales.filter(s => s.status !== 'cancelled' && s.deliveryStatus !== 'delivered').length;
   const totalUnpaid = allSales.reduce((sum, s) => sum + (s.amountDue || 0), 0);
 

@@ -1,11 +1,14 @@
 import React, { useState, useMemo } from 'react';
-import { useStore, formatPrice } from '../../context/StoreContext';
+import { formatPrice } from '../../context/StoreContext';
+import { useSales } from '../../hooks';
+import { useAuth } from '../../context/AuthContext';
 import SearchComponent from '../common/SearchComponent';
 import DataTable from '../common/DataTable';
 import { FileText, Search, User, Package, Calendar } from 'lucide-react';
 
 const StorekeeperInvoices = () => {
-  const { allSales, currentUser } = useStore();
+  const { allSales } = useSales();
+  const { currentUser } = useAuth();
   const [search, setSearch] = useState('');
   const [expandedSale, setExpandedSale] = useState(null);
 
