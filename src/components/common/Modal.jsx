@@ -1,7 +1,7 @@
 import React from 'react';
 import { Modal as AntModal } from 'antd';
 
-const Modal = ({ title, children, onClose, onOk, footer }) => {
+const Modal = ({ title, children, onClose, onOk, footer, width = 560 }) => {
   return (
     <AntModal
       className="custom-modal"
@@ -11,13 +11,18 @@ const Modal = ({ title, children, onClose, onOk, footer }) => {
       onOk={onOk}
       footer={footer}
       centered
+      width={width}
       styles={{
-        mask: { backdropFilter: 'blur(8px)' },
-        content: { 
-          background: 'var(--bg-secondary)', 
-          border: '1px solid var(--border-color)',
+        mask: { backdropFilter: 'blur(8px)', background: 'rgba(10, 15, 25, 0.4)' },
+        content: {
+          background: 'var(--glass-bg-strong)',
+          backdropFilter: 'blur(var(--glass-blur)) saturate(180%)',
+          WebkitBackdropFilter: 'blur(var(--glass-blur)) saturate(180%)',
+          border: '1px solid var(--glass-border)',
           borderRadius: '1.25rem',
-          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
+          boxShadow: 'var(--glass-shadow), inset 0 1px 0 0 var(--glass-highlight)',
+          maxHeight: 'calc(100vh - 2rem)',
+          overflowY: 'auto'
         },
         header: { background: 'transparent', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem', marginBottom: '1.5rem' },
         body: { padding: '0' },

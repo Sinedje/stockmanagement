@@ -2,9 +2,9 @@ import React from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useStores, useTheme } from '../../hooks';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, Package, ChevronRight, MapPin, Store, ChevronDown, Sun, Moon } from 'lucide-react';
+import { LogOut, Package, ChevronRight, MapPin, Store, ChevronDown, Sun, Moon, X } from 'lucide-react';
 
-const Sidebar = ({ items, activeItem, onItemClick }) => {
+const Sidebar = ({ items, activeItem, onItemClick, isOpen = false, onClose }) => {
   const { currentUser, logout } = useAuth();
   const { activeStore, stores, switchStore } = useStores();
   const { theme, toggleTheme } = useTheme();
@@ -17,14 +17,36 @@ const Sidebar = ({ items, activeItem, onItemClick }) => {
     navigate('/login');
   };
 
+  const handleItemClick = (id) => {
+    onItemClick(id);
+    onClose?.();
+  };
+
   const initials = currentUser?.name?.split(' ').map(n => n[0]).join('').slice(0, 2) || '?';
   const roleLabels = { manager: 'Gestionnaire', cashier: 'Caissier', accountant: 'Comptable' };
 
   return (
-    <aside 
-      className="bg-bg-secondary/80 backdrop-blur-xl border-r border-black/5 dark:border-white/5 flex flex-col h-screen fixed left-0 top-0 z-50 shadow-2xl print:hidden"
-      style={{ width: 'var(--sidebar-width)' }}
-    >
+    <>
+      {/* Mobile backdrop */}
+      {isOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 md:hidden print:hidden"
+          onClick={onClose}
+        />
+      )}
+
+      <aside
+        className={`glass-panel-strong border-y-0 border-l-0 rounded-none flex flex-col h-screen fixed left-0 top-0 z-50 print:hidden transition-transform duration-300 md:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}
+        style={{ width: 'var(--sidebar-width)', maxWidth: '85vw' }}
+      >
+        {/* Mobile close button */}
+        <button
+          onClick={onClose}
+          className="md:hidden absolute top-4 right-4 w-8 h-8 rounded-lg bg-black/5 dark:bg-white/5 text-text-secondary hover:bg-red-500/10 hover:text-red-500 flex items-center justify-center transition-colors"
+          title="Fermer"
+        >
+          <X size={16} strokeWidth={2.5} />
+        </button>
       {/* Brand Section */}
       <div className="px-6 py-6 mt-2">
         <div className="flex items-center gap-4 group cursor-pointer">
@@ -41,12 +63,12 @@ const Sidebar = ({ items, activeItem, onItemClick }) => {
       {/* Store Section - Caché pour le PDG car il a une vue globale */}
       {currentUser?.role !== 'ceo' && (
         <div className="px-5 mb-4">
-          <div className="bg-gradient-to-br from-primary/10 to-transparent border border-primary/20 rounded-2xl p-4 flex flex-col gap-2 shadow-sm">
+          <div className="bg-gradient-to-br from-primary/15 to-transparent backdrop-blur-md border border-primary/20 rounded-2xl p-4 flex flex-col gap-2 shadow-sm">
             <div className="flex items-center gap-2 text-primary">
               <Store size={14} strokeWidth={3} />
               <span className="text-[0.65rem] font-black uppercase tracking-[0.25em]">Magasin Actif</span>
             </div>
-            <div className="flex items-center justify-between group cursor-pointer gap-2" onClick={() => isManager && onItemClick('stores')}>
+            <div className="flex items-center justify-between group cursor-pointer gap-2" onClick={() => isManager && handleItemClick('stores')}>
               <div className="flex flex-col flex-1 min-w-0">
                 <span className="text-text-heading text-[1.05rem] font-black truncate leading-tight" title={activeStore?.name}>{activeStore?.name}</span>
                 <div className="flex items-center gap-1.5 opacity-60 mt-1">
@@ -80,7 +102,7 @@ const Sidebar = ({ items, activeItem, onItemClick }) => {
                   ? 'bg-primary/10 text-primary shadow-lg border border-primary/20' 
                   : 'text-text-secondary hover:bg-black/5 dark:hover:bg-white/5 hover:text-text-primary'}
               `}
-              onClick={() => onItemClick(item.id)}
+              onClick={() => handleItemClick(item.id)}
             >
               <div className={`
                 w-9 h-9 rounded-lg flex items-center justify-center transition-all duration-500
@@ -107,7 +129,7 @@ const Sidebar = ({ items, activeItem, onItemClick }) => {
 
       {/* User Section */}
       <div className="p-4">
-        <div className="bg-black/5 dark:bg-white/[0.03] backdrop-blur-md border border-black/5 dark:border-white/5 rounded-2xl p-4 shadow-2xl">
+        <div className="glass-panel rounded-2xl p-4">
           <div className="flex items-center gap-3 mb-4">
             <div className="relative">
               <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-primary/40 to-primary/10 border border-primary/30 flex items-center justify-center font-black text-primary text-xs shadow-inner uppercase">
@@ -151,7 +173,8 @@ const Sidebar = ({ items, activeItem, onItemClick }) => {
           </div>
         </div>
       </div>
-    </aside>
+      </aside>
+    </>
   );
 };
 

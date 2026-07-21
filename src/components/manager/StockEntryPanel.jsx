@@ -147,28 +147,30 @@ const StockEntryPanel = () => {
   return (
     <div className="animate-fade-in space-y-8">
       {/* Tab Switcher */}
-      <div className="flex gap-1 p-1.5 bg-black/5 dark:bg-white/5 rounded-2xl w-fit border border-black/5 dark:border-white/5">
-        <button 
-          onClick={() => setActiveMode('reception')}
-          className={`flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-black uppercase tracking-widest transition-all ${activeMode === 'reception' ? 'bg-primary text-black shadow-lg shadow-primary/20' : 'text-text-muted hover:text-text-primary'}`}
-        >
-          <PlusCircle size={18} />
-          Réception de Marchandises
-        </button>
-        <button 
-          onClick={() => setActiveMode('catalog')}
-          className={`flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-black uppercase tracking-widest transition-all ${activeMode === 'catalog' ? 'bg-primary text-black shadow-lg shadow-primary/20' : 'text-text-muted hover:text-text-primary'}`}
-        >
-          <List size={18} />
-          Gestion du Catalogue
-        </button>
-        <button 
-          onClick={() => setActiveMode('history')}
-          className={`flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-black uppercase tracking-widest transition-all ${activeMode === 'history' ? 'bg-primary text-black shadow-lg shadow-primary/20' : 'text-text-muted hover:text-text-primary'}`}
-        >
-          <History size={18} />
-          Historique des Réceptions
-        </button>
+      <div className="overflow-x-auto custom-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0">
+        <div className="flex gap-1 p-1.5 bg-black/5 dark:bg-white/5 rounded-2xl w-fit border border-black/5 dark:border-white/5">
+          <button
+            onClick={() => setActiveMode('reception')}
+            className={`shrink-0 whitespace-nowrap flex items-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl text-xs sm:text-sm font-black uppercase tracking-widest transition-all ${activeMode === 'reception' ? 'bg-primary text-black shadow-lg shadow-primary/20' : 'text-text-muted hover:text-text-primary'}`}
+          >
+            <PlusCircle size={18} />
+            Réception de Marchandises
+          </button>
+          <button
+            onClick={() => setActiveMode('catalog')}
+            className={`shrink-0 whitespace-nowrap flex items-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl text-xs sm:text-sm font-black uppercase tracking-widest transition-all ${activeMode === 'catalog' ? 'bg-primary text-black shadow-lg shadow-primary/20' : 'text-text-muted hover:text-text-primary'}`}
+          >
+            <List size={18} />
+            Gestion du Catalogue
+          </button>
+          <button
+            onClick={() => setActiveMode('history')}
+            className={`shrink-0 whitespace-nowrap flex items-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl text-xs sm:text-sm font-black uppercase tracking-widest transition-all ${activeMode === 'history' ? 'bg-primary text-black shadow-lg shadow-primary/20' : 'text-text-muted hover:text-text-primary'}`}
+          >
+            <History size={18} />
+            Historique des Réceptions
+          </button>
+        </div>
       </div>
 
       {activeMode === 'catalog' ? (
@@ -192,8 +194,8 @@ const StockEntryPanel = () => {
               </div>
             </div>
 
-            <div className="overflow-hidden rounded-2xl border border-white/5">
-              <table className="w-full text-left">
+            <div className="overflow-x-auto custom-scrollbar rounded-2xl border border-white/5">
+              <table className="w-full min-w-[640px] text-left">
                 <thead className="bg-white/5">
                   <tr>
                     <th className="px-6 py-4 text-[0.65rem] font-black uppercase tracking-widest text-text-muted">Date & N°</th>
@@ -273,7 +275,7 @@ const StockEntryPanel = () => {
       </style>
 
       {/* Header Info */}
-      <div className="bg-bg-card border border-white/5 rounded-3xl p-8 shadow-xl no-print">
+      <div className="bg-bg-card border border-white/5 rounded-3xl p-4 sm:p-8 shadow-xl no-print">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="space-y-2">
             <label className="text-[0.65rem] font-black text-text-muted uppercase tracking-widest px-1">Fournisseur</label>
@@ -316,9 +318,9 @@ const StockEntryPanel = () => {
       </div>
 
       {/* Product Selection */}
-      <div className="bg-bg-card border border-white/5 rounded-3xl p-8 shadow-xl no-print">
-        <div className="flex flex-col md:flex-row gap-6 items-end">
-          <div className="flex-1 space-y-2 relative">
+      <div className="bg-bg-card border border-white/5 rounded-3xl p-4 sm:p-8 shadow-xl no-print">
+        <div className="flex flex-col md:flex-row gap-4 md:gap-6 items-stretch md:items-end">
+          <div className="w-full md:flex-1 space-y-2 relative">
             <label className="text-[0.65rem] font-black text-text-muted uppercase tracking-widest px-1">Rechercher un article à ajouter</label>
             <div className="relative">
               <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted" />
@@ -367,7 +369,7 @@ const StockEntryPanel = () => {
             )}
           </div>
           
-          <div className="flex gap-3">
+          <div className="flex flex-wrap gap-3 w-full md:w-auto">
             {!isSaved ? (
               <>
                 <Button 
@@ -424,8 +426,8 @@ const StockEntryPanel = () => {
         )}
 
         {/* Entry Table */}
-        <div className="mt-8 overflow-hidden rounded-2xl border border-white/5">
-          <table className="w-full text-left">
+        <div className="mt-8 overflow-x-auto custom-scrollbar rounded-2xl border border-white/5">
+          <table className="w-full min-w-[600px] text-left">
             <thead className="bg-white/5">
               <tr>
                 <th className="px-6 py-4 text-[0.65rem] font-black uppercase tracking-widest text-text-muted">Article</th>
@@ -656,8 +658,8 @@ const StockEntryPanel = () => {
               </div>
             </div>
 
-            <div className="overflow-hidden rounded-2xl border border-primary/20 bg-white/5 shadow-xl">
-              <table className="w-full text-left">
+            <div className="overflow-x-auto custom-scrollbar rounded-2xl border border-primary/20 bg-white/5 shadow-xl">
+              <table className="w-full min-w-[500px] text-left">
                 <thead className="bg-primary/10 border-b border-primary/20">
                   <tr>
                     <th className="px-5 py-4 text-[0.7rem] font-black uppercase tracking-widest text-primary">Article</th>

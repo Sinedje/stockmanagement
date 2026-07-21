@@ -328,7 +328,7 @@ const InvoiceBuilder = () => {
   return (
     <div className="space-y-4 overflow-y-auto pr-1 custom-scrollbar" style={{ height: 'calc(100vh - 220px)' }}>
       {/* Invoice header */}
-      <div className="flex items-center justify-between bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5 rounded-2xl px-5 py-3">
+      <div className="flex flex-wrap items-center justify-between gap-2 glass-panel rounded-2xl px-4 sm:px-5 py-3">
         <div className="flex items-center gap-2">
           <FileText size={15} className="text-primary" />
           <span className="text-[0.7rem] font-black text-text-muted uppercase tracking-widest">Facture</span>
@@ -340,8 +340,8 @@ const InvoiceBuilder = () => {
       </div>
 
       {/* Customer info */}
-      <div className="bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5 rounded-2xl p-4 space-y-3">
-        <div className="grid grid-cols-2 gap-3">
+      <div className="glass-panel rounded-2xl p-4 space-y-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {[
             { key: 'name', label: 'Nom du client', icon: User, placeholder: 'Jean Dupont...' },
             { key: 'phone', label: 'Téléphone', icon: Phone, placeholder: '+225 07 00 00 00...' },
@@ -373,10 +373,10 @@ const InvoiceBuilder = () => {
 
       {/* Product search */}
       <div className="relative">
-        <div className="flex gap-2">
+        <div className="flex flex-col sm:flex-row gap-2">
           {stores.length > 1 && (
             <select
-              className="bg-white dark:bg-black/30 border border-black/15 dark:border-white/10 rounded-xl px-3 py-2.5 text-[0.8rem] text-text-secondary focus:outline-none focus:border-primary/40 cursor-pointer"
+              className="w-full sm:w-auto sm:max-w-[160px] shrink-0 bg-white dark:bg-black/30 border border-black/15 dark:border-white/10 rounded-xl px-3 py-2.5 text-[0.8rem] text-text-secondary focus:outline-none focus:border-primary/40 cursor-pointer"
               value={filterStore === 'Tous' ? 'Tous' : String(filterStore)}
               onChange={e => setFilterStore(e.target.value === 'Tous' ? 'Tous' : parseInt(e.target.value))}
             >
@@ -397,7 +397,7 @@ const InvoiceBuilder = () => {
 
         {/* Dropdown results */}
         {searchResults.length > 0 && (
-          <div className="absolute top-full left-0 right-0 mt-1 bg-bg-secondary border border-black/10 dark:border-white/10 rounded-xl shadow-2xl z-50 overflow-hidden">
+          <div className="absolute top-full left-0 right-0 mt-1 glass-panel-strong rounded-xl z-50 overflow-hidden">
             {searchResults.map(p => (
               <button
                 key={p.id}
@@ -442,8 +442,8 @@ const InvoiceBuilder = () => {
 
       {/* Line items table */}
       {lines.length > 0 ? (
-        <div className="bg-black/[0.02] dark:bg-white/[0.02] border border-black/5 dark:border-white/5 rounded-2xl overflow-hidden">
-          <table className="w-full text-[0.8rem]">
+        <div className="bg-black/[0.02] dark:bg-white/[0.02] border border-black/5 dark:border-white/5 rounded-2xl overflow-x-auto custom-scrollbar">
+          <table className="w-full min-w-[560px] text-[0.8rem]">
             <thead>
               <tr className="border-b border-black/5 dark:border-white/5 bg-black/5 dark:bg-black/20">
                 {['Article', 'Qté', 'Prix unit.', 'Total', ''].map((h, i) => (
@@ -508,31 +508,31 @@ const InvoiceBuilder = () => {
       )}
 
       {/* Checkout Button & Total */}
-      <div className="flex items-center justify-between bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5 rounded-2xl p-6 mt-2 shadow-2xl">
-        <div className="flex items-center gap-8">
+      <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4 glass-panel-strong rounded-2xl p-4 sm:p-6 mt-2">
+        <div className="flex flex-wrap items-center gap-4 sm:gap-8">
           <div>
             <span className="text-[0.75rem] font-bold text-text-muted uppercase tracking-widest block mb-1">Total Articles</span>
             <span className="text-xl font-black text-text-heading tracking-tight">{formatPrice(itemsTotal)}</span>
           </div>
-          
-          <div className="w-[1px] h-10 bg-black/10 dark:bg-white/10"></div>
+
+          <div className="hidden sm:block w-[1px] h-10 bg-black/10 dark:bg-white/10"></div>
 
           <div className="relative">
             <span className="text-[0.75rem] font-bold text-text-muted uppercase tracking-widest block mb-1">Remise Accordée</span>
-            <input 
+            <input
               type="number"
-              className="w-32 bg-black/10 dark:bg-white/10 border border-transparent focus:border-primary/50 rounded-lg px-3 py-1 text-primary font-black focus:outline-none"
+              className="w-28 sm:w-32 bg-black/10 dark:bg-white/10 border border-transparent focus:border-primary/50 rounded-lg px-3 py-1 text-primary font-black focus:outline-none"
               placeholder="0..."
               value={discount || ''}
               onChange={e => setDiscount(Math.max(0, parseFloat(e.target.value) || 0))}
             />
           </div>
 
-          <div className="w-[1px] h-10 bg-black/10 dark:bg-white/10"></div>
+          <div className="hidden sm:block w-[1px] h-10 bg-black/10 dark:bg-white/10"></div>
 
           <div>
             <span className="text-[0.75rem] font-bold text-primary uppercase tracking-widest block mb-1">Net à Encaisser</span>
-            <span className="text-3xl font-black text-primary tracking-tighter">{formatPrice(total)}</span>
+            <span className="text-2xl sm:text-3xl font-black text-primary tracking-tighter">{formatPrice(total)}</span>
           </div>
         </div>
 
@@ -541,7 +541,7 @@ const InvoiceBuilder = () => {
           size="large"
           disabled={lines.length === 0}
           onClick={() => setShowPayment(true)}
-          className="h-14 px-10 text-[0.95rem] font-black uppercase tracking-wider rounded-xl shadow-glow"
+          className="w-full lg:w-auto h-14 px-10 text-[0.95rem] font-black uppercase tracking-wider rounded-xl shadow-glow"
         >
           Encaisser
         </Button>

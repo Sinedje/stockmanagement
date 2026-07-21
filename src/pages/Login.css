@@ -19,6 +19,17 @@
   transition: all 0.3s ease;
 }
 
+@media (max-width: 480px) {
+  .login-page {
+    padding: 12px;
+  }
+
+  .login-card {
+    padding: 28px 20px;
+    border-radius: 16px;
+  }
+}
+
 .dark .login-card {
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
 }

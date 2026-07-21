@@ -1,7 +1,8 @@
 import React from 'react';
 import { Card as AntCard } from 'antd';
 
-const Card = ({ title, subtitle, icon: Icon, headerActions, children, padding = true, className = '', accentColor, ...props }) => {
+const Card = ({ title, subtitle, icon: Icon, headerActions, children, padding = true, noPadding = false, className = '', accentColor, ...props }) => {
+  const hasPadding = padding && !noPadding;
   const cardTitle = (title || Icon) && (
     <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
       {Icon && (
@@ -30,15 +31,18 @@ const Card = ({ title, subtitle, icon: Icon, headerActions, children, padding = 
     <AntCard
       title={cardTitle}
       extra={headerActions}
-      className={`${className} overflow-hidden rounded-xl border border-black/5 dark:border-white/5 shadow-lg`}
-      styles={{ 
-        body: { padding: padding ? '1.25rem' : '0' },
+      className={`${className} overflow-hidden rounded-xl`}
+      styles={{
+        body: { padding: hasPadding ? '1.25rem' : '0' },
         header: { borderBottom: '1px solid var(--border-color)', padding: '1rem 1.25rem' }
       }}
-      style={{ 
+      style={{
+        background: 'var(--glass-bg)',
+        backdropFilter: 'blur(var(--glass-blur)) saturate(180%)',
+        WebkitBackdropFilter: 'blur(var(--glass-blur)) saturate(180%)',
+        border: '1px solid var(--glass-border)',
         borderTop: accentColor ? `3px solid ${accentColor}` : undefined,
-        background: 'var(--bg-card)',
-        backdropFilter: 'blur(16px)',
+        boxShadow: 'var(--glass-shadow), inset 0 1px 0 0 var(--glass-highlight)',
         borderRadius: '0.75rem',
       }}
       {...props}

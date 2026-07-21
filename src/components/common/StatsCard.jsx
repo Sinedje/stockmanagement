@@ -2,8 +2,8 @@ import React from 'react';
 
 const StatsCard = ({ icon: Icon, label, value, change, changeDir, color = 'green', accentColor }) => {
   return (
-    <div 
-      className="bg-bg-card backdrop-blur-md border border-black/5 dark:border-white/5 rounded-2xl p-6 transition-all duration-300 hover:border-black/10 dark:hover:border-white/10 hover:shadow-xl group"
+    <div
+      className="glass-panel rounded-2xl p-6 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-2xl group"
       style={accentColor ? { borderTop: `4px solid ${accentColor}` } : undefined}
     >
       <div className="flex items-center justify-between mb-5">

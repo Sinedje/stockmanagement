@@ -25,7 +25,7 @@ const Cart = ({ onCheckout }) => {
 
   if (cart.length === 0) {
     return (
-      <div className="h-full flex flex-col bg-bg-secondary rounded-2xl border border-white/5 overflow-hidden shadow-2xl">
+      <div className="h-full flex flex-col glass-panel-strong rounded-2xl overflow-hidden">
         <Header />
         <div className="flex-1 flex items-center justify-center">
           <EmptyState

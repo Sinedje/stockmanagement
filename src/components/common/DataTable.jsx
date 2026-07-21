@@ -26,33 +26,36 @@ const DataTable = ({
   }));
 
   return (
-    <Table
-      columns={antColumns}
-      dataSource={data}
-      rowKey={rowKey}
-      pagination={false}
-      className={className}
-      onRow={(record, rowIndex) => ({
-        onClick: () => onRowClick?.(record, rowIndex),
-        className: onRowClick ? 'clickable-row' : '',
-      })}
-      expandable={renderExpandedRow ? {
-        expandedRowRender: renderExpandedRow,
-        rowExpandable: () => true,
-        expandedRowKeys: expandedRowId ? [expandedRowId] : [],
-      } : undefined}
-      locale={{
-        emptyText: (
-          <EmptyState
-            icon={emptyIcon}
-            title={emptyTitle}
-            description={emptyDescription}
-            size="sm"
-          />
-        )
-      }}
-      {...props}
-    />
+    <div className="overflow-x-auto custom-scrollbar -mx-px">
+      <Table
+        columns={antColumns}
+        dataSource={data}
+        rowKey={rowKey}
+        pagination={false}
+        className={className}
+        scroll={{ x: 'max-content' }}
+        onRow={(record, rowIndex) => ({
+          onClick: () => onRowClick?.(record, rowIndex),
+          className: onRowClick ? 'clickable-row' : '',
+        })}
+        expandable={renderExpandedRow ? {
+          expandedRowRender: renderExpandedRow,
+          rowExpandable: () => true,
+          expandedRowKeys: expandedRowId ? [expandedRowId] : [],
+        } : undefined}
+        locale={{
+          emptyText: (
+            <EmptyState
+              icon={emptyIcon}
+              title={emptyTitle}
+              description={emptyDescription}
+              size="sm"
+            />
+          )
+        }}
+        {...props}
+      />
+    </div>
   );
 };
 

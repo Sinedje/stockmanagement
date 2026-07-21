@@ -23,7 +23,7 @@ const ProductGrid = () => {
   return (
     <div className="flex flex-col gap-4">
       {/* Barre de filtres */}
-      <div className="bg-white/5 p-4 rounded-2xl border border-white/5 flex flex-col gap-3">
+      <div className="glass-panel p-4 rounded-2xl flex flex-col gap-3">
         <div className="flex flex-col md:flex-row items-center gap-3">
           <SearchComponent
             placeholder="Rechercher un produit..."
@@ -81,8 +81,8 @@ const ProductGrid = () => {
         {filtered.map(product => (
           <div
             key={`${product.id}-${product.storeId}`}
-            className={`group relative p-4 bg-bg-secondary rounded-2xl border border-white/5 cursor-pointer
-              transition-all duration-300 hover:border-primary/30 hover:shadow-xl hover:shadow-primary/5 hover:-translate-y-1
+            className={`group relative p-4 glass-panel rounded-2xl cursor-pointer
+              transition-all duration-300 hover:border-primary/30 hover:shadow-xl hover:shadow-primary/10 hover:-translate-y-1
               ${product.stock <= 0 ? 'opacity-50 grayscale pointer-events-none' : ''}`}
             onClick={() => addToCart(product)}
           >
