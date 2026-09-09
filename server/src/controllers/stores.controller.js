@@ -128,6 +128,7 @@ export const receiveTransfer = async (req, res, next) => {
         });
       } else {
         destProduct.stock += item.quantity;
+        destProduct.physicalStock = (destProduct.physicalStock || 0) + item.quantity;
         await destProduct.save();
       }
     }
@@ -162,26 +163,34 @@ export const createStockEntry = async (req, res, next) => {
     const finalizedItems = [];
     for (const item of items) {
       let product;
+      let templateProduct = null;
       if (item.productId) {
         product = await Product.findById(item.productId);
+        if (product && product.storeId.toString() !== storeId.toString()) {
+          templateProduct = product;
+          product = await Product.findOne({ name: templateProduct.name, storeId });
+        }
       } else {
         // Find by name in the store
         product = await Product.findOne({ name: item.name, storeId });
       }
 
       if (!product) {
-        // Create product if not existing (e.g. catalog management was done or directly entry-level)
+        // Create product if not existing, cloning from template if available
         product = await Product.create({
-          name: item.name,
-          category: item.category || 'Général',
-          price: item.price || (item.cost * 1.3), // default markup of 30% if undefined
+          name: templateProduct ? templateProduct.name : item.name,
+          designation: templateProduct ? templateProduct.designation : (item.designation || ''),
+          category: templateProduct ? templateProduct.category : (item.category || 'Général'),
+          price: item.price || (templateProduct ? templateProduct.price : (item.cost * 1.3)),
           cost: item.cost,
           stock: item.quantity,
           physicalStock: item.quantity,
+          image: templateProduct ? templateProduct.image : (item.image || ''),
           storeId
         });
       } else {
         product.stock += item.quantity;
+        product.physicalStock = (product.physicalStock ?? product.stock - item.quantity) + item.quantity;
         product.cost = item.cost; // Update last purchase cost
         if (item.price) product.price = item.price; // Update price if supplied
         await product.save();

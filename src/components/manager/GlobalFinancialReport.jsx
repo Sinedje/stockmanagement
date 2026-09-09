@@ -31,14 +31,12 @@ const GlobalFinancialReport = () => {
       
       let standardSales = 0;
       let breakageSales = 0;
-      let sampleSales = 0;
 
       cashierSales.forEach(s => {
         s.items.forEach(item => {
            const itemGross = item.price * item.quantity;
-           if (item.isNonInventory) sampleSales += itemGross;
-           else if (item.isBreakage || item.isRepackaged) breakageSales += itemGross;
-           else standardSales += itemGross;
+           if (item.isBreakage || item.isRepackaged) breakageSales += itemGross;
+          else standardSales += itemGross;
         });
       });
 
@@ -47,7 +45,6 @@ const GlobalFinancialReport = () => {
         totalSales,
         standardSales,
         breakageSales,
-        sampleSales,
         totalExpenses,
         totalVersements,
         totalDeposits,
@@ -65,13 +62,12 @@ const GlobalFinancialReport = () => {
       sales: acc.sales + report.totalSales,
       standardSales: (acc.standardSales || 0) + report.standardSales,
       breakageSales: (acc.breakageSales || 0) + report.breakageSales,
-      sampleSales: (acc.sampleSales || 0) + report.sampleSales,
       expenses: acc.expenses + report.totalExpenses,
       versements: acc.versements + report.totalVersements,
       deposits: (acc.deposits || 0) + report.totalDeposits,
       refunds: (acc.refunds || 0) + report.totalRefunds,
       balance: acc.balance + report.balance
-    }), { sales: 0, standardSales: 0, breakageSales: 0, sampleSales: 0, expenses: 0, versements: 0, deposits: 0, refunds: 0, balance: 0 });
+    }), { sales: 0, standardSales: 0, breakageSales: 0, expenses: 0, versements: 0, deposits: 0, refunds: 0, balance: 0 });
   }, [cashierReports]);
 
   return (
@@ -82,7 +78,6 @@ const GlobalFinancialReport = () => {
           { label: 'Recettes Espèces (Total)', value: formatPrice(totals.sales), icon: Wallet, color: 'text-emerald-500' },
           { label: 'CA Standard', value: formatPrice(totals.standardSales), icon: TrendingUp, color: 'text-primary' },
           { label: 'CA Casses', value: formatPrice(totals.breakageSales), icon: PackageOpen, color: 'text-orange-500' },
-          { label: 'CA Échantillons', value: formatPrice(totals.sampleSales), icon: Package, color: 'text-purple-500' },
           { label: 'Dépôts Clients (Total)', value: formatPrice(totals.deposits), icon: PlusCircle, color: 'text-emerald-400' },
           { label: 'Remboursements (Total)', value: formatPrice(totals.refunds), icon: MinusCircle, color: 'text-rose-400' },
           { label: 'Dépenses Totales', value: formatPrice(totals.expenses), icon: MinusCircle, color: 'text-red-500' },
@@ -142,7 +137,7 @@ const GlobalFinancialReport = () => {
                   <td className="px-8 py-5 text-right font-black text-text-heading text-sm">
                     <div>{formatPrice(report.totalSales)}</div>
                     <div className="text-[0.55rem] font-bold text-text-muted uppercase mt-1">
-                      Std: {formatPrice(report.standardSales)} | Casses: {formatPrice(report.breakageSales)} | Échan: {formatPrice(report.sampleSales)}
+                      Std: {formatPrice(report.standardSales)} | Casses: {formatPrice(report.breakageSales)}
                     </div>
                     {(report.totalDeposits > 0 || report.totalRefunds > 0) && (
                       <div className="text-[0.55rem] font-bold text-emerald-600 dark:text-emerald-500 uppercase mt-0.5">

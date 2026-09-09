@@ -1,7 +1,14 @@
 import dns from 'dns';
-dns.setServers(['8.8.8.8', '8.8.4.4']);
+dns.setServers(['8.8.8.8', '1.1.1.1', '8.8.4.4']);
 
-import 'dotenv/config';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import dotenv from 'dotenv';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+dotenv.config({ path: path.resolve(__dirname, '../.env') });
+
 import express from 'express';
 import cors from 'cors';
 import morgan from 'morgan';
@@ -17,17 +24,32 @@ import storeRoutes from './routes/stores.routes.js';
 import customerRoutes from './routes/customers.routes.js';
 import settingsRoutes from './routes/settings.routes.js';
 import breakageRoutes from './routes/breakages.routes.js';
+import inventoryRoutes from './routes/inventory.routes.js';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
 // ── Middleware ────────────────────────────────────────────────
-app.use(cors({ origin: process.env.CORS_ORIGIN || '*', credentials: true }));
+app.use(cors({ 
+  origin: function (origin, callback) {
+    if (!origin || /^http:\/\/localhost:\d+$/.test(origin) || origin === process.env.CORS_ORIGIN) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  }, 
+  credentials: true 
+}));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 if (process.env.NODE_ENV !== 'test') {
   app.use(morgan('dev'));
 }
+
+// ── Health check ──────────────────────────────────────────────
+app.get('/api/health', (_req, res) => {
+  res.json({ status: 'OK', timestamp: new Date().toISOString() });
+});
 
 // ── API Routes ────────────────────────────────────────────────
 app.use('/api/auth', authRoutes);
@@ -38,11 +60,7 @@ app.use('/api', storeRoutes);         // /api/stores + /api/transfers + /api/sto
 app.use('/api/customers', customerRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api', breakageRoutes);      // /api/breakages + /api/repackagings
-
-// ── Health check ──────────────────────────────────────────────
-app.get('/api/health', (_req, res) => {
-  res.json({ status: 'OK', timestamp: new Date().toISOString() });
-});
+app.use('/api/inventory', inventoryRoutes);
 
 // ── 404 handler ───────────────────────────────────────────────
 app.use((_req, res) => {
@@ -63,3 +81,4 @@ const start = async () => {
 };
 
 start();
+// trigger restart 4

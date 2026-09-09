@@ -47,7 +47,7 @@ const Login = () => {
         <Input
           label="Nom d'utilisateur"
           icon={User}
-          placeholder="admin, compta..."
+          placeholder="admin, manager, caisse1..."
           value={username}
           onChange={(e) => setUsername(e.target.value)}
           required
@@ -73,6 +73,10 @@ const Login = () => {
         >
           Se Connecter
         </Button>
+
+        <div style={{ marginTop: '16px', fontSize: '12px', color: '#6b7280', textAlign: 'center' }}>
+          💡 <strong>Comptes par défaut :</strong> <code>admin</code>, <code>manager</code>, <code>caisse1</code>, <code>comptable</code> (Mot de passe: <code>1234</code>)
+        </div>
       </form>
     </AuthLayout>
   );

@@ -233,3 +233,10 @@ body {
   border-top: 1px solid var(--border-color) !important;
 }
 
+@media (min-width: 768px) {
+  .sidebar-adjusted {
+    margin-left: 280px !important;
+  }
+}
+
+

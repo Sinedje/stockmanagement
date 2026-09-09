@@ -1,15 +1,19 @@
 import React, { useState, useMemo } from 'react';
 import { formatPrice } from '../../context/StoreContext';
+import { useAuth } from '../../context/AuthContext';
 import { useProducts, useStores } from '../../hooks';
-import { ClipboardCheck, Store, AlertTriangle, CheckCircle, RefreshCcw, Package, Download, Printer } from 'lucide-react';
+import { inventoryService } from '../../services/inventoryService';
+import { ClipboardCheck, Store, AlertTriangle, CheckCircle, RefreshCcw, Package, Download, Printer, History } from 'lucide-react';
 import { Button, message, Popconfirm, Tag, InputNumber } from 'antd';
 import DataTable from '../common/DataTable';
 
 const PhysicalInventory = () => {
-  const { products, updateProduct } = useProducts();
+  const { currentUser } = useAuth();
+  const { products, refreshProducts } = useProducts();
   const { stores, activeStoreId } = useStores();
   const [counts, setCounts] = useState({}); // { productId: physicalCount }
   const [isValidating, setIsValidating] = useState(false);
+  const [isExportingHistory, setIsExportingHistory] = useState(false);
 
   const currentStore = stores.find(s => s.id === activeStoreId);
 
@@ -30,23 +34,44 @@ const PhysicalInventory = () => {
     setCounts(prev => ({ ...prev, [productId]: val }));
   };
 
-  const handleValidateAudit = () => {
+  const handleValidateAudit = async () => {
     setIsValidating(true);
+    try {
+      const adjustmentsToLog = [];
 
-    // Process all adjustments
-    auditData.forEach(item => {
-      if (item.discrepancy !== 0) {
-        // Sync both theoretical and physical stock to the new count
-        updateProduct(item.id, {
-          stock: item.count,
-          physicalStock: item.count
-        });
+      // Process all adjustments
+      for (const item of auditData) {
+        if (item.discrepancy !== 0) {
+          // Log it
+          adjustmentsToLog.push({
+            productId: item.id,
+            storeId: currentStore?.id,
+            userId: currentUser?.id,
+            userName: currentUser?.name || 'Inconnu',
+            oldStock: item.stock,
+            newStock: item.count,
+            discrepancy: item.discrepancy
+          });
+
+          // The backend logBulkAdjustments now handles both physicalStock and theoretical stock correctly
+        }
       }
-    });
 
-    message.success('Inventaire validé ! Les stocks ont été ajustés.');
-    setCounts({}); // Reset local counts
-    setIsValidating(false);
+      if (adjustmentsToLog.length > 0) {
+        await inventoryService.logBulkAdjustments(adjustmentsToLog);
+        if (refreshProducts) {
+          await refreshProducts();
+        }
+      }
+
+      message.success('Inventaire validé ! Les stocks ont été ajustés.');
+      setCounts({}); // Reset local counts
+    } catch (error) {
+      console.error(error);
+      message.error('Erreur lors de la validation de l\'inventaire');
+    } finally {
+      setIsValidating(false);
+    }
   };
 
   const handleExportExcel = async () => {
@@ -140,6 +165,75 @@ const PhysicalInventory = () => {
     URL.revokeObjectURL(url);
   };
 
+  const handleExportGlobalHistory = async () => {
+    setIsExportingHistory(true);
+    try {
+      const history = await inventoryService.getGlobalHistory();
+      
+      const ExcelJS = (await import('exceljs')).default || (await import('exceljs'));
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet('Historique Global');
+
+      worksheet.columns = [
+        { header: 'DATE', key: 'date', width: 20 },
+        { header: 'TYPE OPERATION', key: 'type', width: 25 },
+        { header: 'REFERENCE / NOM', key: 'reference', width: 30 },
+        { header: 'ARTICLE', key: 'productName', width: 35 },
+        { header: 'QTE', key: 'quantity', width: 15 },
+        { header: 'MAGASIN', key: 'store', width: 20 },
+        { header: 'DETAILS', key: 'details', width: 40 }
+      ];
+
+      const headerRow = worksheet.getRow(1);
+      headerRow.eachCell((cell) => {
+        cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1F2937' } }; // Dark gray
+        cell.alignment = { horizontal: 'center', vertical: 'middle' };
+      });
+
+      worksheet.autoFilter = { from: 'A1', to: 'G1' };
+
+      history.forEach(row => {
+        const storeName = stores.find(s => String(s.id) === String(row.storeId))?.name || row.storeId;
+        const newRow = worksheet.addRow({
+          date: new Date(row.date).toLocaleString('fr-FR'),
+          type: row.type,
+          reference: row.reference,
+          productName: row.productName,
+          quantity: row.quantity,
+          store: storeName,
+          details: row.details
+        });
+
+        // Color code quantity
+        const qtyCell = newRow.getCell('quantity');
+        qtyCell.alignment = { horizontal: 'center' };
+        qtyCell.font = { bold: true };
+        if (String(row.quantity).startsWith('+')) {
+          qtyCell.font = { ...qtyCell.font, color: { argb: 'FF10B981' } }; // Green
+        } else if (String(row.quantity).startsWith('-')) {
+          qtyCell.font = { ...qtyCell.font, color: { argb: 'FFEF4444' } }; // Red
+        }
+      });
+
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `Historique_Transactions_${new Date().toLocaleDateString()}.xlsx`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Erreur export:', error);
+      message.error('Erreur lors de la génération de l\'historique');
+    } finally {
+      setIsExportingHistory(false);
+    }
+  };
+
   const handlePrint = () => {
     window.print();
   };
@@ -208,13 +302,21 @@ const PhysicalInventory = () => {
             </div>
           </div>
 
-          <div className="flex gap-3">
+          <div className="flex flex-wrap gap-3">
+            <Button
+              icon={<History size={16} />}
+              onClick={handleExportGlobalHistory}
+              loading={isExportingHistory}
+              className="h-11 rounded-xl font-bold bg-indigo-500/10 text-indigo-600 border-indigo-500/20 hover:bg-indigo-500/20!"
+            >
+              Historique Global (Excel)
+            </Button>
             <Button
               icon={<Download size={16} />}
               onClick={handleExportExcel}
               className="h-11 rounded-xl font-bold bg-emerald-500/10 text-emerald-600 border-emerald-500/20 hover:bg-emerald-500/20!"
             >
-              Excel
+              Inventaire (Excel)
             </Button>
             <Button
               icon={<Printer size={16} />}
@@ -238,7 +340,8 @@ const PhysicalInventory = () => {
               <Button
                 type="primary"
                 size="large"
-                icon={<CheckCircle size={18} />}
+                loading={isValidating}
+                icon={!isValidating && <CheckCircle size={18} />}
                 disabled={totalDiscrepancies === 0}
                 className="h-11 px-8 rounded-xl font-bold uppercase tracking-widest"
               >

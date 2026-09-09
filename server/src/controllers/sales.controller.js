@@ -7,11 +7,16 @@ import Versement from '../models/Versement.model.js';
 import CashReport from '../models/CashReport.model.js';
 
 // Helper to deduct stock
-const adjustStock = async (items, multiplier = -1) => {
+const adjustStock = async (items, multiplier = -1, type = 'both') => {
   for (const item of items) {
     const product = await Product.findById(item.productId);
     if (product && !product.isNonInventory) {
-      product.stock += (item.quantity * multiplier);
+      if (type === 'both' || type === 'theoretical') {
+        product.stock += (item.quantity * multiplier);
+      }
+      if (type === 'both' || type === 'physical') {
+        product.physicalStock = (product.physicalStock ?? product.stock) + (item.quantity * multiplier);
+      }
       await product.save();
     }
   }
@@ -29,12 +34,15 @@ export const getSales = async (req, res, next) => {
 export const createSale = async (req, res, next) => {
   const saleData = req.body;
   try {
-    // 1. Deduct stock for cashier sales (they are delivered instantly)
+    // 1. Deduct theoretical stock for ALL sales (unavailable for new sales)
+    await adjustStock(saleData.items, -1, 'theoretical');
+
+    // 2. Deduct physical stock ONLY if delivered instantly
     if (saleData.deliveryStatus === 'delivered') {
-      await adjustStock(saleData.items, -1);
+      await adjustStock(saleData.items, -1, 'physical');
     }
 
-    // 2. Manage customer transactions if customerId is present
+    // 3. Manage customer transactions if customerId is present
     if (saleData.customerId) {
       const customer = await Customer.findById(saleData.customerId);
       if (customer) {
@@ -113,14 +121,17 @@ export const cancelSale = async (req, res, next) => {
       return res.status(400).json({ message: 'Cette vente est déjà annulée' });
     }
 
-    // Restore stock if the items were already delivered
+    // Restore theoretical stock for all items (since they were deducted at sale creation)
+    await adjustStock(sale.items, 1, 'theoretical');
+
+    // Restore physical stock ONLY if the items were actually delivered
     if (sale.deliveryStatus === 'delivered' || sale.deliveryStatus === 'partially_delivered') {
       // Restore items based on what was actually delivered
       const restoredItems = sale.items.map(item => ({
         productId: item.productId,
         quantity: item.isDelivered ? item.quantity : (item.quantityDelivered || 0)
       }));
-      await adjustStock(restoredItems, 1);
+      await adjustStock(restoredItems, 1, 'physical');
     }
 
     // Restore customer balance if it was a credit sale or deposit
@@ -182,16 +193,17 @@ export const recordPayment = async (req, res, next) => {
       return res.status(404).json({ message: 'Vente non trouvée' });
     }
 
-    const val = parseFloat(amount) || 0;
-    if (val <= 0 || val > sale.amountDue) {
-      return res.status(400).json({ message: 'Montant de paiement invalide' });
+    const val = Math.min(parseFloat(amount) || 0, sale.amountDue || 0);
+    if (val <= 0) {
+      return res.status(400).json({ message: 'Montant de paiement invalide ou facture déjà soldée' });
     }
 
     sale.amountPaid += val;
-    sale.amountDue -= val;
+    sale.amountDue = Math.max(0, sale.amountDue - val);
     
-    if (sale.amountDue === 0) {
+    if (sale.amountDue <= 0) {
       sale.paymentStatus = 'fully_paid';
+      sale.amountDue = 0;
     } else {
       sale.paymentStatus = 'partial';
     }
@@ -211,16 +223,6 @@ export const recordPayment = async (req, res, next) => {
         customer.balance += val; // reduce debt by adding paid value back
         customer.totalSpent += val;
         await customer.save();
-
-        await CustomerTransaction.create({
-          customerId: customer._id,
-          type: 'deposit',
-          amount: val,
-          method,
-          reference: `REGLEMENT-${sale.invoiceNumber}`,
-          cashier: req.user.name,
-          storeId: sale.storeId
-        });
       }
     }
 
@@ -240,11 +242,13 @@ export const processReturn = async (req, res, next) => {
       return res.status(404).json({ message: 'Vente originale non trouvée' });
     }
 
-    // 1. Restore stocks
+    // 1. Restore theoretical and physical stock
+    // Since items are returned physically, both theoretical and physical stocks are restored
     for (const returnItem of items) {
       const product = await Product.findById(returnItem.productId);
       if (product && !product.isNonInventory) {
         product.stock += returnItem.quantity;
+        product.physicalStock = (product.physicalStock ?? product.stock) + returnItem.quantity;
         await product.save();
       }
     }
@@ -330,7 +334,9 @@ export const deliverSale = async (req, res, next) => {
       }
     });
 
-    await adjustStock(itemsToDeliver, -1);
+    if (itemsToDeliver.length > 0) {
+      await adjustStock(itemsToDeliver, -1, 'physical');
+    }
     sale.deliveryStatus = 'delivered';
     await sale.save();
     res.json(sale);
@@ -376,7 +382,9 @@ export const deliverPartial = async (req, res, next) => {
       }
     });
 
-    await adjustStock(itemsToDeliver, -1);
+    if (itemsToDeliver.length > 0) {
+      await adjustStock(itemsToDeliver, -1, 'physical');
+    }
     sale.deliveryStatus = allDone ? 'delivered' : 'partially_delivered';
     await sale.save();
     res.json(sale);

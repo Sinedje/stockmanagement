@@ -14,6 +14,7 @@ import ProductList from '../components/cashier/ProductList';
 import ClosureHistory from '../components/common/ClosureHistory';
 import TransferManager from '../components/manager/TransferManager';
 import BreakagePanel from '../components/manager/BreakagePanel';
+import PendingInvoicesPanel from '../components/manager/PendingInvoicesPanel';
 import { LayoutDashboard, Package, History, Home, Users, Wallet, FileText, ShoppingBag, Truck, PlusCircle, BarChart3, ClipboardCheck, ArrowRightLeft, TrendingUp, PackageOpen } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useStores, useProducts } from '../hooks';
@@ -25,6 +26,7 @@ const sidebarItems = [
   { id: 'stock_entry', label: 'Gestion des Produits', icon: PlusCircle },
   { id: 'articles', label: 'Liste des Articles', icon: ShoppingBag },
   { id: 'sales', label: 'Historique Ventes', icon: History },
+  { id: 'pending_invoices', label: 'Suivi des Factures', icon: FileText },
   { id: 'deliveries', label: 'Suivi Livraisons', icon: Truck },
   { id: 'financial', label: 'Bilan Financier', icon: Wallet },
   { id: 'reports', label: 'Liste des Bilans', icon: BarChart3 },
@@ -59,6 +61,7 @@ const ManagerDashboard = () => {
     inventory: 'Audit & Inventaire Physique', 
     stock_entry: 'Catalogue & Entrée de Stock',
     sales: 'Historique des Ventes',
+    pending_invoices: 'Suivi des Factures',
     deliveries: 'Suivi des Livraisons',
     financial: 'Bilan Financier Global',
     reports: 'Liste des Bilans de Caisse',
@@ -75,6 +78,7 @@ const ManagerDashboard = () => {
     inventory: 'Effectuer un comptage physique et ajuster les stocks', 
     stock_entry: 'Gérer le catalogue produits et les réceptions fournisseurs',
     sales: 'Consulter toutes les transactions',
+    pending_invoices: 'Suivi des factures impayées et non livrées',
     deliveries: 'Suivi en temps réel des sorties de stock par les magasiniers',
     financial: 'Suivi financier de tous les points de vente et caisses',
     reports: 'Consulter l\'historique des clôtures journalières',
@@ -100,6 +104,7 @@ const ManagerDashboard = () => {
       {activeTab === 'stock_entry' && <StockEntryPanel />}
       {activeTab === 'articles' && <ProductList />}
       {activeTab === 'sales' && <SalesHistory />}
+      {activeTab === 'pending_invoices' && <PendingInvoicesPanel />}
       {activeTab === 'deliveries' && <ManagerDeliveries />}
       {activeTab === 'financial' && <GlobalFinancialReport />}
       {activeTab === 'reports' && <ClosureHistory />}

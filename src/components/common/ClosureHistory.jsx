@@ -4,19 +4,40 @@ import { useSales } from '../../hooks';
 import { useAuth } from '../../context/AuthContext';
 import { History, Calendar, User, Wallet, TrendingUp, MinusCircle, ArrowUpCircle, CheckCircle2, FileText, Search, Printer } from 'lucide-react';
 import DataTable from './DataTable';
+import { useStore } from '../../context/StoreContext';
 
 const ClosureHistory = () => {
   const { cashReports = [] } = useSales();
+  const { activeStoreId, stores } = useStore();
   const { currentUser } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
 
-  // Filtrage selon le rôle et la recherche
+  console.log('DEBUG ClosureHistory:', { cashReports, activeStoreId, role: currentUser?.role });
+
+  // Filtrage selon le rôle, la recherche, le magasin actif et la plage de dates
   const filteredReports = useMemo(() => {
     let result = [...cashReports];
     
-    if (currentUser?.role !== 'manager' && currentUser?.role !== 'accountant') {
-      // Pour le caissier, uniquement ses propres bilans
-      result = result.filter(r => r.cashier === currentUser?.name);
+    const role = currentUser?.role;
+    const isGlobalRole = ['ceo', 'admin', 'manager', 'accountant'].includes(role);
+
+    if (!isGlobalRole) {
+      // Pour le caissier, uniquement ses propres bilans et pour le magasin actif
+      result = result.filter(r => r.cashier === currentUser?.name && String(r.storeId) === String(activeStoreId));
+    }
+
+    if (startDate) {
+      const start = new Date(startDate);
+      start.setHours(0, 0, 0, 0);
+      result = result.filter(r => new Date(r.date) >= start);
+    }
+    
+    if (endDate) {
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+      result = result.filter(r => new Date(r.date) <= end);
     }
 
     if (searchTerm) {
@@ -54,6 +75,14 @@ const ClosureHistory = () => {
         </div>
       ),
       sorter: (a, b) => (a.cashier || '').localeCompare(b.cashier || '')
+    },
+    {
+      key: 'storeName',
+      title: 'Magasin',
+      render: (_, row) => {
+        const store = stores.find(s => String(s.id) === String(row.storeId));
+        return <span className="text-[0.7rem] font-bold text-text-muted">{store?.name || 'Inconnu'}</span>;
+      }
     },
     { 
       key: 'initialFund', 
@@ -137,15 +166,32 @@ const ClosureHistory = () => {
               </div>
             </div>
             
-            <div className="relative w-72">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted" size={18} />
-              <input 
-                type="text"
-                placeholder="Rechercher un caissier..."
-                className="w-full bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-2xl pl-12 pr-4 py-3 text-[0.85rem] text-text-heading focus:outline-none focus:border-primary/50 transition-all font-bold"
-                value={searchTerm}
-                onChange={e => setSearchTerm(e.target.value)}
-              />
+            <div className="flex flex-col sm:flex-row items-center gap-4">
+              <div className="flex items-center gap-2">
+                <input
+                  type="date"
+                  className="bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-xl px-3 py-2.5 text-[0.85rem] text-text-heading focus:outline-none focus:border-primary/50 transition-all font-bold"
+                  value={startDate}
+                  onChange={e => setStartDate(e.target.value)}
+                />
+                <span className="text-text-muted font-bold text-[0.8rem]">à</span>
+                <input
+                  type="date"
+                  className="bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-xl px-3 py-2.5 text-[0.85rem] text-text-heading focus:outline-none focus:border-primary/50 transition-all font-bold"
+                  value={endDate}
+                  onChange={e => setEndDate(e.target.value)}
+                />
+              </div>
+              <div className="relative w-full sm:w-72">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted" size={18} />
+                <input 
+                  type="text"
+                  placeholder="Rechercher un caissier..."
+                  className="w-full bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-2xl pl-12 pr-4 py-3 text-[0.85rem] text-text-heading focus:outline-none focus:border-primary/50 transition-all font-bold"
+                  value={searchTerm}
+                  onChange={e => setSearchTerm(e.target.value)}
+                />
+              </div>
             </div>
           </div>
 

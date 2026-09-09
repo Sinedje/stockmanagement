@@ -64,6 +64,33 @@ export const bulkUpdateStock = async (req, res, next) => {
   }
 };
 
+export const importProducts = async (req, res, next) => {
+  const { products } = req.body;
+  if (!Array.isArray(products)) {
+    return res.status(400).json({ message: 'Le format des données est invalide. Un tableau est attendu.' });
+  }
+
+  try {
+    const bulkOps = products.map((prod) => {
+      const normalizedName = (prod.name || '').toString().trim();
+      return {
+        updateOne: {
+          filter: { name: normalizedName, storeId: prod.storeId },
+          update: { $set: { ...prod, name: normalizedName } },
+          upsert: true
+        }
+      };
+    });
+
+    if (bulkOps.length > 0) {
+      await Product.bulkWrite(bulkOps);
+    }
+    res.json({ message: `${products.length} produits importés/mis à jour avec succès` });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // ── Categories ────────────────────────────────────────────────
 export const getCategories = async (req, res, next) => {
   try {

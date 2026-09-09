@@ -6,7 +6,7 @@ import {
   User, Phone, CheckCircle, Printer,
   Banknote, CreditCard, AlertTriangle, Wallet,
 } from 'lucide-react';
-import { Button, Tag } from 'antd';
+import { Button, Tag, message as antMessage } from 'antd';
 import ReceiptView from './ReceiptView';
 
 /* ── Editable price cell with local state ── */
@@ -52,6 +52,7 @@ const PaymentModal = ({ total, invoiceNumber, onPay, onClose, customerBalance = 
   const [initialPayment, setInitialPayment] = useState('');
   const [selectedMethod, setSelectedMethod] = useState('Espèces');
   const [immediateDelivery, setImmediateDelivery] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const canUseAccount = customerBalance > 0;
   const accountUsed = useAccount ? Math.min(customerBalance, total) : 0;
@@ -61,12 +62,14 @@ const PaymentModal = ({ total, invoiceNumber, onPay, onClose, customerBalance = 
   const debt = remainingAfterAccount - cashToPay;
 
   const handlePayMethod = (method) => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
     const paymentAmount = isPartial && initialPayment !== '' ? cashToPay : null;
     const isCredit = debt > 0;
     const grantDelivery = isCredit ? immediateDelivery : false;
     
     if (useAccount && remainingAfterAccount <= 0) {
-      onPay(null, accountUsed, null, false); // Fully covered by account
+      onPay(null, accountUsed, null, false);
     } else if (useAccount) {
       onPay(method || 'Espèces', accountUsed, paymentAmount, grantDelivery);
     } else {
@@ -75,7 +78,11 @@ const PaymentModal = ({ total, invoiceNumber, onPay, onClose, customerBalance = 
   };
 
   return (
-    <Modal title="Encaisser" onClose={onClose} onOk={() => handlePayMethod(selectedMethod)}>
+    <Modal
+      title="Encaisser"
+      onClose={onClose}
+      onOk={isSubmitting ? undefined : () => handlePayMethod(selectedMethod)}
+    >
       <div className="mb-6">
         <div className="bg-primary/5 border border-primary/20 rounded-2xl p-6 text-center">
           <span className="text-[0.8rem] font-bold text-text-secondary uppercase tracking-widest mb-1 block">Montant à payer</span>
@@ -257,14 +264,18 @@ const InvoiceBuilder = () => {
   const itemsTotal = lines.reduce((s, l) => s + l.price * l.quantity, 0);
   const total = itemsTotal - discount;
 
-  /* Product search results */
   const searchResults = useMemo(() => {
     if (!search.trim()) return [];
     return allCashierProducts
       .filter(p => {
-        const matchSearch = p.name.toLowerCase().includes(search.toLowerCase());
-        const matchStore = filterStore === 'Tous' || p.storeId === filterStore;
-        return matchSearch && matchStore && (p.stock > 0 || p.isNonInventory);
+        const matchSearch = 
+          p.name.toLowerCase().includes(search.toLowerCase()) ||
+          (p.designation && p.designation.toLowerCase().includes(search.toLowerCase()));
+        const matchStore = filterStore === 'Tous' || String(p.storeId) === String(filterStore);
+        // Show all products with any stock (>= 0) or non-inventory items — 
+        // avoids hiding items when local cache hasn't synced yet with server.
+        const hasStock = p.isNonInventory || (p.stock ?? 0) >= 0;
+        return matchSearch && matchStore && hasStock;
       })
       .slice(0, 8);
   }, [search, filterStore, allCashierProducts]);
@@ -309,17 +320,22 @@ const InvoiceBuilder = () => {
 
   const removeLine = (productId) => setLines(prev => prev.filter(l => l.productId !== productId));
 
-  const handlePay = (method, accountPayment = 0, initialPayment = null, immediateDelivery = false) => {
+  const handlePay = async (method, accountPayment = 0, initialPayment = null, immediateDelivery = false) => {
     const customerInfo = matchedCustomer
       ? { id: matchedCustomer.id, name: matchedCustomer.name, phone: matchedCustomer.phone }
       : customer;
-    const sale = completeInvoiceSale(method, lines, customerInfo, discount, accountPayment, initialPayment, immediateDelivery);
-    if (sale) {
-      setCompletedSale(sale);
-      setShowPayment(false);
-      setLines([]);
-      setCustomer({ name: '', phone: '' });
-      setDiscount(0);
+    try {
+      const sale = await completeInvoiceSale(method, lines, customerInfo, discount, accountPayment, initialPayment, immediateDelivery);
+      if (sale) {
+        setCompletedSale(sale);
+        setShowPayment(false);
+        setLines([]);
+        setCustomer({ name: '', phone: '' });
+        setDiscount(0);
+      }
+    } catch (err) {
+      console.error('Erreur lors de l\'encaissement:', err);
+      antMessage.error('Erreur lors de l\'encaissement. Veuillez réessayer.');
     }
   };
 
@@ -378,7 +394,7 @@ const InvoiceBuilder = () => {
             <select
               className="w-full sm:w-auto sm:max-w-[160px] shrink-0 bg-white dark:bg-black/30 border border-black/15 dark:border-white/10 rounded-xl px-3 py-2.5 text-[0.8rem] text-text-secondary focus:outline-none focus:border-primary/40 cursor-pointer"
               value={filterStore === 'Tous' ? 'Tous' : String(filterStore)}
-              onChange={e => setFilterStore(e.target.value === 'Tous' ? 'Tous' : parseInt(e.target.value))}
+              onChange={e => setFilterStore(e.target.value === 'Tous' ? 'Tous' : e.target.value)}
             >
               <option value="Tous">Tous les magasins</option>
               {stores.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}

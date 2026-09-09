@@ -6,12 +6,14 @@ import StockMovementsPanel from '../components/accountant/StockMovementsPanel';
 import ReleaseNotes from '../components/manager/ReleaseNotes';
 import ClosureHistory from '../components/common/ClosureHistory';
 import CEODashboardHome from '../components/ceo/DashboardHome';
-import { BarChart3, Receipt, FileText, ClipboardList, TrendingUp, Truck } from 'lucide-react';
+import PendingInvoicesPanel from '../components/manager/PendingInvoicesPanel';
+import { BarChart3, Receipt, FileText, ClipboardList, TrendingUp, Truck, FileWarning } from 'lucide-react';
 
 const sidebarItems = [
   { id: 'summary', label: 'Résumé Financier', icon: BarChart3 },
   { id: 'strategic', label: 'Vue Stratégique', icon: TrendingUp },
   { id: 'transactions', label: 'Transactions', icon: Receipt },
+  { id: 'pending_invoices', label: 'Suivi des Factures', icon: FileWarning },
   { id: 'movements', label: 'Mouvements de Stock', icon: Truck },
   { id: 'reports', label: 'Liste des Bilans', icon: ClipboardList },
   { id: 'releases', label: 'Bon de Sortie', icon: FileText },
@@ -24,6 +26,7 @@ const AccountantDashboard = () => {
     summary: 'Résumé Financier', 
     strategic: 'Vue Stratégique',
     transactions: 'Historique des Transactions',
+    pending_invoices: 'Suivi des Factures',
     movements: 'Mouvements de Stock',
     reports: 'Liste des Bilans de Caisse',
     releases: 'Bons de Sortie Marchandises'
@@ -32,6 +35,7 @@ const AccountantDashboard = () => {
     summary: 'Aperçu de la performance financière', 
     strategic: 'Performances globales, stocks et analyse du catalogue',
     transactions: 'Détails de toutes les transactions',
+    pending_invoices: 'Suivi des factures impayées et non livrées',
     movements: 'Entrées fournisseurs et transferts inter-magasins avec prix d\'achat',
     reports: 'Historique des clôtures journalières par caisse',
     releases: 'Suivi et export des sorties marchandises'
@@ -49,6 +53,7 @@ const AccountantDashboard = () => {
         {activeTab === 'summary' && <FinancialSummary />}
         {activeTab === 'strategic' && <CEODashboardHome />}
         {activeTab === 'transactions' && <TransactionsTable />}
+        {activeTab === 'pending_invoices' && <PendingInvoicesPanel />}
         {activeTab === 'movements' && <StockMovementsPanel />}
         {activeTab === 'reports' && <ClosureHistory />}
         {activeTab === 'releases' && <ReleaseNotes />}

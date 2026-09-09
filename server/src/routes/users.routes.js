@@ -4,13 +4,14 @@ import { protect, authorize } from '../middleware/auth.js';
 
 const router = express.Router();
 
-// Only manager and ceo roles can manage users/staff members
+// Allow all authenticated users to view the list (needed by POS to assign cashier letters A, B, C...)
 router.use(protect);
-router.use(authorize('manager', 'ceo'));
 
 router.get('/', getUsers);
-router.post('/', createUser);
-router.put('/:id', updateUser);
-router.patch('/:id/toggle-status', toggleUserStatus);
+
+// Only manager and ceo can create/edit users
+router.post('/', authorize('manager', 'ceo'), createUser);
+router.put('/:id', authorize('manager', 'ceo'), updateUser);
+router.patch('/:id/toggle-status', authorize('manager', 'ceo'), toggleUserStatus);
 
 export default router;

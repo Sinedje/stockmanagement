@@ -4,14 +4,16 @@ const cashReportSchema = new mongoose.Schema({
   date: { type: Date, default: Date.now },
   cashier: { type: String, required: true, trim: true },
   storeId: { type: mongoose.Schema.Types.ObjectId, ref: 'Store', required: true },
-  initialCashFund: { type: Number, required: true },
-  totalSales: { type: Number, required: true },
+  initialFund: { type: Number, required: true },
+  cashSales: { type: Number, required: true },
   totalExpenses: { type: Number, required: true },
   totalVersements: { type: Number, required: true },
   finalBalance: { type: Number, required: true },
-  discrepancy: { type: Number, required: true },
+  discrepancy: { type: Number, default: 0 },
   notes: { type: String, default: '' },
-  invoiceRange: { type: String, default: '' }
+  invoiceRange: { type: String, default: '' },
+  invoicesList: [{ type: mongoose.Schema.Types.Mixed }],
+  expensesList: [{ type: mongoose.Schema.Types.Mixed }]
 }, {
   timestamps: true,
   toJSON: {

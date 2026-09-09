@@ -31,6 +31,8 @@ const useStores = () => {
     declareBreakage,
     repackagings,
     createRepackaging,
+    refreshProducts,
+    refreshTransfers,
   } = useStore();
 
   const [loading, setLoading] = useState(false);
@@ -84,24 +86,32 @@ const useStores = () => {
     setError(null);
     try {
       const result = storeCreateTransfer(toStoreId, items, notes);
-      if (import.meta.env.VITE_API_URL) await apiCreateTransfer(result);
+      if (import.meta.env.VITE_API_URL) {
+        await apiCreateTransfer(result);
+        await refreshProducts(); // Resync local physical stock with DB
+        await refreshTransfers(); // Get correct MongoDB _id for the new transfer
+      }
       return result;
     } catch (err) {
       setError(err.message);
     } finally {
       setLoading(false);
     }
-  }, [storeCreateTransfer]);
+  }, [storeCreateTransfer, refreshProducts, refreshTransfers]);
 
   const receiveTransfer = useCallback(async (transferId) => {
     setError(null);
     try {
-      if (import.meta.env.VITE_API_URL) await apiReceiveTransfer(transferId);
+      if (import.meta.env.VITE_API_URL) {
+        await apiReceiveTransfer(transferId);
+        await refreshProducts(); // Resync destination local physical stock with DB
+        await refreshTransfers(); // Update status of transfer from backend
+      }
       storeReceiveTransfer(transferId);
     } catch (err) {
       setError(err.message);
     }
-  }, [storeReceiveTransfer]);
+  }, [storeReceiveTransfer, refreshProducts, refreshTransfers]);
 
   return {
     stores,

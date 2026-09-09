@@ -72,10 +72,14 @@ export const StoreProvider = ({ children }) => {
   React.useEffect(() => {
     if (!currentUser) return;
 
-    // Normalize MongoDB _id → id so all legacy components work transparently
+    // Normalize MongoDB _id → id and storeId so all components work transparently
     const norm = (arr) => {
       if (!Array.isArray(arr)) return arr;
-      return arr.map(item => ({ ...item, id: item._id || item.id }));
+      return arr.map(item => ({
+        ...item,
+        id: item._id ? String(item._id) : item.id,
+        storeId: item.storeId ? String(item.storeId._id || item.storeId.id || item.storeId) : item.storeId
+      }));
     };
 
     const loadData = async () => {
@@ -160,9 +164,57 @@ export const StoreProvider = ({ children }) => {
     root.classList.add(theme);
   }, [theme]);
 
-  // Filter products and sales for the active store
-  const products = allProducts.filter(p => p.storeId === activeStoreId);
-  const sales = allSales.filter(s => s.storeId === activeStoreId);
+  const refreshProducts = useCallback(async () => {
+    try {
+      const data = await fetchProducts();
+      if (data) {
+        const norm = (arr) => arr.map(i => ({ ...i, id: i._id || i.id }));
+        setAllProducts(norm(data));
+      }
+    } catch (e) {
+      console.warn('Erreur lors du rafraîchissement des produits:', e);
+    }
+  }, []);
+
+  const refreshSales = useCallback(async () => {
+    try {
+      const data = await fetchSales();
+      if (data) {
+        const norm = (arr) => arr.map(i => ({ ...i, id: i._id || i.id }));
+        setAllSales(norm(data));
+      }
+    } catch (e) {
+      console.warn('Erreur lors du rafraîchissement des ventes:', e);
+    }
+  }, []);
+
+  const refreshTransfers = useCallback(async () => {
+    try {
+      const data = await fetchTransfers();
+      if (data) {
+        const norm = (arr) => arr.map(i => ({ ...i, id: i._id || i.id }));
+        setTransfers(norm(data));
+      }
+    } catch (e) {
+      console.warn('Erreur lors du rafraîchissement des transferts:', e);
+    }
+  }, []);
+
+  // Filter products and sales for the active store with robust store ID comparison
+  const isSameStore = useCallback((itemStoreId, activeId) => {
+    if (!itemStoreId || !activeId) return true;
+    const sId = String(itemStoreId._id || itemStoreId.id || itemStoreId);
+    const aId = String(activeId._id || activeId.id || activeId);
+    if (sId === aId) return true;
+    if (sId === '1' || sId === '2') {
+      const idx = parseInt(sId, 10) - 1;
+      if (stores[idx] && String(stores[idx]._id || stores[idx].id) === aId) return true;
+    }
+    return false;
+  }, [stores]);
+
+  const products = allProducts.filter(p => isSameStore(p.storeId, activeStoreId));
+  const sales = allSales.filter(s => isSameStore(s.storeId, activeStoreId));
 
   // Sync activeStoreId whenever the logged-in user changes
   React.useEffect(() => {
@@ -249,25 +301,32 @@ export const StoreProvider = ({ children }) => {
         return {
           ...p,
           stock: p.stock + entry.quantity,
-          physicalStock: p.physicalStock + entry.quantity,
+          physicalStock: (p.physicalStock ?? p.stock) + entry.quantity,
           cost: entry.cost || p.cost
         };
       }
       return p;
     }));
-    // Record the stock entry for accounting
-    setStockEntries(prev => [{
-      id: Date.now(),
-      reference: entryMeta.reference || `ENT-${String(prev.length + 1).padStart(4, '0')}`,
-      date: new Date().toISOString(),
-      supplier: entryMeta.supplier || 'Non spécifié',
-      noteNumber: entryMeta.noteNumber || '',
-      storeId: activeStoreId,
-      items: items.map(item => ({ ...item })),
-      totalCost: items.reduce((sum, i) => sum + (i.quantity * (i.cost || 0)), 0),
-      createdBy: entryMeta.createdBy || 'Manager',
-    }, ...prev]);
+    // Only record a local stock entry when not told to skip (e.g. server already created it)
+    if (!entryMeta.skipEntry) {
+      setStockEntries(prev => [{
+        id: Date.now(),
+        reference: entryMeta.reference || `ENT-${String(prev.length + 1).padStart(4, '0')}`,
+        date: new Date().toISOString(),
+        supplier: entryMeta.supplier || 'Non spécifié',
+        noteNumber: entryMeta.noteNumber || '',
+        storeId: activeStoreId,
+        items: items.map(item => ({ ...item })),
+        totalCost: items.reduce((sum, i) => sum + (i.quantity * (i.cost || 0)), 0),
+        createdBy: entryMeta.createdBy || 'Manager',
+      }, ...prev]);
+    }
   }, [activeStoreId]);
+
+  const addStockEntry = useCallback((entry) => {
+    const normalized = { ...entry, id: entry._id || entry.id };
+    setStockEntries(prev => [normalized, ...prev]);
+  }, []);
 
   // NOUVEAU: Déclaration de casse
   const declareBreakage = useCallback((productId, quantity, reason) => {
@@ -502,8 +561,8 @@ export const StoreProvider = ({ children }) => {
 
   const closeCashSession = useCallback((finalBalance, sessionStats = {}) => {
     const report = {
-      id: Date.now(),
-      date: new Date().toISOString(),
+      id: sessionStats.id || Date.now(),
+      date: sessionStats.date || new Date().toISOString(),
       cashier: currentUser?.name || 'Inconnu',
       storeId: activeStoreId,
       ...sessionStats,
@@ -579,7 +638,7 @@ export const StoreProvider = ({ children }) => {
       date: new Date().toISOString(),
       cashier: currentUser?.name || 'Inconnu',
       storeId: activeStoreId,
-      reference: `DEP-${Date.now()}`,
+      reference: arguments[3] || `DEPOT-${Date.now()}`, // passed from useCustomers, fallback to timestamp
     };
     // Match by either MongoDB string _id or local numeric id
     setCustomers(prev => prev.map(c =>
@@ -601,7 +660,7 @@ export const StoreProvider = ({ children }) => {
       date: new Date().toISOString(),
       cashier: currentUser?.name || 'Inconnu',
       storeId: activeStoreId,
-      reference: `RMB-${Date.now()}`,
+      reference: `RMB-${Math.floor(1000 + Math.random() * 9000)}`,
     };
     setCustomers(prev => prev.map(c =>
       (c._id === customerId || c.id === customerId) ? { ...c, balance: c.balance - amount } : c
@@ -610,7 +669,7 @@ export const StoreProvider = ({ children }) => {
     return txn;
   }, [customers, currentUser, activeStoreId]);
 
-  // Calcul du solde de caisse actuel (Fond Initial + Ventes Espèces + Dépôts Espèces - Remboursements - Dépenses - Versements)
+  // Calcul du solde de caisse actuel (Fond Initial + Ventes Espèces + Paiements Recouvrement Espèces - Remboursements - Dépenses - Versements)
   const currentCashBalance = useMemo(() => {
     if (!isCashFundInitialized || !cashInitializationDate) return 0;
     const initDate = new Date(cashInitializationDate);
@@ -635,6 +694,13 @@ export const StoreProvider = ({ children }) => {
       t.method === 'Espèces' &&
       new Date(t.date) >= initDate
     );
+    // Paiements de factures impayées (recouvrements) en espèces
+    const invoicePayments = customerTransactions.filter(t =>
+      t.cashier === currentUser?.name &&
+      t.type === 'invoice_payment' &&
+      (t.method === 'Espèces' || t.method === 'Mixte' || !t.method) &&
+      new Date(t.date) >= initDate
+    );
     // Remboursements clients (toujours en espèces)
     const cashRefunds = customerTransactions.filter(t =>
       t.cashier === currentUser?.name &&
@@ -646,9 +712,10 @@ export const StoreProvider = ({ children }) => {
     const totalExpenses = cashierExpenses.reduce((sum, e) => sum + e.amount, 0);
     const totalVersements = cashierVersements.reduce((sum, v) => sum + v.amount, 0);
     const totalDeposits = cashDeposits.reduce((sum, t) => sum + t.amount, 0);
+    const totalInvoicePayments = invoicePayments.reduce((sum, t) => sum + t.amount, 0);
     const totalRefunds = cashRefunds.reduce((sum, t) => sum + Math.abs(t.amount), 0);
 
-    return initialCashFund + totalSales + totalDeposits - totalExpenses - totalVersements - totalRefunds;
+    return initialCashFund + totalSales + totalDeposits + totalInvoicePayments - totalExpenses - totalVersements - totalRefunds;
   }, [initialCashFund, isCashFundInitialized, cashInitializationDate, allSales, expenses, versements, currentUser, customerTransactions]);
 
   // Invoice sale: custom items + customer info + discount + optional account payment + initial partial payment + immediate delivery flag
@@ -684,11 +751,28 @@ export const StoreProvider = ({ children }) => {
     const amountDue = finalTotal - amountPaid;
     const paymentStatus = amountDue <= 0 ? 'fully_paid' : (amountPaid > 0 ? 'partial' : 'unpaid');
 
-    const cashierList = [...users].filter(u => u.role === 'cashier').sort((a, b) => a.id - b.id);
-    const cashierIdx = cashierList.findIndex(u => u.id === currentUser?.id);
-    const cashierCode = cashierIdx >= 0 ? String.fromCharCode(65 + cashierIdx) : '?';
-    const newCounter = (invoiceCounters[currentUser?.id] || 0) + 1;
-    const invoiceNumber = `${cashierCode}-${String(newCounter).padStart(4, '0')}`;
+    // Sort cashiers consistently by creation date (or id as string) so the letter code is stable
+    const cashierList = [...users].filter(u => u.role === 'cashier').sort((a, b) => {
+      if (a.createdAt && b.createdAt) return new Date(a.createdAt) - new Date(b.createdAt);
+      return String(a.id || a._id).localeCompare(String(b.id || b._id));
+    });
+    const currentUserId = currentUser?.id || currentUser?._id;
+    const cashierIdx = cashierList.findIndex(u => String(u.id || u._id) === String(currentUserId));
+    const cashierCode = cashierIdx >= 0 ? String.fromCharCode(65 + cashierIdx) : 'X';
+    
+    // Compute max counter for THIS cashier by scanning allSales
+    let maxCounter = 0;
+    const regex = new RegExp(`^${cashierCode}-?(\\d+)\\s*$`, 'i');
+    for (const s of allSales) {
+      if (s.invoiceNumber) {
+        const match = s.invoiceNumber.match(regex);
+        if (match) {
+          const num = parseInt(match[1], 10);
+          if (num > maxCounter) maxCounter = num;
+        }
+      }
+    }
+    const invoiceNumber = `${cashierCode}-${String(maxCounter + 1).padStart(4, '0')}`;
 
     const paymentHistory = [];
     if (accountUsed > 0) {
@@ -767,7 +851,7 @@ export const StoreProvider = ({ children }) => {
       return p;
     }));
     setAllSales(prev => [sale, ...prev]);
-    setInvoiceCounters(prev => ({ ...prev, [currentUser?.id]: newCounter }));
+    // Note: invoiceCounters is deprecated, numbering is now dynamically computed from allSales
     return sale;
   }, [currentUser, allSales.length, activeStoreId, invoiceCounters, users]);
 
@@ -784,12 +868,42 @@ export const StoreProvider = ({ children }) => {
     storeName: stores.find(s => s.id === p.storeId)?.name || 'Principal',
   }));
 
-  // Next invoice number for the current cashier
-  const _cashierList = users.filter(u => u.role === 'cashier').sort((a, b) => a.id - b.id);
-  const _cashierIdx = _cashierList.findIndex(u => u.id === currentUser?.id);
-  const currentCashierCode = _cashierIdx >= 0 ? String.fromCharCode(65 + _cashierIdx) : '?';
-  const nextInvoiceCount = (invoiceCounters[currentUser?.id] || 0) + 1;
-  const nextInvoiceNumber = `${currentCashierCode}-${String(nextInvoiceCount).padStart(4, '0')}`;
+  // Next invoice number for the current cashier — uses same stable sort as completeInvoiceSale
+  const _cashierList = users.filter(u => u.role === 'cashier').sort((a, b) => {
+    if (a.createdAt && b.createdAt) return new Date(a.createdAt) - new Date(b.createdAt);
+    return String(a.id || a._id).localeCompare(String(b.id || b._id));
+  });
+  const _currentUserId = currentUser?.id || currentUser?._id;
+  const _cashierIdx = _cashierList.findIndex(u => String(u.id || u._id) === String(_currentUserId));
+  const currentCashierCode = _cashierIdx >= 0 ? String.fromCharCode(65 + _cashierIdx) : 'X';
+  
+  // Compute max counter for THIS cashier by scanning allSales
+  let _maxCounter = 0;
+  const _regex = new RegExp(`^${currentCashierCode}-?(\\d+)\\s*$`, 'i');
+  for (const s of allSales) {
+    if (s.invoiceNumber) {
+      const match = s.invoiceNumber.match(_regex);
+      if (match) {
+        const num = parseInt(match[1], 10);
+        if (num > _maxCounter) _maxCounter = num;
+      }
+    }
+  }
+  const nextInvoiceNumber = `${currentCashierCode}-${String(_maxCounter + 1).padStart(4, '0')}`;
+
+  // Compute next deposit number for THIS cashier
+  let _maxDepCounter = 0;
+  const _depRegex = new RegExp(`^DEPOT-${currentCashierCode}-?(\\d+)\\s*$`, 'i');
+  for (const t of customerTransactions) {
+    if (t.type === 'deposit' && t.reference) {
+      const match = t.reference.match(_depRegex);
+      if (match) {
+        const num = parseInt(match[1], 10);
+        if (num > _maxDepCounter) _maxDepCounter = num;
+      }
+    }
+  }
+  const nextDepositNumber = `DEPOT-${currentCashierCode}-${String(_maxDepCounter + 1).padStart(4, '0')}`;
 
   // Staff list with their letter codes (Cashiers & Storekeepers)
   const staffWithCodes = users
@@ -799,6 +913,8 @@ export const StoreProvider = ({ children }) => {
 
   // Function to validate delivery for a SPECIFIC STORE
   const deliverSale = useCallback((saleId, storeId) => {
+    let stockDeductions = {};
+    
     setAllSales(prev => {
       return prev.map(sale => {
         if (sale.id !== saleId) return sale;
@@ -808,9 +924,7 @@ export const StoreProvider = ({ children }) => {
           if (item.storeId === storeId) {
             // Déduire du stock physique si ce n'était pas déjà fait et si c'est pas un article hors-stock
             if (!item.isDelivered && !item.isNonInventory) {
-              setAllProducts(pPrev => pPrev.map(p =>
-                p.id === item.productId ? { ...p, physicalStock: Math.max(0, p.physicalStock - item.quantity) } : p
-              ));
+              stockDeductions[item.productId] = (stockDeductions[item.productId] || 0) + item.quantity;
             }
             return { ...item, isDelivered: true };
           }
@@ -827,15 +941,23 @@ export const StoreProvider = ({ children }) => {
         };
       });
     });
+
+    if (Object.keys(stockDeductions).length > 0) {
+      setAllProducts(pPrev => pPrev.map(p => {
+        if (stockDeductions[p.id]) {
+          return { ...p, physicalStock: Math.max(0, p.physicalStock - stockDeductions[p.id]) };
+        }
+        return p;
+      }));
+    }
   }, []);
 
   // Function to deliver a PARTIAL quantity per article
   const deliverPartial = useCallback((saleId, storeId, deliveries) => {
-    // deliveries = [{productId, qtyNow}]
+    let stockUpdates = {};
+    
     setAllSales(prev => prev.map(sale => {
       if (sale.id !== saleId) return sale;
-
-      const stockUpdates = {};
 
       const updatedItems = sale.items.map(item => {
         if (item.storeId !== storeId) return item;
@@ -851,16 +973,6 @@ export const StoreProvider = ({ children }) => {
         return { ...item, quantityDelivered: newDelivered, isDelivered: isNowDelivered };
       });
 
-      // Deduct physical stock for each delivered quantity
-      Object.entries(stockUpdates).forEach(([productId, qty]) => {
-        setAllProducts(pPrev => pPrev.map(p => {
-          if (p.id === parseInt(productId) && !p.isNonInventory) {
-            return { ...p, physicalStock: Math.max(0, p.physicalStock - qty) };
-          }
-          return p;
-        }));
-      });
-
       // Recalculate global delivery status
       const allDelivered = updatedItems.every(i => i.isDelivered);
       const anyDelivered = updatedItems.some(i => (i.quantityDelivered ?? 0) > 0);
@@ -868,17 +980,31 @@ export const StoreProvider = ({ children }) => {
 
       return { ...sale, items: updatedItems, deliveryStatus: newStatus };
     }));
+
+    if (Object.keys(stockUpdates).length > 0) {
+      setAllProducts(pPrev => pPrev.map(p => {
+        if (stockUpdates[p.id] && !p.isNonInventory) {
+          return { ...p, physicalStock: Math.max(0, p.physicalStock - stockUpdates[p.id]) };
+        }
+        return p;
+      }));
+    }
   }, []);
 
   // Function to cancel a sale and restore stocks
   const cancelSale = useCallback((saleId) => {
+    let saleToCancel = null;
+    
     setAllSales(prev => {
       const sale = prev.find(s => s.id === saleId);
       if (!sale || sale.status === 'cancelled') return prev;
+      saleToCancel = sale;
+      return prev.map(s => s.id === saleId ? { ...s, status: 'cancelled' } : s);
+    });
 
-      // Restorer les stocks
+    if (saleToCancel) {
       setAllProducts(pPrev => pPrev.map(p => {
-        const item = sale.items.find(i => i.productId === p.id);
+        const item = saleToCancel.items.find(i => i.productId === p.id);
         if (item && !p.isNonInventory) {
           // On restaure le stock théorique
           let newStock = p.stock + item.quantity;
@@ -894,19 +1020,19 @@ export const StoreProvider = ({ children }) => {
         }
         return p;
       }));
-
-      return prev.map(s => s.id === saleId ? { ...s, status: 'cancelled' } : s);
-    });
+    }
   }, []);
 
   const recordInvoicePayment = useCallback((saleId, amount, method) => {
     let newTxn = null;
+    let invoicePaymentTxn = null;
+
     setAllSales(prev => prev.map(sale => {
-      if (sale.id !== saleId || sale.amountDue <= 0) return sale;
+      if (sale.id !== saleId || (sale.amountDue || 0) <= 0) return sale;
       const actualAmount = Math.min(amount, sale.amountDue || sale.total);
 
-      const newAmountPaid = (sale.amountPaid || sale.total) + actualAmount;
-      const newAmountDue = sale.total - newAmountPaid;
+      const newAmountPaid = (sale.amountPaid || 0) + actualAmount;
+      const newAmountDue = Math.max(0, sale.total - newAmountPaid);
       const newPaymentStatus = newAmountDue <= 0 ? 'fully_paid' : 'partial';
 
       newTxn = {
@@ -916,6 +1042,23 @@ export const StoreProvider = ({ children }) => {
         method,
         cashier: currentUser?.name || 'Inconnu',
         reference: `PMT-${sale.invoiceNumber}-${(sale.paymentHistory?.length || 0) + 1}`
+      };
+
+      // Create an invoice_payment transaction for the cash ledger
+      // This will appear in the financial report as a recovery
+      invoicePaymentTxn = {
+        id: Date.now() + 1,
+        date: new Date().toISOString(),
+        type: 'invoice_payment',
+        amount: actualAmount,
+        method: method || 'Espèces',
+        cashier: currentUser?.name || 'Inconnu',
+        storeId: sale.storeId,
+        reference: `REGLEMENT-${sale.invoiceNumber}`,
+        // Extra info for the report
+        invoiceNumber: sale.invoiceNumber,
+        invoiceDate: sale.date,
+        customerName: sale.customerName || 'Passager',
       };
 
       const newHistory = [...(sale.paymentHistory || []), newTxn];
@@ -928,6 +1071,12 @@ export const StoreProvider = ({ children }) => {
         paymentHistory: newHistory
       };
     }));
+
+    // Add the invoice payment transaction to the cash ledger
+    if (invoicePaymentTxn) {
+      setCustomerTransactions(prev => [invoicePaymentTxn, ...prev]);
+    }
+
     return newTxn;
   }, [currentUser]);
 
@@ -1053,19 +1202,19 @@ export const StoreProvider = ({ children }) => {
   const value = {
     currentUser,
     stores, activeStoreId, activeStore, addStore, switchStore, updateStore, deleteStore,
-    products, addProduct, updateProduct, deleteProduct, bulkUpdateStock, categories, addCategory,
+    products, allProducts, refreshProducts, refreshSales, addProduct, updateProduct, deleteProduct, bulkUpdateStock, categories, addCategory,
     cart, addToCart, removeFromCart, updateCartQuantity, clearCart, cartTotal, completeSale,
     sales, totalRevenue, todaySales, todayRevenue, lowStockProducts, totalStockValue,
     users, addUser, updateUser, toggleUserStatus,
     // Cashier multi-store & invoice features
-    allCashierProducts, nextInvoiceNumber, currentCashierCode, staffWithCodes, invoiceCounters,
+    allCashierProducts, nextInvoiceNumber, nextDepositNumber, currentCashierCode, staffWithCodes, invoiceCounters,
     completeInvoiceSale, expenses, addExpense,
     initialCashFund, isCashFundInitialized, initializeCashFund, cashInitializationDate,
     versements, addVersement, currentCashBalance,
     allSales, deliverSale, deliverPartial, cancelSale, processReturn, recordInvoicePayment, unlockDelivery,
     lastClosingBalance, closeCashSession, cashReports,
-    transfers, createTransfer, receiveTransfer,
-    stockEntries,
+    transfers, createTransfer, receiveTransfer, refreshTransfers,
+    stockEntries, addStockEntry,
     customers, customerTransactions, addCustomer, addCustomerDeposit, refundCustomer,
     // Nouvelles fonctionnalités Casses & Reconditionnements
     breakages, declareBreakage,

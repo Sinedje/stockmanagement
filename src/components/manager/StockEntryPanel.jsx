@@ -9,7 +9,7 @@ import { Button, message, Popconfirm } from 'antd';
 import CatalogManagement from './CatalogManagement';
 
 const StockEntryPanel = () => {
-  const { products, categories, bulkUpdateStock, addProduct, addCategory } = useProducts();
+  const { products, allProducts, categories, bulkUpdateStock, receiveStock, addProduct, addCategory } = useProducts();
   const { stores, activeStoreId, stockEntries } = useStores();
   const { companySettings } = useSettings();
   const [supplier, setSupplier] = useState('');
@@ -27,25 +27,42 @@ const StockEntryPanel = () => {
   const [historySearchTerm, setHistorySearchTerm] = useState('');
   const [selectedPastEntry, setSelectedPastEntry] = useState(null);
 
-
-
   const currentStore = stores.find(s => s.id === activeStoreId);
 
-  const availableProducts = products;
+  const availableProducts = useMemo(() => {
+    const uniqueMap = new Map();
+    allProducts.forEach(p => {
+      const nameKey = p.name.toLowerCase().trim();
+      const existing = uniqueMap.get(nameKey);
+      // Prefer the product from the current store if there are duplicates across stores
+      if (!existing || p.storeId === activeStoreId) {
+        uniqueMap.set(nameKey, p);
+      }
+    });
+    return Array.from(uniqueMap.values());
+  }, [allProducts, activeStoreId]);
 
   const filteredProducts = useMemo(() => {
     if (!searchTerm || isSaved) return [];
     return availableProducts.filter(p => 
-      p.name.toLowerCase().includes(searchTerm.toLowerCase())
+      p.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      (p.designation && p.designation.toLowerCase().includes(searchTerm.toLowerCase()))
     ).slice(0, 5);
   }, [availableProducts, searchTerm, isSaved]);
 
   const filteredHistory = useMemo(() => {
-    return stockEntries.filter(entry => 
-      entry.reference.toLowerCase().includes(historySearchTerm.toLowerCase()) ||
-      entry.supplier.toLowerCase().includes(historySearchTerm.toLowerCase()) ||
-      entry.noteNumber.toLowerCase().includes(historySearchTerm.toLowerCase())
-    ).filter(entry => entry.storeId === activeStoreId);
+    return stockEntries
+      .map(entry => ({
+        ...entry,
+        reference: entry.reference || entry.noteNumber || entry.id,
+        totalCost: entry.totalCost ?? entry.items?.reduce((s, i) => s + (i.quantity * (i.cost || 0)), 0) ?? 0,
+      }))
+      .filter(entry =>
+        (entry.reference?.toLowerCase() || '').includes(historySearchTerm.toLowerCase()) ||
+        (entry.supplier?.toLowerCase() || '').includes(historySearchTerm.toLowerCase()) ||
+        (entry.noteNumber?.toLowerCase() || '').includes(historySearchTerm.toLowerCase())
+      )
+      .filter(entry => String(entry.storeId) === String(activeStoreId));
   }, [stockEntries, historySearchTerm, activeStoreId]);
 
   const addRow = (product) => {
@@ -114,20 +131,25 @@ const StockEntryPanel = () => {
     ));
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!supplier || !noteNumber || entryItems.length === 0) {
       message.error('Veuillez remplir les informations du fournisseur et ajouter des articles.');
       return;
     }
 
-    bulkUpdateStock(entryItems, {
-      supplier,
-      noteNumber,
-      reference: noteNumber || undefined,
-      createdBy: currentStore?.name || 'Manager',
-    });
-    setIsSaved(true);
-    message.success('Entrée de stock enregistrée avec succès ! Vous pouvez maintenant imprimer le bon.');
+    try {
+      await receiveStock(entryItems, {
+        supplier,
+        noteNumber,
+        storeId: activeStoreId,
+        reference: noteNumber || undefined,
+        createdBy: currentStore?.name || 'Manager',
+      });
+      setIsSaved(true);
+      message.success('Entrée de stock enregistrée avec succès ! Vous pouvez maintenant imprimer le bon.');
+    } catch (err) {
+      message.error(`Erreur lors de l'enregistrement : ${err.message}`);
+    }
   };
 
   const handlePrint = () => {
@@ -712,7 +734,11 @@ const StockEntryPanel = () => {
       </style>
       <div id="reception-note" className="print-only">
         <div style={{ textAlign: 'center', marginBottom: '40px' }}>
-          <h1 style={{ margin: 0, fontSize: '28pt' }}>{companySettings?.name || 'STOCK EXPERT'}</h1>
+          <h1 style={{ margin: 0, fontSize: '28pt', textTransform: 'uppercase' }}>
+            {((activeMode === 'history' && selectedPastEntry) 
+              ? stores.find(s => s.id === selectedPastEntry.storeId)?.name 
+              : currentStore?.name) || 'STOCK EXPERT'}
+          </h1>
           <h2 style={{ margin: '10px 0', fontSize: '18pt' }}>BON D'ENTRÉE DE MARCHANDISE</h2>
           <p style={{ fontSize: '10pt', color: '#666' }}>Document de réception de stock</p>
         </div>

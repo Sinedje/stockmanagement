@@ -65,9 +65,19 @@ const DeliveriesPanel = () => {
       message.warning('Veuillez saisir au moins une quantité supérieure à 0.');
       return;
     }
-    deliverPartial(selectedSale.id, currentUser?.storeId, deliveries);
-    message.success('Sortie de stock enregistrée avec succès !');
-    closeModal();
+    
+    // Afficher un message de chargement
+    const hideLoading = message.loading('Enregistrement de la sortie en cours...', 0);
+    
+    try {
+      deliverPartial(selectedSale.id, currentUser?.storeId, deliveries);
+      hideLoading();
+      message.success('Sortie de stock enregistrée avec succès !');
+      closeModal();
+    } catch (error) {
+      hideLoading();
+      message.error('Erreur lors de la sortie : ' + error.message);
+    }
   };
 
   const columns = [
@@ -90,6 +100,15 @@ const DeliveriesPanel = () => {
         <div className="flex items-center gap-2">
           <User size={12} className="text-text-muted" />
           <span className="text-sm font-medium">{val}</span>
+        </div>
+      )
+    },
+    {
+      key: 'customer', title: 'Client',
+      render: (_, row) => (
+        <div className="flex flex-col">
+          <span className="text-sm font-black text-text-heading">{row.customerName || 'Passager'}</span>
+          {row.customerPhone && <span className="text-[0.65rem] opacity-70">{row.customerPhone}</span>}
         </div>
       )
     },

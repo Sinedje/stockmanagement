@@ -34,6 +34,12 @@ const SalesHistory = () => {
     )},
     { key: 'date', title: 'Date', render: (val) => new Date(val).toLocaleDateString('fr-FR') },
     { key: 'cashier', title: 'Caissier', render: (val) => <span className="font-medium text-text-secondary">{val}</span> },
+    { key: 'customer', title: 'Client', render: (_, row) => (
+      <div className="flex flex-col">
+        <span className="text-sm font-black text-text-heading">{row.customerName || 'Passager'}</span>
+        {row.customerPhone && <span className="text-[0.65rem] opacity-70">{row.customerPhone}</span>}
+      </div>
+    )},
     { key: 'total', title: 'Total', render: (val) => <span className="font-black text-primary">{formatPrice(val)}</span> },
     { key: 'status', title: 'Statut', render: (_, row) => {
       if (row.status === 'cancelled') return <span className="badge badge-danger">ANNULÉE</span>;

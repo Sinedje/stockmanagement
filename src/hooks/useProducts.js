@@ -10,7 +10,10 @@ import {
   deleteProduct as apiDeleteProduct,
   bulkUpdateStock as apiBulkUpdateStock,
   createCategory as apiCreateCategory,
+  fetchProducts as apiFetchProducts,
+  importProducts as apiImportProducts,
 } from '../services/productService';
+import { createStockEntry as apiCreateStockEntry } from '../services/storeService';
 import { useStore } from '../context/StoreContext';
 
 const useProducts = () => {
@@ -22,6 +25,8 @@ const useProducts = () => {
     updateProduct: storeUpdateProduct,
     deleteProduct: storeDeleteProduct,
     bulkUpdateStock: storeBulkUpdateStock,
+    addStockEntry: storeAddStockEntry,
+    refreshProducts: storeRefreshProducts,
     addCategory: storeAddCategory,
     lowStockProducts,
     totalStockValue,
@@ -50,7 +55,27 @@ const useProducts = () => {
     } finally {
       setLoading(false);
     }
-  }, [storeAddProduct]);
+  }, [storeAddProduct, activeStoreId]);
+
+  const importProducts = useCallback(async (productsData) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const payload = productsData.map(p => ({ ...p, storeId: p.storeId || activeStoreId }));
+      if (import.meta.env.VITE_API_URL) {
+        await apiImportProducts(payload);
+        await storeRefreshProducts(); // Refresh to get all the new/updated products with correct IDs
+      } else {
+        // Offline mock
+        payload.forEach(p => storeAddProduct(p));
+      }
+    } catch (err) {
+      setError(err.message);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, [storeAddProduct, storeRefreshProducts, activeStoreId]);
 
   const updateProduct = useCallback(async (id, updates) => {
     setLoading(true);
@@ -98,6 +123,49 @@ const useProducts = () => {
     }
   }, [storeBulkUpdateStock]);
 
+  /**
+   * receiveStock — preferred function for stock receptions.
+   * Calls the /stock-entries endpoint which:
+   *   1. Creates / updates product stock in the database
+   *   2. Creates a StockEntry document for history
+   * Then synchronises local state so the UI reflects the new quantities
+   * without requiring a full page reload.
+   *
+   * @param {Array}  items      - Array of { productId, name, quantity, cost }
+   * @param {Object} entryMeta - { supplier, noteNumber, storeId }
+   */
+  const receiveStock = useCallback(async (items, entryMeta) => {
+    setLoading(true);
+    setError(null);
+    try {
+      if (import.meta.env.VITE_API_URL) {
+        // Server creates StockEntry + updates Product.stock in MongoDB
+        const savedEntry = await apiCreateStockEntry({
+          supplier: entryMeta.supplier,
+          noteNumber: entryMeta.noteNumber,
+          storeId: entryMeta.storeId || activeStoreId,
+          items,
+        });
+        
+        // The backend might have cloned a product from another store.
+        // Instead of a risky optimistic update with the wrong productId, 
+        // we just refresh the whole product list to get the real IDs.
+        if (savedEntry) {
+          storeAddStockEntry(savedEntry);
+          await storeRefreshProducts();
+        }
+      } else {
+        // Offline mode: full local update including stockEntries creation
+        storeBulkUpdateStock(items, entryMeta);
+      }
+    } catch (err) {
+      setError(err.message);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, [storeBulkUpdateStock, storeAddStockEntry, activeStoreId]);
+
   const addCategory = useCallback(async (name) => {
     setError(null);
     try {
@@ -117,10 +185,13 @@ const useProducts = () => {
     loading,
     error,
     addProduct,
+    importProducts,
     updateProduct,
     deleteProduct,
     bulkUpdateStock,
+    receiveStock,
     addCategory,
+    refreshProducts: storeRefreshProducts,
   };
 };
 

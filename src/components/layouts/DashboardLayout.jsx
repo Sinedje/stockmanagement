@@ -44,7 +44,7 @@ const DashboardLayout = ({
 
       {/* Main Content Area */}
       <main
-        className={`flex-1 min-w-0 flex flex-col min-h-screen relative z-10 transition-all duration-300 print:ml-0! ${showSidebar ? 'md:ml-[var(--sidebar-width)]' : ''}`}
+        className={`flex-1 min-w-0 flex flex-col min-h-screen relative z-10 transition-all duration-300 print:ml-0! ${showSidebar ? 'sidebar-adjusted' : ''}`}
       >
         {/* Page Header */}
         <header className="px-4 sm:px-6 py-4 sm:py-6 glass-panel border-x-0 border-t-0 sticky top-0 z-40 rounded-none print:static print:bg-none print:border-none print:py-4 print:px-0 print:shadow-none">
@@ -59,9 +59,9 @@ const DashboardLayout = ({
                   <Menu size={18} strokeWidth={2.5} />
                 </button>
               )}
-              <div className="min-w-0">
-                {/* Date visible uniquement à l'impression */}
-                <div className="hidden print:block mb-3 text-text-heading font-black text-xl uppercase tracking-widest">
+              <div className="min-w-0 print:hidden">
+                {/* Date visible uniquement à l'impression - masqué si le composant enfant a son propre en-tête */}
+                <div className="hidden mb-3 text-text-heading font-black text-xl uppercase tracking-widest">
                   {new Date().toLocaleString('fr-FR', { dateStyle: 'full', timeStyle: 'short' })}
                 </div>
                 <h1 className="text-xl sm:text-2xl font-black text-text-heading tracking-tight mb-1 uppercase truncate">
@@ -83,7 +83,7 @@ const DashboardLayout = ({
               )}
 
               {/* User Section for Sidebarless pages or Print */}
-              <div className={`flex items-center gap-4 pl-4 border-l border-black/10 dark:border-white/10 print:border-none print:pl-0 ${showSidebar ? 'hidden print:flex' : ''}`}>
+              <div className={`flex items-center gap-4 pl-4 border-l border-black/10 dark:border-white/10 print:hidden ${showSidebar ? 'hidden print:hidden' : ''}`}>
                 <div className="text-right sm:block">
                   <div className="text-text-heading text-xs font-bold leading-tight print:text-xl print:font-black">{currentUser?.name}</div>
                   <div className="text-primary text-[0.6rem] font-black uppercase tracking-widest opacity-60 print:text-sm">

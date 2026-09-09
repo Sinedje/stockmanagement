@@ -14,9 +14,13 @@ const ProductGrid = () => {
   const [filterStore, setFilterStore] = useState('Tous');
 
   const filtered = allCashierProducts.filter(p => {
-    const matchSearch = p.name.toLowerCase().includes(search.toLowerCase());
+    const displayName = p.designation || p.name || '';
+    const matchSearch = displayName.toLowerCase().includes(search.toLowerCase()) || 
+                        p.name.toLowerCase().includes(search.toLowerCase());
     const matchCat = filterCat === 'Tous' || p.category === filterCat;
-    const matchStore = filterStore === 'Tous' || p.storeId === filterStore;
+    const pStoreId = String(p.storeId?._id || p.storeId?.id || p.storeId);
+    const fStoreId = String(filterStore?._id || filterStore?.id || filterStore);
+    const matchStore = filterStore === 'Tous' || pStoreId === fStoreId;
     return matchSearch && matchCat && matchStore;
   });
 
@@ -26,7 +30,7 @@ const ProductGrid = () => {
       <div className="glass-panel p-4 rounded-2xl flex flex-col gap-3">
         <div className="flex flex-col md:flex-row items-center gap-3">
           <SearchComponent
-            placeholder="Rechercher un produit..."
+            placeholder="Rechercher par désignation ou référence..."
             value={search}
             onChange={e => setSearch(e.target.value)}
             width="100%"
@@ -81,12 +85,21 @@ const ProductGrid = () => {
         {filtered.map(product => (
           <div
             key={`${product.id}-${product.storeId}`}
-            className={`group relative p-4 glass-panel rounded-2xl cursor-pointer
+            className={`group relative p-3 glass-panel rounded-2xl cursor-pointer flex flex-col justify-between
               transition-all duration-300 hover:border-primary/30 hover:shadow-xl hover:shadow-primary/10 hover:-translate-y-1
               ${product.stock <= 0 ? 'opacity-50 grayscale pointer-events-none' : ''}`}
             onClick={() => addToCart(product)}
           >
-            {/* Badge magasin (si plusieurs magasins) */}
+            {/* Image Produit */}
+            <div className="w-full h-28 rounded-xl overflow-hidden bg-black/10 dark:bg-white/5 border border-white/5 mb-2 flex items-center justify-center">
+              {product.image ? (
+                <img src={product.image} alt={product.designation || product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+              ) : (
+                <div className="text-text-muted opacity-20 font-black text-xs uppercase">Pas d'image</div>
+              )}
+            </div>
+
+            {/* Badge magasin */}
             {stores.length > 1 && (
               <div className="flex items-center gap-1 mb-1">
                 <Store size={9} className="text-primary opacity-60" />
@@ -96,17 +109,17 @@ const ProductGrid = () => {
               </div>
             )}
 
-            <div className="text-[0.65rem] font-black text-primary uppercase tracking-widest mb-1 opacity-60 group-hover:opacity-100 transition-opacity">
+            <div className="text-[0.65rem] font-black text-primary uppercase tracking-widest mb-0.5 opacity-60 group-hover:opacity-100 transition-opacity">
               {product.category}
             </div>
-            <div className="text-[0.95rem] font-bold text-text-heading mb-3 line-clamp-2 h-10">
-              {product.name}
+            <div className="text-xs font-bold text-text-heading mb-2 line-clamp-2 min-h-[2rem]" title={product.designation || product.name}>
+              {product.designation || product.name}
             </div>
-            <div className="flex items-end justify-between mt-auto">
-              <div className="text-lg font-black text-primary tracking-tight">
+            <div className="flex items-end justify-between mt-auto pt-2 border-t border-white/5">
+              <div className="text-base font-black text-primary tracking-tight">
                 {formatPrice(product.price)}
               </div>
-              <div className="text-[0.7rem] font-bold bg-white/5 px-2 py-1 rounded-md border border-white/5">
+              <div className="text-[0.7rem] font-bold bg-white/5 px-2 py-0.5 rounded-md border border-white/5">
                 <span className="text-text-muted mr-1">Stock:</span>
                 <span className={product.stock <= product.minStock ? 'text-red-500' : 'text-primary'}>
                   {product.stock}

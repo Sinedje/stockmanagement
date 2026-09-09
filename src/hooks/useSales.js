@@ -18,6 +18,7 @@ import {
   createVersement as apiCreateVersement,
   initCashFund as apiInitCashFund,
   closeCashSession as apiCloseCashSession,
+  fetchSales as apiFetchSales,
 } from '../services/saleService';
 import { useStore } from '../context/StoreContext';
 
@@ -57,6 +58,10 @@ const useSales = () => {
     nextInvoiceNumber,
     currentCashierCode,
     invoiceCounters,
+    refreshProducts,
+    refreshSales,
+    currentUser,
+    activeStoreId,
   } = useStore();
 
   const [loading, setLoading] = useState(false);
@@ -91,9 +96,19 @@ const useSales = () => {
     setLoading(true);
     setError(null);
     try {
+      // 1. Always update local state first (works offline too)
       const sale = storeCompleteInvoiceSale(...args);
-      if (import.meta.env.VITE_API_URL && sale) {
-        await apiCreateInvoiceSale(sale);
+      if (!sale) return null;
+
+      // 2. Try to persist to server — failure here should NOT block the receipt
+      if (import.meta.env.VITE_API_URL) {
+        try {
+          await apiCreateInvoiceSale(sale);
+        } catch (apiErr) {
+          // Log API error silently — sale is already in local state
+          console.error('⚠️ Erreur API lors de l\'enregistrement de la vente (local OK):', apiErr.message);
+          setError(`Vente enregistrée localement. Erreur serveur: ${apiErr.message}`);
+        }
       }
       return sale;
     } catch (err) {
@@ -143,22 +158,37 @@ const useSales = () => {
   const deliverSale = useCallback(async (saleId, storeId) => {
     setError(null);
     try {
-      if (import.meta.env.VITE_API_URL) await apiDeliverSale(saleId, storeId);
+      if (import.meta.env.VITE_API_URL) {
+        await apiDeliverSale(saleId, storeId);
+        // Resync products and sales from server to reflect physical stock and delivery status changes
+        await refreshProducts();
+        await refreshSales();
+      }
       storeDeliverSale(saleId, storeId);
     } catch (err) {
       setError(err.message);
     }
-  }, [storeDeliverSale]);
+  }, [storeDeliverSale, refreshProducts, refreshSales]);
 
   const deliverPartial = useCallback(async (saleId, storeId, deliveries) => {
     setError(null);
     try {
-      if (import.meta.env.VITE_API_URL) await apiDeliverPartial(saleId, storeId, deliveries);
+      // Convert array [{productId, qtyNow}] to object {[productId]: qty} expected by server
+      const deliveriesObj = {};
+      deliveries.forEach(d => {
+        deliveriesObj[d.productId] = d.qtyNow;
+      });
+      if (import.meta.env.VITE_API_URL) {
+        await apiDeliverPartial(saleId, storeId, deliveriesObj);
+        // Resync products and sales from server
+        await refreshProducts();
+        await refreshSales();
+      }
       storeDeliverPartial(saleId, storeId, deliveries);
     } catch (err) {
       setError(err.message);
     }
-  }, [storeDeliverPartial]);
+  }, [storeDeliverPartial, refreshProducts, refreshSales]);
 
   const unlockDelivery = useCallback(async (saleId) => {
     setError(null);
@@ -174,11 +204,16 @@ const useSales = () => {
   const addExpense = useCallback(async (expense) => {
     setError(null);
     try {
+      const payload = {
+        ...expense,
+        cashier: currentUser?.name || 'Inconnu',
+        storeId: activeStoreId,
+      };
       if (import.meta.env.VITE_API_URL) {
-        const saved = await apiCreateExpense(expense);
-        storeAddExpense(saved || expense);
+        const saved = await apiCreateExpense(payload);
+        storeAddExpense(saved || payload);
       } else {
-        storeAddExpense(expense);
+        storeAddExpense(payload);
       }
     } catch (err) {
       setError(err.message);
@@ -189,9 +224,14 @@ const useSales = () => {
   const addVersement = useCallback(async (amount) => {
     setError(null);
     try {
+      const payload = {
+        amount,
+        cashier: currentUser?.name || 'Inconnu',
+        storeId: activeStoreId,
+      };
       if (import.meta.env.VITE_API_URL) {
-        const saved = await apiCreateVersement({ amount });
-        storeAddVersement(saved ? saved.amount : amount);
+        const saved = await apiCreateVersement(payload);
+        storeAddVersement(saved ? saved : amount);
       } else {
         storeAddVersement(amount);
       }
@@ -204,7 +244,13 @@ const useSales = () => {
   const initializeCashFund = useCallback(async (amount) => {
     setError(null);
     try {
-      if (import.meta.env.VITE_API_URL) await apiInitCashFund({ amount });
+      if (import.meta.env.VITE_API_URL) {
+        await apiInitCashFund({ 
+          amount,
+          cashier: currentUser?.name || 'Inconnu',
+          storeId: activeStoreId, 
+        });
+      }
       storeInitializeCashFund(amount);
     } catch (err) {
       setError(err.message);
@@ -214,12 +260,21 @@ const useSales = () => {
   const closeCashSession = useCallback(async (finalBalance, sessionStats) => {
     setError(null);
     try {
-      if (import.meta.env.VITE_API_URL) await apiCloseCashSession({ finalBalance, ...sessionStats });
-      storeCloseCashSession(finalBalance, sessionStats);
+      if (import.meta.env.VITE_API_URL) {
+        const saved = await apiCloseCashSession({ 
+          finalBalance, 
+          ...sessionStats,
+          cashier: currentUser?.name || 'Inconnu',
+          storeId: activeStoreId,
+        });
+        storeCloseCashSession(finalBalance, { ...sessionStats, id: saved._id || saved.id, date: saved.date });
+      } else {
+        storeCloseCashSession(finalBalance, sessionStats);
+      }
     } catch (err) {
       setError(err.message);
     }
-  }, [storeCloseCashSession]);
+  }, [storeCloseCashSession, currentUser, activeStoreId]);
 
   return {
     // State

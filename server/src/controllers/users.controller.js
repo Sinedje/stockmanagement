@@ -13,13 +13,14 @@ export const createUser = async (req, res, next) => {
   const { username, password, name, role, storeId } = req.body;
 
   try {
-    const userExists = await User.findOne({ username });
+    const normalizedUsername = (username || '').toString().trim().toLowerCase();
+    const userExists = await User.findOne({ username: normalizedUsername });
     if (userExists) {
       return res.status(400).json({ message: 'Ce nom d\'utilisateur est déjà pris' });
     }
 
     const newUser = await User.create({
-      username,
+      username: normalizedUsername,
       password,
       name,
       role,
@@ -35,7 +36,7 @@ export const createUser = async (req, res, next) => {
 
 export const updateUser = async (req, res, next) => {
   const { id } = req.params;
-  const { name, role, storeId, password } = req.body;
+  const { name, role, storeId, password, username } = req.body;
 
   try {
     const user = await User.findById(id);
@@ -43,11 +44,22 @@ export const updateUser = async (req, res, next) => {
       return res.status(404).json({ message: 'Utilisateur non trouvé' });
     }
 
-    user.name = name || user.name;
-    user.role = role || user.role;
-    user.storeId = storeId !== undefined ? storeId : user.storeId;
+    if (name) user.name = name;
+    if (role) user.role = role;
+    if (storeId !== undefined) user.storeId = storeId || null;
 
-    if (password) {
+    // Mise à jour du username si fourni et différent
+    if (username && username.trim().toLowerCase() !== user.username) {
+      const normalizedUsername = username.trim().toLowerCase();
+      const exists = await User.findOne({ username: normalizedUsername, _id: { $ne: id } });
+      if (exists) {
+        return res.status(400).json({ message: 'Ce nom d\'utilisateur est déjà pris' });
+      }
+      user.username = normalizedUsername;
+    }
+
+    // Mise à jour du mot de passe uniquement si un nouveau est fourni
+    if (password && password.trim() !== '') {
       user.password = password;
     }
 
@@ -59,6 +71,7 @@ export const updateUser = async (req, res, next) => {
     next(error);
   }
 };
+
 
 export const toggleUserStatus = async (req, res, next) => {
   const { id } = req.params;

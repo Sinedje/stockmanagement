@@ -26,12 +26,16 @@ const StaffPanel = () => {
 
   const openEdit = (u) => { 
     setEditingUser(u); 
-    setForm({ ...u }); 
+    // Ne pas pré-remplir le mot de passe (le serveur ne le renvoie jamais)
+    // L'admin laisse vide = inchangé, ou entre un nouveau = changement
+    setForm({ ...u, password: '' }); 
     setShowModal(true); 
   };
 
   const handleSave = () => {
-    if (!form.username || !form.password || !form.name) return;
+    if (!form.username || !form.name) return;
+    // Pour un nouvel utilisateur, le mot de passe est obligatoire
+    if (!editingUser && !form.password) return;
     if (editingUser) { 
       updateUser(editingUser.id, form); 
     } else { 
@@ -171,7 +175,7 @@ const StaffPanel = () => {
                 type="password"
                 value={form.password}
                 onChange={e => setForm({ ...form, password: e.target.value })}
-                placeholder="********"
+                placeholder={editingUser ? "Laisser vide = inchangé" : "********"}
               />
             </div>
             <Select

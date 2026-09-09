@@ -1,6 +1,6 @@
 import express from 'express';
 import { 
-  getProducts, createProduct, updateProduct, deleteProduct, bulkUpdateStock,
+  getProducts, createProduct, updateProduct, deleteProduct, bulkUpdateStock, importProducts,
   getCategories, createCategory 
 } from '../controllers/products.controller.js';
 import { protect, authorize } from '../middleware/auth.js';
@@ -12,6 +12,7 @@ router.use(protect);
 // Products routes
 router.get('/products', getProducts);
 router.post('/products', authorize('manager', 'ceo'), createProduct);
+router.post('/products/import', authorize('manager', 'ceo'), importProducts);
 router.put('/products/:id', authorize('manager', 'ceo'), updateProduct);
 router.delete('/products/:id', authorize('manager', 'ceo'), deleteProduct);
 router.post('/products/bulk-update', authorize('manager', 'ceo'), bulkUpdateStock);

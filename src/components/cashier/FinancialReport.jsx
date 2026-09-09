@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { formatPrice } from '../../context/StoreContext';
 import { useAuth } from '../../context/AuthContext';
-import { useSales, useCustomers } from '../../hooks';
+import { useSales, useCustomers, useSettings, useStores } from '../../hooks';
 import Modal from '../common/Modal';
 import { BarChart3, Calendar, FileText, Calculator, Printer, CheckCircle2, TrendingUp, Wallet, CreditCard, MinusCircle, PlusCircle, AlertCircle, ArrowUpCircle, Lock, PackageOpen, Package } from 'lucide-react';
 import { Button } from 'antd';
@@ -15,6 +15,10 @@ const FinancialReport = () => {
     lastClosingBalance, closeCashSession
   } = useSales();
   const { customerTransactions, customers } = useCustomers();
+  const { companySettings } = useSettings();
+  const { stores } = useStores();
+  
+  const cashierStore = stores?.find(s => s.id === currentUser?.storeId) || { name: 'Magasin Inconnu' };
 
   const [startInvoice, setStartInvoice] = useState('');
   const [endInvoice, setEndInvoice] = useState('');
@@ -167,39 +171,105 @@ const FinancialReport = () => {
     const totalPeriodDeposits = periodDeposits.reduce((s, t) => s + t.amount, 0);
     const totalPeriodRefunds = periodRefunds.reduce((s, t) => s + Math.abs(t.amount), 0);
     
+    // ─── RECOUVREMENTS depuis customerTransactions (type=invoice_payment) ────────
+    // Ces transactions sont créées lors du paiement d'une facture impayée
+    const periodInvoicePayments = customerTransactions.filter(t =>
+      t.type === 'invoice_payment' &&
+      t.cashier === currentUser?.name &&
+      new Date(t.date) >= initDate &&
+      new Date(t.date) <= endDateForBalance
+    );
+    const totalInvoicePayments = periodInvoicePayments.reduce((s, t) => s + t.amount, 0);
+    
     let standardSales = 0;
     let breakageSales = 0;
-    let sampleSales = 0;
 
     filteredSales.forEach(s => {
       s.items.forEach(item => {
          const itemGross = item.price * item.quantity;
-         if (item.isNonInventory) sampleSales += itemGross;
-         else if (item.isBreakage || item.isRepackaged) breakageSales += itemGross;
+         if (item.isBreakage || item.isRepackaged) breakageSales += itemGross;
          else standardSales += itemGross;
       });
     });
 
-    const calculatedBalance = initialCashFund + totalCashIn + totalPeriodDeposits - totalPeriodExpenses - totalPeriodVersements - totalPeriodRefunds;
+    // ─── DETTES ACCORDÉES ────────────────────────────────────────────────
+    // Factures de la période avec un reste à payer (amountDue > 0)
+    const debtInvoices = filteredSales.filter(s => (s.amountDue || 0) > 0).map(s => ({
+      number: s.invoiceNumber,
+      customerName: s.customerName || 'Passager',
+      amount: s.total,
+      amountDue: s.amountDue,
+      amountPaid: s.amountPaid || 0,
+      date: s.date,
+      paymentStatus: s.paymentStatus
+    }));
+    const totalDebts = debtInvoices.reduce((sum, d) => sum + d.amountDue, 0);
+
+    // recoveryReceipts = les paiements de factures reçus pendant la session courante
+    // On garde aussi la compatibilité avec la logique paymentHistory en fallback
+    let recoveryReceipts = periodInvoicePayments.map(t => ({
+      id: t.id,
+      date: t.date,
+      amount: t.amount,
+      method: t.method,
+      invoiceNumber: t.invoiceNumber || t.reference?.replace('REGLEMENT-', ''),
+      invoiceDate: t.invoiceDate,
+      customerName: t.customerName || 'Passager',
+    }));
+
+    // Fallback: if no invoice_payment transactions (old data), scan paymentHistory
+    if (recoveryReceipts.length === 0) {
+      const mySalesAll = sales.filter(s => s.cashier === currentUser?.name && s.status !== 'cancelled');
+      mySalesAll.forEach(sale => {
+        if (!sale.paymentHistory || sale.paymentHistory.length === 0) return;
+        sale.paymentHistory.forEach(pmt => {
+          const pmtDate = new Date(pmt.date);
+          if (pmtDate >= initDate && pmtDate <= endDateForBalance && pmt.cashier === currentUser?.name) {
+            const isCurrentPeriodSale = filteredSales.some(fs => fs.id === sale.id);
+            if (!isCurrentPeriodSale) {
+              recoveryReceipts.push({
+                id: pmt.id,
+                date: pmt.date,
+                amount: pmt.amount,
+                method: pmt.method,
+                invoiceNumber: sale.invoiceNumber,
+                invoiceDate: sale.date,
+                customerName: sale.customerName || 'Passager',
+              });
+            }
+          }
+        });
+      });
+    }
+    const totalRecoveries = recoveryReceipts.reduce((sum, r) => sum + r.amount, 0);
+
+    // Balance recalculée : fond + recettes espèces + recouvrements + dépôts - dépenses - versements - remboursements - dettes du jour non encaissées
+    const calculatedBalanceWithRecoveries = initialCashFund + totalCashIn + totalPeriodDeposits + totalInvoicePayments - totalPeriodExpenses - totalPeriodVersements - totalPeriodRefunds - totalDebts;
 
     const invoicesList = filteredSales.map(s => ({
       number: s.invoiceNumber,
       amount: s.total,
+      amountPaid: s.amountPaid || s.total,
+      amountDue: s.amountDue || 0,
+      customerName: s.customerName || 'Passager',
       paymentMethod: s.paymentMethod
     }));
 
     return { 
       grossTotal, totalDiscounts, netRevenue, 
-      standardSales, breakageSales, sampleSales,
+      standardSales, breakageSales,
       cashSales: totalCashIn, cardSales, accountSales, count: filteredSales.length,
       totalPeriodExpenses, totalPeriodVersements,
       totalPeriodDeposits, totalPeriodRefunds,
-      calculatedBalance, invoicesList,
+      calculatedBalance: calculatedBalanceWithRecoveries,
+      debtInvoices, totalDebts,
+      recoveryReceipts, totalRecoveries,
+      invoicesList,
       expensesList: periodExpenses,
       depositsList: periodDeposits,
       refundsList: periodRefunds
     };
-  }, [filteredSales, myExpenses, myVersements, myDeposits, myRefunds, initialCashFund, invoiceNumbers, endInvoice]);
+  }, [filteredSales, myExpenses, myVersements, myDeposits, myRefunds, initialCashFund, invoiceNumbers, endInvoice, sales, currentUser, cashInitializationDate, customerTransactions]);
 
   const handleAddExpense = (e) => {
     e.preventDefault();
@@ -415,6 +485,38 @@ const FinancialReport = () => {
               </div>
             )}
 
+            {/* Recouvrements reçus */}
+            {stats.totalRecoveries > 0 && (
+              <div className="flex flex-col border-b border-black/10 pb-2 gap-1">
+                <div className="flex justify-between items-center text-[0.8rem] text-emerald-700 font-black">
+                  <span>💰 Recouvrements Dettes Reçus</span>
+                  <span>+{formatPrice(stats.totalRecoveries)}</span>
+                </div>
+                {stats.recoveryReceipts.map((r, i) => (
+                  <div key={i} className="flex justify-between items-center text-[0.7rem] text-emerald-600 pl-4">
+                    <span>Fact. {r.invoiceNumber} ({r.customerName}) du {new Date(r.invoiceDate).toLocaleDateString('fr-FR')}</span>
+                    <span>+{formatPrice(r.amount)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Dettes accordées */}
+            {stats.totalDebts > 0 && (
+              <div className="flex flex-col border-b border-black/10 pb-2 gap-1">
+                <div className="flex justify-between items-center text-[0.8rem] text-red-800 font-bold">
+                  <span>📋 Dettes Accordées (Restes à Payer)</span>
+                  <span>-{formatPrice(stats.totalDebts)}</span>
+                </div>
+                {stats.debtInvoices.map((d, i) => (
+                  <div key={i} className="flex justify-between items-center text-[0.7rem] text-red-600 pl-4">
+                    <span>Fact. {d.number} — {d.customerName}</span>
+                    <span>Reste: {formatPrice(d.amountDue)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
             <div className="pt-8 text-center">
               <div className="text-black/50 text-[0.7rem] font-black uppercase tracking-widest mb-2">SOLDE CALCULÉ (ARRÊT)</div>
               <div className="text-5xl font-black text-black tracking-tighter leading-none mb-4">
@@ -445,7 +547,6 @@ const FinancialReport = () => {
         {[
           { label: 'CA Standard', value: formatPrice(stats.standardSales), icon: TrendingUp, color: 'text-primary' },
           { label: 'CA Casses', value: formatPrice(stats.breakageSales), icon: PackageOpen, color: 'text-orange-500' },
-          { label: 'CA Échantillons', value: formatPrice(stats.sampleSales), icon: Package, color: 'text-purple-500' },
           { label: 'Factures / Net Total', value: `${stats.count} fact. / ${formatPrice(stats.netRevenue)}`, icon: FileText, color: 'text-blue-500' },
         ].map((stat, i) => (
           <div key={i} className="bg-bg-card border border-black/5 dark:border-white/5 rounded-2xl p-5 shadow-lg">
@@ -568,146 +669,135 @@ const FinancialReport = () => {
       )}
       </div>
 
-      {/* Vue d'impression du Bilan Original */}
-      <div className="hidden print:block text-black p-8">
-        <div className="text-center mb-10">
-          <h1 className="text-3xl font-black uppercase tracking-tighter mb-2 border-b-2 border-black inline-block pb-2">Bilan Financier (Original)</h1>
-          <div className="flex justify-between items-end mt-6">
-            <div className="text-left">
-              <p className="text-sm font-bold uppercase tracking-widest text-gray-500">Date et Heure d'impression</p>
-              <p className="text-xl font-black">{new Date().toLocaleString('fr-FR', { dateStyle: 'full', timeStyle: 'short' })}</p>
+      {/* Vue d'impression du Bilan Financier - compact 1 page */}
+      <div className="hidden print:block text-black" style={{fontFamily:'Arial,sans-serif',fontSize:'11px',padding:'12px 16px',maxWidth:'750px',margin:'0 auto'}}>
+        {/* En-tête compact avec infos entreprise */}
+        <div style={{borderBottom:'2px solid black',paddingBottom:'6px',marginBottom:'8px'}}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:'8px'}}>
+            <div>
+              <div style={{fontSize:'12px',fontWeight:'900',textTransform:'uppercase'}}>{companySettings?.name || 'VOTRE ENTREPRISE'}</div>
+              <div style={{fontSize:'9px',color:'#444'}}>{companySettings?.address || 'Adresse de l\'entreprise'}</div>
+              <div style={{fontSize:'9px',color:'#444'}}>{companySettings?.phone || 'Téléphone'}</div>
             </div>
-            <div className="text-right">
-              <p className="text-sm font-bold uppercase tracking-widest text-gray-500">Caissier responsable</p>
-              <p className="text-xl font-black uppercase">{currentUser?.name}</p>
+            <div style={{textAlign:'right'}}>
+              <div style={{fontSize:'14px',fontWeight:'900',textTransform:'uppercase',letterSpacing:'1px'}}>BILAN FINANCIER</div>
+              <div style={{fontSize:'9px',color:'#666',fontWeight:'bold',marginTop:'2px'}}>Magasin : <span style={{color:'black'}}>{cashierStore.name}</span></div>
             </div>
+          </div>
+          <div style={{display:'flex',justifyContent:'space-between',marginTop:'4px',fontSize:'10px',borderTop:'1px dotted #ccc',paddingTop:'4px'}}>
+            <span><strong>Date :</strong> {new Date().toLocaleString('fr-FR',{dateStyle:'short',timeStyle:'short'})}</span>
+            <span><strong>Caissier :</strong> {currentUser?.name?.toUpperCase()}</span>
+            <span><strong>Plage :</strong> {`${startInvoice||invoiceNumbers[0]||'N/A'} → ${endInvoice||invoiceNumbers[invoiceNumbers.length-1]||'N/A'}`}</span>
           </div>
         </div>
 
-        <div className="max-w-3xl mx-auto border-2 border-black rounded-3xl p-10 bg-white">
-          <h3 className="text-2xl font-black tracking-tight mb-8 text-center">État de la Caisse</h3>
-          
-          <div className="space-y-6">
-            <div className="flex justify-between items-center text-lg border-b border-gray-300 pb-4">
-              <span className="font-bold text-gray-600">Fond Initial</span>
-              <span className="font-bold">{formatPrice(initialCashFund)}</span>
-            </div>
-            <div className="flex justify-between items-center text-lg border-b border-gray-300 pb-4">
-              <span className="font-black text-gray-800">Recettes Espèces / Mixte</span>
-              <span className="font-black text-emerald-600">+{formatPrice(stats.cashSales)}</span>
-            </div>
-            {stats.totalPeriodDeposits > 0 && (
-              <div className="flex justify-between items-center text-lg border-b border-gray-300 pb-4">
-                <span className="font-black text-gray-800">Dépôts Clients (Espèces)</span>
-                <span className="font-black text-emerald-600">+{formatPrice(stats.totalPeriodDeposits)}</span>
-              </div>
-            )}
-            {stats.totalPeriodRefunds > 0 && (
-              <div className="flex justify-between items-center text-lg border-b border-gray-300 pb-4">
-                <span className="font-bold text-gray-600">Remboursements Clients</span>
-                <span className="font-bold text-red-600">-{formatPrice(stats.totalPeriodRefunds)}</span>
-              </div>
-            )}
-            
-            {stats.expensesList && stats.expensesList.length > 0 ? (
-              <div className="border-b border-gray-300 pb-4">
-                <div className="text-sm font-bold text-gray-500 uppercase tracking-widest mb-2">Détail des Dépenses</div>
-                {stats.expensesList.map(exp => (
-                  <div key={exp.id} className="flex justify-between items-center text-base py-1">
-                    <span className="font-bold text-gray-700">- {exp.label}</span>
-                    <span className="font-bold text-red-600">-{formatPrice(exp.amount)}</span>
-                  </div>
+        {/* État de caisse - tableau compact */}
+        <div style={{marginBottom:'8px'}}>
+          <div style={{fontWeight:'900',fontSize:'11px',textTransform:'uppercase',borderBottom:'1px solid #ccc',paddingBottom:'2px',marginBottom:'4px'}}>État de la Caisse</div>
+          <table style={{width:'100%',borderCollapse:'collapse',fontSize:'10px'}}>
+            <tbody>
+              <tr><td style={{padding:'1px 4px'}}>Fond Initial</td><td style={{textAlign:'right',padding:'1px 4px',fontWeight:'bold'}}>{formatPrice(initialCashFund)}</td></tr>
+              <tr><td style={{padding:'1px 4px',fontWeight:'bold'}}>+ Recettes Espèces / Mixte</td><td style={{textAlign:'right',padding:'1px 4px',fontWeight:'900',color:'#059669'}}>+{formatPrice(stats.cashSales)}</td></tr>
+              {stats.totalPeriodDeposits > 0 && <tr><td style={{padding:'1px 4px'}}>+ Dépôts Clients (Espèces)</td><td style={{textAlign:'right',padding:'1px 4px',color:'#059669'}}>+{formatPrice(stats.totalPeriodDeposits)}</td></tr>}
+              {stats.totalRecoveries > 0 && <>
+                <tr><td style={{padding:'1px 4px',fontWeight:'bold'}}>+ Recouvrements de Dettes Reçus</td><td style={{textAlign:'right',padding:'1px 4px',fontWeight:'900',color:'#059669'}}>+{formatPrice(stats.totalRecoveries)}</td></tr>
+                {stats.recoveryReceipts.map((r,i)=>(
+                  <tr key={i} style={{background:'#f0fdf4'}}><td style={{padding:'1px 4px 1px 16px',fontSize:'9px',color:'#166534'}}>Fact.{r.invoiceNumber} – {r.customerName} (du {r.invoiceDate ? new Date(r.invoiceDate).toLocaleDateString('fr-FR') : '?'})</td><td style={{textAlign:'right',padding:'1px 4px',fontSize:'9px',color:'#166534'}}>+{formatPrice(r.amount)}</td></tr>
                 ))}
-                <div className="flex justify-between items-center text-lg mt-2 pt-2 border-t border-dashed border-gray-300">
-                  <span className="font-bold text-gray-600">Total Dépenses</span>
-                  <span className="font-bold text-red-600">-{formatPrice(stats.totalPeriodExpenses)}</span>
-                </div>
-              </div>
-            ) : (
-              <div className="flex justify-between items-center text-lg border-b border-gray-300 pb-4">
-                <span className="font-bold text-gray-600">Dépenses</span>
-                <span className="font-bold text-gray-400">0 FCFA</span>
-              </div>
-            )}
+              </>}
+              {stats.expensesList && stats.expensesList.length > 0 && <>
+                <tr><td style={{padding:'1px 4px',fontWeight:'bold'}}>– Dépenses</td><td style={{textAlign:'right',padding:'1px 4px',fontWeight:'900',color:'#dc2626'}}>-{formatPrice(stats.totalPeriodExpenses)}</td></tr>
+                {stats.expensesList.map(exp=>(
+                  <tr key={exp.id} style={{background:'#fff1f2'}}><td style={{padding:'1px 4px 1px 16px',fontSize:'9px',color:'#991b1b'}}>- {exp.label}</td><td style={{textAlign:'right',padding:'1px 4px',fontSize:'9px',color:'#991b1b'}}>-{formatPrice(exp.amount)}</td></tr>
+                ))}
+              </>}
+              {stats.totalPeriodExpenses === 0 && <tr><td style={{padding:'1px 4px'}}>– Dépenses</td><td style={{textAlign:'right',padding:'1px 4px',color:'#999'}}>0 FCFA</td></tr>}
+              <tr><td style={{padding:'1px 4px',fontWeight:'bold'}}>– Versements Cumulés</td><td style={{textAlign:'right',padding:'1px 4px',fontWeight:'900',color:'#dc2626'}}>-{formatPrice(stats.totalPeriodVersements)}</td></tr>
+              {stats.totalPeriodRefunds > 0 && <tr><td style={{padding:'1px 4px'}}>– Remboursements Clients</td><td style={{textAlign:'right',padding:'1px 4px',color:'#dc2626'}}>-{formatPrice(stats.totalPeriodRefunds)}</td></tr>}
+              {stats.totalDebts > 0 && <>
+                <tr><td style={{padding:'1px 4px',fontWeight:'bold'}}>– Dettes Accordées (Non Encaissées)</td><td style={{textAlign:'right',padding:'1px 4px',fontWeight:'900',color:'#dc2626'}}>-{formatPrice(stats.totalDebts)}</td></tr>
+                {stats.debtInvoices.map((d,i)=>(
+                  <tr key={i} style={{background:'#fff1f2'}}><td style={{padding:'1px 4px 1px 16px',fontSize:'9px',color:'#991b1b'}}>Fact.{d.number} – {d.customerName}</td><td style={{textAlign:'right',padding:'1px 4px',fontSize:'9px',color:'#991b1b'}}>Reste: {formatPrice(d.amountDue)}</td></tr>
+                ))}
+              </>}
+              <tr style={{borderTop:'2px solid black'}}><td style={{padding:'4px 4px',fontWeight:'900',fontSize:'12px'}}>SOLDE DE CLÔTURE CALCULÉ</td><td style={{textAlign:'right',padding:'4px 4px',fontWeight:'900',fontSize:'14px'}}>{formatPrice(stats.calculatedBalance)}</td></tr>
+            </tbody>
+          </table>
+        </div>
 
-            <div className="flex justify-between items-center text-lg border-b border-gray-300 pb-4">
-              <span className="font-bold text-gray-600">Versements cumulés</span>
-              <span className="font-bold text-red-600">-{formatPrice(stats.totalPeriodVersements)}</span>
-            </div>
-            
-            <div className="pt-8 text-center">
-              <div className="text-gray-500 text-sm font-black uppercase tracking-widest mb-2">SOLDE DE CLÔTURE CALCULÉ</div>
-              <div className="text-5xl font-black tracking-tighter bg-gray-100 inline-block px-10 py-4 rounded-2xl border-2 border-gray-300">
-                {formatPrice(stats.calculatedBalance)}
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-12">
-            <h4 className="text-lg font-black uppercase tracking-widest text-center mb-4 border-b border-gray-200 pb-2">Détail des factures incluses</h4>
-            {stats.invoicesList && stats.invoicesList.length > 0 ? (
-              <table className="w-full text-left border-collapse mt-4">
-                <thead>
-                  <tr className="bg-gray-100">
-                    <th className="px-4 py-2 border border-gray-300 text-sm font-bold uppercase tracking-widest">N° Facture</th>
-                    <th className="px-4 py-2 border border-gray-300 text-sm font-bold uppercase tracking-widest text-right">Montant Pris en Compte</th>
+        {/* Détail des factures */}
+        {stats.invoicesList && stats.invoicesList.length > 0 && (
+          <div>
+            <div style={{fontWeight:'900',fontSize:'11px',textTransform:'uppercase',borderBottom:'1px solid #ccc',paddingBottom:'2px',marginBottom:'4px'}}>Détail des Factures Incluses</div>
+            <table style={{width:'100%',borderCollapse:'collapse',fontSize:'9px'}}>
+              <thead>
+                <tr style={{background:'#f3f4f6'}}>
+                  <th style={{border:'1px solid #d1d5db',padding:'2px 4px',textAlign:'left'}}>N° Facture</th>
+                  <th style={{border:'1px solid #d1d5db',padding:'2px 4px',textAlign:'left'}}>Client</th>
+                  <th style={{border:'1px solid #d1d5db',padding:'2px 4px',textAlign:'right'}}>Total</th>
+                  <th style={{border:'1px solid #d1d5db',padding:'2px 4px',textAlign:'right'}}>Payé</th>
+                  <th style={{border:'1px solid #d1d5db',padding:'2px 4px',textAlign:'right'}}>Reste</th>
+                </tr>
+              </thead>
+              <tbody>
+                {stats.invoicesList.map(inv=>(
+                  <tr key={inv.number} style={inv.amountDue>0?{background:'#fff1f2'}:{}}>
+                    <td style={{border:'1px solid #d1d5db',padding:'2px 4px',fontWeight:'bold'}}>{inv.number}</td>
+                    <td style={{border:'1px solid #d1d5db',padding:'2px 4px'}}>{inv.customerName}</td>
+                    <td style={{border:'1px solid #d1d5db',padding:'2px 4px',textAlign:'right',fontWeight:'900'}}>{formatPrice(inv.amount)}</td>
+                    <td style={{border:'1px solid #d1d5db',padding:'2px 4px',textAlign:'right',color:'#059669'}}>{formatPrice(inv.amountPaid)}</td>
+                    <td style={{border:'1px solid #d1d5db',padding:'2px 4px',textAlign:'right',color:'#dc2626'}}>{inv.amountDue>0?formatPrice(inv.amountDue):'—'}</td>
                   </tr>
-                </thead>
-                <tbody>
-                  {stats.invoicesList.map(inv => (
-                    <tr key={inv.number}>
-                      <td className="px-4 py-2 border border-gray-300 font-bold">{inv.number}</td>
-                      <td className="px-4 py-2 border border-gray-300 text-right font-black">{formatPrice(inv.amount)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            ) : (
-              <p className="text-center text-gray-500 text-sm font-bold mt-4">Aucune facture dans cette plage / période.</p>
-            )}
-
-            {((stats.depositsList && stats.depositsList.length > 0) || (stats.refundsList && stats.refundsList.length > 0)) && (
-              <div className="mt-12">
-                <h4 className="text-lg font-black uppercase tracking-widest text-center mb-4 border-b border-gray-200 pb-2">Détail des dépôts & remboursements inclus</h4>
-                <table className="w-full text-left border-collapse mt-4">
-                  <thead>
-                    <tr className="bg-gray-100">
-                      <th className="px-4 py-2 border border-gray-300 text-sm font-bold uppercase tracking-widest">Type / Référence</th>
-                      <th className="px-4 py-2 border border-gray-300 text-sm font-bold uppercase tracking-widest">Client / Infos</th>
-                      <th className="px-4 py-2 border border-gray-300 text-sm font-bold uppercase tracking-widest text-right">Montant</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {stats.depositsList?.map(dep => {
-                      const client = customers?.find(c => c.id === dep.customerId);
-                      return (
-                        <tr key={dep.id}>
-                          <td className="px-4 py-2 border border-gray-300 font-bold">Dépôt client - {dep.reference}</td>
-                          <td className="px-4 py-2 border border-gray-300">{client?.name || `ID Client: ${dep.customerId}`} (${dep.method})</td>
-                          <td className="px-4 py-2 border border-gray-300 text-right font-black text-emerald-600">+{formatPrice(dep.amount)}</td>
-                        </tr>
-                      );
-                    })}
-                    {stats.refundsList?.map(ref => {
-                      const client = customers?.find(c => c.id === ref.customerId);
-                      return (
-                        <tr key={ref.id}>
-                          <td className="px-4 py-2 border border-gray-300 font-bold">Remboursement - {ref.reference}</td>
-                          <td className="px-4 py-2 border border-gray-300">{client?.name || `ID Client: ${ref.customerId}`}</td>
-                          <td className="px-4 py-2 border border-gray-300 text-right font-black text-red-600">-{formatPrice(Math.abs(ref.amount))}</td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
-            <div className="mt-4 text-center text-sm font-bold text-gray-500 pt-6">
-              Plage couverte : <span className="text-black">{`${startInvoice || invoiceNumbers[0] || 'N/A'} - ${endInvoice || invoiceNumbers[invoiceNumbers.length - 1] || 'N/A'}`}</span>
-            </div>
+                ))}
+              </tbody>
+            </table>
           </div>
+        )}
+
+        {/* Détail des Dépôts & Remboursements */}
+        {((stats.depositsList && stats.depositsList.length > 0) || (stats.refundsList && stats.refundsList.length > 0)) && (
+          <div style={{marginTop:'8px'}}>
+            <div style={{fontWeight:'900',fontSize:'11px',textTransform:'uppercase',borderBottom:'1px solid #ccc',paddingBottom:'2px',marginBottom:'4px'}}>Détail des Dépôts & Remboursements Inclus</div>
+            <table style={{width:'100%',borderCollapse:'collapse',fontSize:'9px'}}>
+              <thead>
+                <tr style={{background:'#f3f4f6'}}>
+                  <th style={{border:'1px solid #d1d5db',padding:'2px 4px',textAlign:'left'}}>Type / Référence</th>
+                  <th style={{border:'1px solid #d1d5db',padding:'2px 4px',textAlign:'left'}}>Client / Infos</th>
+                  <th style={{border:'1px solid #d1d5db',padding:'2px 4px',textAlign:'right'}}>Montant</th>
+                </tr>
+              </thead>
+              <tbody>
+                {stats.depositsList?.map(dep => {
+                  const client = customers?.find(c => c.id === dep.customerId);
+                  return (
+                    <tr key={dep.id}>
+                      <td style={{border:'1px solid #d1d5db',padding:'2px 4px',fontWeight:'bold'}}>Dépôt client - {dep.reference}</td>
+                      <td style={{border:'1px solid #d1d5db',padding:'2px 4px'}}>{client?.name || `ID: ${dep.customerId}`} ({dep.method})</td>
+                      <td style={{border:'1px solid #d1d5db',padding:'2px 4px',textAlign:'right',fontWeight:'900',color:'#059669'}}>+{formatPrice(dep.amount)}</td>
+                    </tr>
+                  );
+                })}
+                {stats.refundsList?.map(ref => {
+                  const client = customers?.find(c => c.id === ref.customerId);
+                  return (
+                    <tr key={ref.id} style={{background:'#fff1f2'}}>
+                      <td style={{border:'1px solid #d1d5db',padding:'2px 4px',fontWeight:'bold'}}>Remboursement - {ref.reference}</td>
+                      <td style={{border:'1px solid #d1d5db',padding:'2px 4px'}}>{client?.name || `ID: ${ref.customerId}`} ({ref.method})</td>
+                      <td style={{border:'1px solid #d1d5db',padding:'2px 4px',textAlign:'right',fontWeight:'900',color:'#dc2626'}}>-{formatPrice(Math.abs(ref.amount))}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        <div style={{marginTop:'12px',borderTop:'1px dashed #ccc',paddingTop:'6px',display:'flex',justifyContent:'space-between',fontSize:'9px',color:'#666'}}>
+          <span>Document généré le {new Date().toLocaleString('fr-FR')}</span>
+          <span>Signature : ___________________________</span>
         </div>
       </div>
+
     </>
   );
 };

@@ -15,7 +15,8 @@ export const login = async (req, res, next) => {
       return res.status(400).json({ message: 'Veuillez fournir un nom d\'utilisateur et un mot de passe' });
     }
 
-    const user = await User.findOne({ username });
+    const normalizedUsername = (username || '').toString().trim().toLowerCase();
+    const user = await User.findOne({ username: normalizedUsername });
     if (!user || !(await user.comparePassword(password))) {
       return res.status(401).json({ message: 'Identifiants invalides' });
     }

@@ -30,7 +30,7 @@ export const getTransactions = async (req, res, next) => {
 
 export const recordDeposit = async (req, res, next) => {
   const { id } = req.params;
-  const { amount, method } = req.body;
+  const { amount, method, reference } = req.body;
   try {
     const customer = await Customer.findById(id);
     if (!customer) {
@@ -50,7 +50,7 @@ export const recordDeposit = async (req, res, next) => {
       type: 'deposit',
       amount: val,
       method: method || 'Espèces',
-      reference: `DEPOT-${Date.now().toString().slice(-6)}`,
+      reference: reference || `DEP-${Math.floor(1000 + Math.random() * 9000)}`,
       cashier: req.user.name,
       storeId: req.user.storeId
     });
@@ -63,7 +63,7 @@ export const recordDeposit = async (req, res, next) => {
 
 export const recordRefund = async (req, res, next) => {
   const { id } = req.params;
-  const { amount, method } = req.body;
+  const { amount, method, reference } = req.body;
   try {
     const customer = await Customer.findById(id);
     if (!customer) {
@@ -83,7 +83,7 @@ export const recordRefund = async (req, res, next) => {
       type: 'refund',
       amount: -val,
       method: method || 'Espèces',
-      reference: `REMBOURSEMENT-${Date.now().toString().slice(-6)}`,
+      reference: reference || `REM-${Math.floor(1000 + Math.random() * 9000)}`,
       cashier: req.user.name,
       storeId: req.user.storeId
     });

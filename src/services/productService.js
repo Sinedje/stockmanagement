@@ -27,6 +27,15 @@ export const createProduct = async (productData) => {
   return { ...productData, id: Date.now() };
 };
 
+export const importProducts = async (productsData) => {
+  if (import.meta.env.VITE_API_URL) {
+    const response = await api.post('/products/import', { products: productsData });
+    return response.data;
+  }
+  await simulateDelay();
+  return { message: "Mock import successful" };
+};
+
 export const updateProduct = async (id, updates) => {
   if (import.meta.env.VITE_API_URL) {
     const response = await api.put(`/products/${id}`, updates);
@@ -46,7 +55,9 @@ export const deleteProduct = async (id) => {
 
 export const bulkUpdateStock = async (items, entryMeta) => {
   if (import.meta.env.VITE_API_URL) {
-    const response = await api.post('/products/bulk-stock', { items, entryMeta });
+    // Map items to the format the backend expects: { id, quantity }
+    const updates = items.map(item => ({ id: item.productId, quantity: item.quantity }));
+    const response = await api.post('/products/bulk-update', { updates });
     return response.data;
   }
   await simulateDelay();

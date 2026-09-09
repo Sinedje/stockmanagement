@@ -19,6 +19,7 @@ const useCustomers = () => {
     addCustomer: storeAddCustomer,
     addCustomerDeposit: storeAddDeposit,
     refundCustomer: storeRefundCustomer,
+    nextDepositNumber,
   } = useStore();
 
   const [loading, setLoading] = useState(false);
@@ -45,13 +46,13 @@ const useCustomers = () => {
     setError(null);
     try {
       if (import.meta.env.VITE_API_URL) {
-        await apiAddDeposit(customerId, amount, method);
+        await apiAddDeposit(customerId, amount, method, nextDepositNumber);
       }
-      return storeAddDeposit(customerId, amount, method);
+      return storeAddDeposit(customerId, amount, method, nextDepositNumber);
     } catch (err) {
       setError(err.message);
     }
-  }, [storeAddDeposit]);
+  }, [storeAddDeposit, nextDepositNumber]);
 
   const refundCustomer = useCallback(async (customerId, amount) => {
     setError(null);

@@ -36,9 +36,9 @@ export const fetchCustomerTransactions = async (customerId) => {
   return null;
 };
 
-export const addDeposit = async (customerId, amount, method) => {
+export const addDeposit = async (customerId, amount, method, reference) => {
   if (import.meta.env.VITE_API_URL) {
-    const response = await api.post(`/customers/${customerId}/deposit`, { amount, method });
+    const response = await api.post(`/customers/${customerId}/deposit`, { amount, method, reference });
     return response.data;
   }
   await simulateDelay();
@@ -49,13 +49,13 @@ export const addDeposit = async (customerId, amount, method) => {
     amount,
     method,
     date: new Date().toISOString(),
-    reference: `DEP-${Date.now()}`,
+    reference: `DEP-${Math.floor(1000 + Math.random() * 9000)}`,
   };
 };
 
-export const refundCustomer = async (customerId, amount) => {
+export const refundCustomer = async (customerId, amount, reference) => {
   if (import.meta.env.VITE_API_URL) {
-    const response = await api.post(`/customers/${customerId}/refund`, { amount });
+    const response = await api.post(`/customers/${customerId}/refund`, { amount, reference });
     return response.data;
   }
   await simulateDelay();
@@ -66,6 +66,6 @@ export const refundCustomer = async (customerId, amount) => {
     amount: -amount,
     method: 'Espèces',
     date: new Date().toISOString(),
-    reference: `RMB-${Date.now()}`,
+    reference: `REM-${Math.floor(1000 + Math.random() * 9000)}`,
   };
 };

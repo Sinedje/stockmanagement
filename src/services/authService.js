@@ -12,11 +12,13 @@ import api from './api';
 // MOCK DATA  (remove this block once a real server exists)
 // ─────────────────────────────────────────────────────────────
 const MOCK_USERS = [
-  { id: 1, username: 'admin',    password: '123', name: 'Administrateur',    role: 'manager' },
-  { id: 2, username: 'compta',   password: '123', name: 'Comptable',          role: 'accountant' },
-  { id: 3, username: 'caisse1',  password: '123', name: 'Caissier 1',         role: 'cashier' },
-  { id: 4, username: 'caisse2',  password: '123', name: 'Caissier 2',         role: 'cashier' },
-  { id: 5, username: 'pdg',      password: '123', name: 'Directeur Général',  role: 'ceo' },
+  { id: 1, username: 'admin',     password: '1234', name: 'Administrateur',    role: 'ceo' },
+  { id: 2, username: 'manager',   password: '1234', name: 'Manager Principal', role: 'manager' },
+  { id: 3, username: 'caisse1',   password: '1234', name: 'Caissière Magasin 1', role: 'cashier' },
+  { id: 4, username: 'caisse2',   password: '1234', name: 'Caissière Magasin 2', role: 'cashier' },
+  { id: 5, username: 'ceo',       password: '1234', name: 'Directeur Général',  role: 'ceo' },
+  { id: 6, username: 'comptable', password: '1234', name: 'Comptable',          role: 'accountant' },
+  { id: 7, username: 'lucie',     password: '1234', name: 'Lucie',              role: 'cashier' },
 ];
 
 const simulateDelay = (ms = 300) => new Promise((r) => setTimeout(r, ms));
@@ -29,16 +31,28 @@ const simulateDelay = (ms = 300) => new Promise((r) => setTimeout(r, ms));
  * @returns {Promise<{ user: object, token: string }>}
  */
 export const loginRequest = async (username, password) => {
+  const cleanUsername = (username || '').toString().trim().toLowerCase();
+  const cleanPassword = (password || '').toString().trim();
+
   if (import.meta.env.VITE_API_URL) {
     // ── Real server call ──
-    const response = await api.post('/auth/login', { username, password });
-    return response.data; // expected: { user, token }
+    try {
+      const response = await api.post('/auth/login', { username: cleanUsername, password: cleanPassword });
+      return response.data; // expected: { user, token }
+    } catch (error) {
+      if (!error.response) {
+        const netError = new Error('Impossible de se connecter au serveur backend. Veuillez vérifier que le serveur est démarré.');
+        netError.response = { status: 503, data: { message: netError.message } };
+        throw netError;
+      }
+      throw error;
+    }
   }
 
   // ── Mock (no server yet) ──
   await simulateDelay();
   const user = MOCK_USERS.find(
-    (u) => u.username === username && u.password === password
+    (u) => u.username === cleanUsername && u.password === cleanPassword
   );
   if (!user) {
     const error = new Error('Identifiants incorrects.');
