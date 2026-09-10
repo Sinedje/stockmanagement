@@ -26,3 +26,6 @@ dist-ssr
 # Surcharges locales (clés, base de dev) — jamais commitées
 .env.local
 server/.env.local
+
+# Sortie du service worker en développement
+dev-dist

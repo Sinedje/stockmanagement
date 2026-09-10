@@ -98,6 +98,7 @@ import { ConfigProvider, theme as antTheme } from 'antd';
 import { themeConfig } from './theme';
 import { useStore } from './context/StoreContext';
 import { I18nProvider } from './i18n/I18nContext';
+import UpdatePrompt from './offline/UpdatePrompt';
 
 // Theme wrapper still uses StoreContext for the dark/light toggle
 const ThemeAppWrapper = () => {
@@ -146,6 +147,7 @@ const ThemeAppWrapper = () => {
       <I18nProvider language={language} onChangeLanguage={handleLanguageChange}>
         <Router>
           <AppRoutes />
+          <UpdatePrompt />
         </Router>
       </I18nProvider>
     </ConfigProvider>
