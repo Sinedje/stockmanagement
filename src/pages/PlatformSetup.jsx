@@ -118,8 +118,9 @@ const PlatformSetup = () => {
     return shell(
       <Panel title="Confirmez votre adresse" icon={MailOutlined}>
         <p className="text-[0.85rem] text-text-secondary leading-relaxed">
-          Un e-mail de confirmation a été envoyé à <strong>{form.email}</strong>. Validez-le,
-          puis revenez sur cette page pour terminer l'installation.
+          Un e-mail de confirmation a été envoyé à <strong>{form.email}</strong>.
+          Validez-le, puis <strong>revenez sur cette page et resaisissez les mêmes
+          identifiants</strong> : l'installation reprendra là où elle s'est arrêtée.
         </p>
         <p className="text-[0.78rem] text-text-muted mt-3">
           Pour éviter cette étape, désactivez « Confirm email » dans Authentication → Providers.

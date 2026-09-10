@@ -106,27 +106,36 @@ export const needsBootstrap = async () => {
 export const bootstrapSuperadmin = async ({ email, password, name }) => {
   const sb = requireSupabase();
 
-  const { data: signUp, error: signUpError } = await sb.auth.signUp({
-    email,
-    password,
-    options: { data: { name } },
-  });
-  if (signUpError) throw signUpError;
-
-  // Sans session, la confirmation par e-mail est activée sur le projet :
-  // le profil ne peut pas encore être créé (auth.uid() serait nul).
-  if (!signUp.session) {
-    return { pendingEmailConfirmation: true };
+  // Le compte existe peut-être déjà : c'est le cas après une confirmation
+  // d'e-mail, où l'inscription a réussi mais le profil n'a pas pu être créé
+  // faute de session. On tente donc d'abord une connexion.
+  let session = null;
+  const { data: signIn } = await sb.auth.signInWithPassword({ email, password });
+  if (signIn?.session) {
+    session = signIn.session;
+  } else {
+    const { data: signUp, error: signUpError } = await sb.auth.signUp({
+      email, password, options: { data: { name } },
+    });
+    if (signUpError) throw signUpError;
+    session = signUp.session;
   }
 
+  // Toujours pas de session : le projet exige une confirmation par e-mail.
+  // L'utilisateur reviendra sur cet écran une fois l'adresse validée, et la
+  // connexion ci-dessus prendra alors le relais.
+  if (!session) return { pendingEmailConfirmation: true };
+
   const { error: profileError } = await sb.from('profiles').insert({
-    id: signUp.user.id,
+    id: session.user.id,
     company_id: null,
     name,
     username: 'superadmin',
     role: 'superadmin',
   });
-  if (profileError) throw profileError;
+
+  // Un profil déjà présent n'est pas une erreur : l'installation est faite.
+  if (profileError && profileError.code !== '23505') throw profileError;
 
   return { pendingEmailConfirmation: false };
 };
