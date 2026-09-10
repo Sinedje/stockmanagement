@@ -45,9 +45,9 @@ const Login = () => {
 
       <form onSubmit={handleSubmit} className="login-form">
         <Input
-          label="Nom d'utilisateur"
+          label="E-mail ou nom d'utilisateur"
           icon={User}
-          placeholder="admin, manager, caisse1..."
+          placeholder="vous@exemple.com ou admin"
           value={username}
           onChange={(e) => setUsername(e.target.value)}
           required
