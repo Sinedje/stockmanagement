@@ -38,16 +38,98 @@ export const fetchCompany = async (id) => {
  * La création du compte exige la clé `service_role`, qui n'a pas sa place dans
  * le navigateur — l'appel passe donc par une Edge Function côté serveur.
  */
-export const createCompany = async ({ name, slug, activity, phones, ncc, rccm, language, admin }) => {
+/**
+ * Crée une entreprise ET son premier administrateur.
+ *
+ * Les deux vont ensemble : une entreprise sans compte d'accès est inutilisable.
+ *
+ * Deux chemins, dans cet ordre :
+ *
+ *  1. L'Edge Function `create-company`, qui détient la clé `service_role`.
+ *     C'est la voie correcte : la création du compte y est faite avec des
+ *     privilèges administrateur, sans dépendre des inscriptions publiques.
+ *
+ *  2. À défaut (fonction non déployée), un repli côté navigateur. Il n'utilise
+ *     aucune clé privilégiée : le compte est créé par une inscription normale,
+ *     depuis un client Supabase isolé pour que la session du superadmin ne soit
+ *     pas remplacée par celle du nouveau compte.
+ */
+export const createCompany = async (payload) => {
   const sb = requireSupabase();
+  const { admin, ...company } = payload;
+
   const { data, error } = await sb.functions.invoke('create-company', {
     body: {
-      company: { name, slug, activity, phones, ncc, rccm, language: language || 'fr' },
+      company,
       admin: { email: admin.email, name: admin.name, username: admin.username },
     },
   });
-  if (error) throw error;
-  return data;
+
+  if (!error) return data;
+
+  // Fonction absente : on bascule sur le repli. Toute autre erreur est réelle.
+  const notDeployed =
+    error?.context?.status === 404 || /not found|failed to send/i.test(error.message || '');
+  if (!notDeployed) throw error;
+
+  return createCompanyFromBrowser(sb, company, admin);
+};
+
+/**
+ * Repli sans Edge Function.
+ *
+ * Exige que les inscriptions publiques soient actives sur le projet, puisque
+ * le compte est créé par un signUp ordinaire. C'est précisément la raison pour
+ * laquelle l'Edge Function reste la voie recommandée.
+ */
+const createCompanyFromBrowser = async (sb, company, admin) => {
+  const { createClient } = await import('@supabase/supabase-js');
+
+  const { data: created, error: companyError } = await sb
+    .from('companies').insert(company).select().single();
+  if (companyError) throw companyError;
+
+  const rollback = async () => { await sb.from('companies').delete().eq('id', created.id); };
+
+  try {
+    // Client jetable : sans persistance ni clé de stockage partagée, la session
+    // du superadmin reste intacte pendant l'inscription du nouveau compte.
+    const throwaway = createClient(
+      import.meta.env.VITE_SUPABASE_URL,
+      import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY,
+      { auth: { persistSession: false, autoRefreshToken: false, storageKey: 'sb-temp-signup' } }
+    );
+
+    const tempPassword = `${crypto.randomUUID().slice(0, 10)}Aa1!`;
+    const { data: signUp, error: signUpError } = await throwaway.auth.signUp({
+      email: admin.email,
+      password: tempPassword,
+      options: { data: { name: admin.name } },
+    });
+    if (signUpError) throw signUpError;
+    if (!signUp?.user?.id) {
+      throw new Error(
+        "Le compte n'a pas pu être créé. Vérifiez que les inscriptions sont autorisées "
+        + '(Authentication → Providers), ou déployez la fonction create-company.'
+      );
+    }
+
+    // Le profil est inséré par le superadmin : sa politique RLS l'autorise à
+    // écrire pour n'importe quelle entreprise.
+    const { error: profileError } = await sb.from('profiles').insert({
+      id: signUp.user.id,
+      company_id: created.id,
+      name: admin.name,
+      username: admin.username || 'admin',
+      role: 'ceo',
+    });
+    if (profileError) throw profileError;
+
+    return { company: created, adminEmail: admin.email, tempPassword, viaFallback: true };
+  } catch (err) {
+    await rollback();          // pas d'entreprise orpheline si le compte échoue
+    throw err;
+  }
 };
 
 /** Suspend ou réactive. On ne supprime pas : l'historique comptable doit survivre. */

@@ -1,8 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { message, Tag } from 'antd';
-import {
-  BankOutlined, PlusOutlined, GlobalOutlined, DashboardOutlined, SettingOutlined, AppstoreOutlined,
-} from '@ant-design/icons';
+import { AppstoreOutlined, BankOutlined, CheckCircleOutlined, DashboardOutlined, GlobalOutlined, PlusOutlined, SettingOutlined } from '@ant-design/icons';
 import DashboardLayout from '../components/layouts/DashboardLayout';
 import { Toolbar, Panel, Table, SearchInput, Button } from '../components/ui';
 import CompanyWizard from '../components/superadmin/CompanyWizard';
@@ -47,6 +45,7 @@ const SuperAdminDashboard = () => {
   const [search, setSearch] = useState('');
   const [showWizard, setShowWizard] = useState(false);
   const [selected, setSelected] = useState(null);
+  const [created, setCreated] = useState(null);
   const [activeTab, setActiveTab] = useSectionRoute(SECTIONS, 'dashboard');
   const [loadError, setLoadError] = useState('');
 
@@ -68,11 +67,14 @@ const SuperAdminDashboard = () => {
     setSaving(true);
     try {
       const res = await createCompany(payload);
-      message.success(
-        res?.tempPassword
-          ? `Entreprise créée. Mot de passe provisoire : ${res.tempPassword}`
-          : 'Entreprise créée. Un e-mail d\'invitation a été envoyé.'
-      );
+      // Le mot de passe provisoire n'est affiché qu'une fois : il faut le
+      // transmettre à l'administrateur, on le laisse donc à l'écran sans délai.
+      setCreated({
+        name: payload.name,
+        email: res?.adminEmail || payload.admin.email,
+        password: res?.tempPassword,
+        viaFallback: Boolean(res?.viaFallback),
+      });
       setShowWizard(false);
       await load();
     } catch (err) {
@@ -176,6 +178,30 @@ const SuperAdminDashboard = () => {
         />
       ) : (
         <div className="animate-fade-in space-y-4">
+          {created && (
+            <Panel title={`« ${created.name} » créée`} icon={CheckCircleOutlined}>
+              <p className="text-[0.84rem] text-text-secondary">
+                Transmettez ces identifiants à l'administrateur. Le mot de passe
+                n'est affiché qu'une seule fois.
+              </p>
+              <dl className="mt-3 text-[0.84rem] space-y-1">
+                <div className="flex gap-3"><dt className="text-text-muted w-32">E-mail</dt>
+                  <dd className="font-medium text-text-heading">{created.email}</dd></div>
+                <div className="flex gap-3"><dt className="text-text-muted w-32">Mot de passe</dt>
+                  <dd className="font-mono font-semibold text-primary">{created.password || '—'}</dd></div>
+              </dl>
+              {created.viaFallback && (
+                <p className="text-[0.76rem] text-text-muted mt-3">
+                  Créée sans la fonction serveur. Déployez <code>create-company</code> pour
+                  ne plus dépendre des inscriptions publiques.
+                </p>
+              )}
+              <div className="flex justify-end mt-3">
+                <Button onClick={() => setCreated(null)}>J'ai noté</Button>
+              </div>
+            </Panel>
+          )}
+
           <Toolbar right={<Button type="primary" icon={<PlusOutlined />} onClick={() => setShowWizard(true)}>Nouvelle entreprise</Button>}>
             <SearchInput value={search} onChange={setSearch} placeholder="Rechercher une entreprise…" width={260} />
             <span className="text-[0.72rem] text-text-muted tabular-nums pl-1">{filtered.length} entreprises</span>
