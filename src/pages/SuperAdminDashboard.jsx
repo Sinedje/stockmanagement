@@ -152,7 +152,7 @@ const SuperAdminDashboard = () => {
       {!isSupabaseConfigured ? (
         <Panel title="Supabase non configuré" icon={GlobalOutlined}>
           <p className="text-[0.82rem] text-text-secondary leading-relaxed">
-            Renseignez <code>VITE_SUPABASE_URL</code> et <code>VITE_SUPABASE_ANON_KEY</code> dans
+            Renseignez <code>VITE_SUPABASE_URL</code> et <code>VITE_SUPABASE_PUBLISHABLE_KEY</code> dans
             votre fichier <code>.env</code>, puis appliquez les migrations SQL du dossier{' '}
             <code>supabase/migrations</code>.
           </p>
