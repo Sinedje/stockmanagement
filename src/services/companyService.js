@@ -139,3 +139,58 @@ export const bootstrapSuperadmin = async ({ email, password, name }) => {
 
   return { pendingEmailConfirmation: false };
 };
+
+/** Réglages de la plateforme (ligne unique) : valeurs par défaut des nouvelles entreprises. */
+export const fetchPlatformSettings = async () => {
+  const sb = requireSupabase();
+  const { data, error } = await sb.from('platform_settings').select('*').limit(1).single();
+  if (error) throw error;
+  return data;
+};
+
+export const updatePlatformSettings = async (patch) => {
+  const sb = requireSupabase();
+  const { data: current } = await sb.from('platform_settings').select('id').limit(1).single();
+  const { data, error } = await sb
+    .from('platform_settings').update(patch).eq('id', current.id).select().single();
+  if (error) throw error;
+  return data;
+};
+
+/** Active ou coupe une fonctionnalité pour une entreprise donnée. */
+export const setCompanyFeatures = async (companyId, features) => {
+  const sb = requireSupabase();
+  const { data, error } = await sb
+    .from('companies').update({ features }).eq('id', companyId).select().single();
+  if (error) throw error;
+  return data;
+};
+
+/** Profil de l'utilisateur connecté (nom, identifiant). */
+export const updateMyProfile = async ({ name, username }) => {
+  const sb = requireSupabase();
+  const { data: { user } } = await sb.auth.getUser();
+  const { data, error } = await sb
+    .from('profiles').update({ name, username }).eq('id', user.id).select().single();
+  if (error) throw error;
+  return data;
+};
+
+/**
+ * Change l'adresse de connexion.
+ *
+ * Supabase envoie un lien de confirmation à la NOUVELLE adresse : le
+ * changement n'est effectif qu'une fois ce lien suivi. On ne peut donc pas
+ * annoncer un succès immédiat.
+ */
+export const updateMyEmail = async (email) => {
+  const sb = requireSupabase();
+  const { error } = await sb.auth.updateUser({ email: email.trim() });
+  if (error) throw error;
+};
+
+export const updateMyPassword = async (password) => {
+  const sb = requireSupabase();
+  const { error } = await sb.auth.updateUser({ password });
+  if (error) throw error;
+};

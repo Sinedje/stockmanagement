@@ -1,6 +1,8 @@
 import { useT } from '../../i18n/I18nContext';
 import React, { useState } from 'react';
 import Sidebar from '../common/Sidebar';
+import { useCompanyBranding } from '../../hooks';
+import { disabledSections } from '../../config/features';
 import { useAuth } from '../../context/AuthContext';
 import { LogoutOutlined, MenuOutlined, UserOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
@@ -17,6 +19,19 @@ const DashboardLayout = ({
 }) => {
   const t = useT();
   const { currentUser, logout } = useAuth();
+  const { features } = useCompanyBranding();
+
+  // Un module coupé pour cette entreprise retire ses entrées du menu. Les
+  // données restent en base : réactiver le module les rend simplement visibles.
+  const visibleItems = React.useMemo(() => {
+    const hidden = disabledSections(features);
+    if (!hidden.length) return items;
+    return (items || [])
+      .map(node => node.children
+        ? { ...node, children: node.children.filter(c => !hidden.includes(c.id)) }
+        : node)
+      .filter(node => (node.children ? node.children.length > 0 : !hidden.includes(node.id)));
+  }, [items, features]);
   const navigate = useNavigate();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
@@ -36,7 +51,7 @@ const DashboardLayout = ({
       {/* Fixed Sidebar */}
       {showSidebar && (
         <Sidebar
-          items={items}
+          items={visibleItems}
           activeItem={activeItem}
           onItemClick={onItemClick}
           isOpen={mobileNavOpen}

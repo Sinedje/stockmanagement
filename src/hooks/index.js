@@ -8,3 +8,4 @@ export { default as useSettings } from './useSettings';
 export { default as useBreakages } from './useBreakages';
 export { default as useTheme } from './useTheme';
 export { default as usePagination, DEFAULT_PAGE_SIZE } from './usePagination';
+export { default as useCompanyBranding } from './useCompanyBranding';

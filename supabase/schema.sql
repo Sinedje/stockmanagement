@@ -1,10 +1,9 @@
 -- ===========================================================================
---  Stock Expert — schéma multi-entreprises (à exécuter dans le SQL Editor)
---
---  0001 socle · 0002 tables métier · 0003 RLS · 0004 amorçage
+--  Stock Expert — schéma multi-entreprises (SQL Editor)
+--  0001 socle · 0002 métier · 0003 RLS · 0004 amorçage · 0005 modules
 -- ===========================================================================
 
--- ─── 0001_tenancy.sql ───────────────────────────────────────────
+-- ─── 0001_tenancy.sql ───────────────────────────────
 -- ============================================================================
 --  0001 — Socle multi-entreprises
 --
@@ -126,7 +125,7 @@ create trigger profiles_touch before update on public.profiles
   for each row execute function public.touch_updated_at();
 
 
--- ─── 0002_business.sql ───────────────────────────────────────────
+-- ─── 0002_business.sql ───────────────────────────────
 -- ============================================================================
 --  0002 — Tables métier
 --
@@ -407,7 +406,7 @@ create trigger customers_touch before update on public.customers for each row ex
 create trigger sales_touch     before update on public.sales     for each row execute function public.touch_updated_at();
 
 
--- ─── 0003_rls.sql ───────────────────────────────────────────
+-- ─── 0003_rls.sql ───────────────────────────────
 -- ============================================================================
 --  0003 — Row Level Security
 --
@@ -528,7 +527,7 @@ end;
 $$;
 
 
--- ─── 0004_bootstrap.sql ───────────────────────────────────────────
+-- ─── 0004_bootstrap.sql ───────────────────────────────
 -- ===========================================================================
 --  0004 — Amorçage du premier superadmin depuis l'application
 --
@@ -566,5 +565,49 @@ create policy profiles_bootstrap_first_superadmin on public.profiles
     -- Dès qu'un superadmin existe, cette politique ne peut plus être satisfaite.
     and not exists (select 1 from public.profiles p where p.role = 'superadmin')
   );
+
+
+-- ─── 0005_features.sql ───────────────────────────────
+-- ===========================================================================
+--  0005 — Fonctionnalités activables et identité visuelle par entreprise
+--
+--  `features` est un objet JSON plutôt qu'une colonne par module : ajouter une
+--  fonctionnalité ne doit pas imposer une migration de schéma. Une clé absente
+--  vaut « activée », pour que les entreprises existantes ne perdent rien au
+--  moment où un nouveau module apparaît.
+-- ===========================================================================
+
+alter table public.companies
+  add column if not exists features jsonb not null default '{}'::jsonb,
+  add column if not exists logo_url text;
+
+comment on column public.companies.features is
+  'Modules activés. Clé absente = activé. Ex : {"transfers": false}';
+
+-- Réglages de la plateforme (une seule ligne) : valeurs par défaut appliquées
+-- aux entreprises créées ensuite.
+create table if not exists public.platform_settings (
+  id                uuid primary key default gen_random_uuid(),
+  singleton         boolean not null default true unique,  -- garantit une ligne unique
+  default_features  jsonb not null default '{}'::jsonb,
+  updated_at        timestamptz not null default now(),
+  constraint platform_settings_single check (singleton)
+);
+
+insert into public.platform_settings (default_features)
+select '{}'::jsonb
+where not exists (select 1 from public.platform_settings);
+
+alter table public.platform_settings enable row level security;
+
+-- Seul l'exploitant y touche ; tout le monde peut lire les valeurs par défaut.
+create policy platform_settings_superadmin on public.platform_settings
+  for all using (public.is_superadmin()) with check (public.is_superadmin());
+
+create policy platform_settings_read on public.platform_settings
+  for select to authenticated using (true);
+
+create trigger platform_settings_touch before update on public.platform_settings
+  for each row execute function public.touch_updated_at();
 
 

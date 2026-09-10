@@ -1,20 +1,40 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { message, Tag, Popconfirm } from 'antd';
 import {
-  BankOutlined, PlusOutlined, ShopOutlined, TeamOutlined,
-  StopOutlined, CheckCircleOutlined, GlobalOutlined,
+  BankOutlined, PlusOutlined, StopOutlined, CheckCircleOutlined,
+  GlobalOutlined, DashboardOutlined, SettingOutlined, AppstoreOutlined,
 } from '@ant-design/icons';
 import DashboardLayout from '../components/layouts/DashboardLayout';
-import { Toolbar, Panel, Table, SearchInput, Button, StatsCard } from '../components/ui';
+import { Toolbar, Panel, Table, SearchInput, Button } from '../components/ui';
 import CompanyFormModal from '../components/superadmin/CompanyFormModal';
+import CompanyFeaturesModal from '../components/superadmin/CompanyFeaturesModal';
+import PlatformOverview from '../components/superadmin/PlatformOverview';
+import PlatformSettingsPanel from '../components/superadmin/PlatformSettingsPanel';
+import { useSectionRoute } from '../routes/sections';
 import { isSupabaseConfigured } from '../lib/supabase';
 import {
   fetchCompanies, createCompany, setCompanyStatus,
 } from '../services/companyService';
 
 const sidebarItems = [
+  { id: 'dashboard', label: 'Tableau de bord', icon: DashboardOutlined },
   { id: 'companies', label: 'Entreprises', icon: BankOutlined },
+  { id: 'settings',  label: 'Paramètres', icon: SettingOutlined },
 ];
+
+const SECTIONS = sidebarItems.map(i => i.id);
+
+const TITLES = {
+  dashboard: 'Tableau de bord',
+  companies: 'Entreprises',
+  settings: 'Paramètres de la plateforme',
+};
+
+const SUBTITLES = {
+  dashboard: "Vue d'ensemble du parc",
+  companies: 'Créez et supervisez les entreprises clientes',
+  settings: 'Modules par défaut et votre compte',
+};
 
 /**
  * Console de l'exploitant de la plateforme.
@@ -29,6 +49,8 @@ const SuperAdminDashboard = () => {
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState('');
   const [showForm, setShowForm] = useState(false);
+  const [featuresFor, setFeaturesFor] = useState(null);
+  const [activeTab, setActiveTab] = useSectionRoute(SECTIONS, 'dashboard');
   const [loadError, setLoadError] = useState('');
 
   const load = useCallback(async () => {
@@ -82,12 +104,6 @@ const SuperAdminDashboard = () => {
     );
   }, [companies, search]);
 
-  const totals = useMemo(() => ({
-    companies: companies.length,
-    active: companies.filter(c => c.status === 'active').length,
-    stores: companies.reduce((s, c) => s + c.storeCount, 0),
-    members: companies.reduce((s, c) => s + c.memberCount, 0),
-  }), [companies]);
 
   const columns = [
     {
@@ -121,6 +137,17 @@ const SuperAdminDashboard = () => {
       ),
     },
     {
+      key: 'features', title: 'Modules', align: 'right',
+      render: (v, row) => {
+        const off = Object.values(v || {}).filter(x => x === false).length;
+        return (
+          <Button icon={<AppstoreOutlined />} onClick={() => setFeaturesFor(row)}>
+            {off ? `${off} coupé${off > 1 ? 's' : ''}` : 'Tous'}
+          </Button>
+        );
+      },
+    },
+    {
       key: 'id', title: 'Action', align: 'right',
       render: (_v, row) => (
         <Popconfirm
@@ -144,10 +171,10 @@ const SuperAdminDashboard = () => {
   return (
     <DashboardLayout
       items={sidebarItems}
-      activeItem="companies"
-      onItemClick={() => {}}
-      title="Administration de la plateforme"
-      subtitle="Créez et supervisez les entreprises clientes"
+      activeItem={activeTab}
+      onItemClick={setActiveTab}
+      title={TITLES[activeTab]}
+      subtitle={SUBTITLES[activeTab]}
     >
       {!isSupabaseConfigured ? (
         <Panel title="Supabase non configuré" icon={GlobalOutlined}>
@@ -157,15 +184,16 @@ const SuperAdminDashboard = () => {
             <code>supabase/migrations</code>.
           </p>
         </Panel>
+      ) : activeTab === 'dashboard' ? (
+        <PlatformOverview
+          companies={companies}
+          loading={loading}
+          onGoToCompanies={() => setActiveTab('companies')}
+        />
+      ) : activeTab === 'settings' ? (
+        <PlatformSettingsPanel />
       ) : (
         <div className="animate-fade-in space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            <StatsCard icon={BankOutlined} label="Entreprises" value={totals.companies} accentColor="#6366f1" />
-            <StatsCard icon={CheckCircleOutlined} label="Actives" value={totals.active} accentColor="#10b981" />
-            <StatsCard icon={ShopOutlined} label="Magasins" value={totals.stores} accentColor="#3b82f6" />
-            <StatsCard icon={TeamOutlined} label="Membres" value={totals.members} accentColor="#8b5cf6" />
-          </div>
-
           <Toolbar right={<Button type="primary" icon={<PlusOutlined />} onClick={() => setShowForm(true)}>Nouvelle entreprise</Button>}>
             <SearchInput value={search} onChange={setSearch} placeholder="Rechercher une entreprise…" width={260} />
             <span className="text-[0.72rem] text-text-muted tabular-nums pl-1">{filtered.length} entreprises</span>
@@ -193,6 +221,14 @@ const SuperAdminDashboard = () => {
 
       {showForm && (
         <CompanyFormModal onClose={() => setShowForm(false)} onSubmit={handleCreate} saving={saving} />
+      )}
+
+      {featuresFor && (
+        <CompanyFeaturesModal
+          company={featuresFor}
+          onClose={() => setFeaturesFor(null)}
+          onSaved={load}
+        />
       )}
     </DashboardLayout>
   );

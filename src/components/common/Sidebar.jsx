@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { useStores, useTheme, useSettings } from '../../hooks';
+import { useStores, useTheme, useCompanyBranding } from '../../hooks';
 import { useT } from '../../i18n/I18nContext';
 import { useNavigate } from 'react-router-dom';
 import { Tooltip } from 'antd';
@@ -132,7 +132,7 @@ const NavGroup = ({ group, activeItem, onItemClick, isExpanded, onToggle, collap
 const Sidebar = ({ items, activeItem, onItemClick, isOpen = false, onClose }) => {
   const { currentUser, logout } = useAuth();
   const { activeStore, stores, switchStore } = useStores();
-  const { companySettings } = useSettings();
+  const branding = useCompanyBranding();
   const { theme, toggleTheme } = useTheme();
   const t = useT();
   const navigate = useNavigate();
@@ -152,10 +152,6 @@ const Sidebar = ({ items, activeItem, onItemClick, isOpen = false, onClose }) =>
 
   const [storePickerOpen, setStorePickerOpen] = useState(false);
 
-  const groupOfActive = useMemo(
-    () => items.find(n => isGroup(n) && n.children.some(c => c.id === activeItem))?.id ?? null,
-    [items, activeItem]
-  );
   const [overrides, setOverrides] = useState({});
   // Ouverts par défaut : aucune entrée de navigation n'est masquée au premier
   // regard. `overrides` ne retient que ce que l'utilisateur a refermé lui-même.
@@ -191,15 +187,25 @@ const Sidebar = ({ items, activeItem, onItemClick, isOpen = false, onClose }) =>
             La bascule vit ici plutôt qu'en pied de barre : c'est là qu'on la cherche. */}
         <div className="px-3 pt-4 pb-3 shrink-0">
           <div className={`flex items-center gap-2.5 ${collapsed ? 'flex-col' : ''}`}>
-            <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-primary to-primary-dark text-white flex items-center justify-center shadow-md shadow-primary/25 shrink-0">
-              <AppstoreOutlined style={{ fontSize: 17 }} />
-            </div>
+            {branding.logoUrl ? (
+              <img src={branding.logoUrl} alt={branding.name}
+                   className="w-9 h-9 rounded-lg object-cover shrink-0 border border-black/5 dark:border-white/10" />
+            ) : (
+              <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-primary to-primary-dark text-white flex items-center justify-center shadow-md shadow-primary/25 shrink-0">
+                <AppstoreOutlined style={{ fontSize: 17 }} />
+              </div>
+            )}
 
             <div className="sidebar-label flex flex-col justify-center min-w-0 flex-1">
-              <span className="text-text-heading text-[0.82rem] font-bold tracking-tight leading-tight truncate" title={companySettings?.name}>
-                {companySettings?.name || 'STOCK EXPERT'}
+              {/* Identité résolue par useCompanyBranding : l'entreprise du compte,
+                  ou le nom du produit pour le superadmin qui n'en a aucune. */}
+              <span className="text-text-heading text-[0.82rem] font-bold tracking-tight leading-tight truncate"
+                    title={branding.name}>
+                {branding.name}
               </span>
-              <span className="text-primary text-[0.58rem] font-semibold tracking-[0.18em] opacity-80 truncate">{t('s.stock_expert')}</span>
+              <span className="text-primary text-[0.58rem] font-semibold tracking-[0.18em] opacity-80 truncate">
+                {branding.tagline}
+              </span>
             </div>
 
             <Tooltip title={collapsed ? t('sidebar.expand') : t('sidebar.collapse')} placement="right">
