@@ -163,3 +163,34 @@ export const fetchCurrentUser = async () => {
   const raw = localStorage.getItem('auth_user');
   return raw ? JSON.parse(raw) : null;
 };
+
+/**
+ * Envoie un e-mail de réinitialisation (Supabase uniquement).
+ *
+ * Supabase répond volontairement de la même façon que l'adresse existe ou non,
+ * pour ne pas révéler quels comptes sont enregistrés. On ne peut donc pas
+ * confirmer l'envoi — seulement dire qu'il a été demandé.
+ */
+export const requestPasswordReset = async (email) => {
+  if (!isSupabaseConfigured) {
+    throw new Error("La réinitialisation n'est disponible qu'avec Supabase.");
+  }
+  const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+    redirectTo: `${window.location.origin}/reset-password`,
+  });
+  if (error) throw error;
+};
+
+/**
+ * Définit le nouveau mot de passe.
+ *
+ * À n'appeler qu'après avoir suivi le lien reçu par e-mail : Supabase place
+ * alors une session de récupération, seule autorisée à changer le mot de passe.
+ */
+export const updatePassword = async (password) => {
+  if (!isSupabaseConfigured) {
+    throw new Error("La réinitialisation n'est disponible qu'avec Supabase.");
+  }
+  const { error } = await supabase.auth.updateUser({ password });
+  if (error) throw error;
+};

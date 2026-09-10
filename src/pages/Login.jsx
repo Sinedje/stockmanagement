@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Lock, User } from 'lucide-react';
 import Input from '../components/common/Input';
 import AuthLayout from '../components/layouts/AuthLayout';
+import { isSupabaseConfigured } from '../lib/supabase';
 import { Button, Alert } from 'antd';
 
 const Login = () => {
@@ -73,6 +74,21 @@ const Login = () => {
         >
           Se Connecter
         </Button>
+
+        {/* Sans ce lien, un mot de passe perdu enfermerait dehors le seul
+            superadmin : /setup se ferme définitivement après l'installation. */}
+        {isSupabaseConfigured && (
+          <div style={{ textAlign: 'center', marginTop: '4px' }}>
+            <button
+              type="button"
+              onClick={() => navigate('/reset-password')}
+              style={{ background: 'none', border: 'none', cursor: 'pointer',
+                       font: 'inherit', fontSize: '13px', color: 'var(--color-primary)' }}
+            >
+              Mot de passe oublié ?
+            </button>
+          </div>
+        )}
 
         <div style={{ marginTop: '16px', fontSize: '12px', color: '#6b7280', textAlign: 'center' }}>
           💡 <strong>Comptes par défaut :</strong> <code>admin</code>, <code>manager</code>, <code>caisse1</code>, <code>comptable</code> (Mot de passe: <code>1234</code>)

@@ -11,6 +11,7 @@ import StorekeeperDashboard from './pages/StorekeeperDashboard';
 import CEODashboard from './pages/CEODashboard';
 import SuperAdminDashboard from './pages/SuperAdminDashboard';
 import PlatformSetup from './pages/PlatformSetup';
+import ResetPassword from './pages/ResetPassword';
 import { DEFAULT_SECTION } from './routes/sections';
 
 // ── Protected Route — uses AuthContext ────────────────────────
@@ -60,6 +61,9 @@ const AppRoutes = () => {
     <Routes>
       {/* Installation initiale — accessible sans compte, et seulement tant
           qu'aucun superadmin n'existe (la base en décide, pas le client). */}
+      {/* Récupération de compte — accessible sans être connecté. */}
+      <Route path="/reset-password" element={<ResetPassword />} />
+
       <Route path="/setup" element={<PlatformSetup />} />
 
       <Route path="/login" element={!currentUser ? <Login /> : <Navigate to={home} replace />} />
