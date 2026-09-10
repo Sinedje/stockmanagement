@@ -5,6 +5,7 @@
  */
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { loginRequest, logoutRequest, fetchCurrentUser } from '../services/authService';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
 
 const AuthContext = createContext(null);
 
@@ -37,7 +38,16 @@ export const AuthProvider = ({ children }) => {
 
   // ── Listen for 401 events emitted by the Axios interceptor ───
   useEffect(() => {
-    const handle = () => setCurrentUser(null);
+    // Ce 401 vient de l'API MongoDB historique. Un compte Supabase n'y a pas
+    // de session : ses appels y sont donc légitimement refusés, et cela ne
+    // doit surtout pas le déconnecter de Supabase.
+    const handle = async () => {
+      if (isSupabaseConfigured) {
+        const { data } = await supabase.auth.getSession();
+        if (data?.session) return;
+      }
+      setCurrentUser(null);
+    };
     window.addEventListener('auth:unauthorized', handle);
     return () => window.removeEventListener('auth:unauthorized', handle);
   }, []);

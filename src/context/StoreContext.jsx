@@ -85,6 +85,13 @@ export const StoreProvider = ({ children }) => {
   // Fetch initial data from server if currentUser is set (authenticated)
   React.useEffect(() => {
     if (!currentUser) { loadedForUserRef.current = null; return; }
+
+    // Le superadmin administre le parc d'entreprises : il n'a ni magasin, ni
+    // produit, ni caisse. Ses données vivent dans Supabase, pas dans l'API
+    // historique — dont les appels échoueraient de toute façon, son jeton
+    // n'étant pas reconnu par celle-ci.
+    if (currentUser.role === 'superadmin') { loadedForUserRef.current = currentUser.id; return; }
+
     if (loadedForUserRef.current === currentUser.id) return;
     loadedForUserRef.current = currentUser.id;
 
