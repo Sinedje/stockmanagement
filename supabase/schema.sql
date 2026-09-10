@@ -1,12 +1,10 @@
 -- ===========================================================================
 --  Stock Expert — schéma multi-entreprises (à exécuter dans le SQL Editor)
 --
---  Contenu : 0001 socle multi-entreprises, 0002 tables métier, 0003 RLS.
---  Idempotent : une seconde exécution échouera proprement sur les objets
---  déjà créés, sans rien détruire.
+--  0001 socle · 0002 tables métier · 0003 RLS · 0004 amorçage
 -- ===========================================================================
 
--- ─── 0001_tenancy.sql ───────────────────────────────────────────────
+-- ─── 0001_tenancy.sql ───────────────────────────────────────────
 -- ============================================================================
 --  0001 — Socle multi-entreprises
 --
@@ -128,7 +126,7 @@ create trigger profiles_touch before update on public.profiles
   for each row execute function public.touch_updated_at();
 
 
--- ─── 0002_business.sql ───────────────────────────────────────────────
+-- ─── 0002_business.sql ───────────────────────────────────────────
 -- ============================================================================
 --  0002 — Tables métier
 --
@@ -409,7 +407,7 @@ create trigger customers_touch before update on public.customers for each row ex
 create trigger sales_touch     before update on public.sales     for each row execute function public.touch_updated_at();
 
 
--- ─── 0003_rls.sql ───────────────────────────────────────────────
+-- ─── 0003_rls.sql ───────────────────────────────────────────
 -- ============================================================================
 --  0003 — Row Level Security
 --
@@ -528,5 +526,45 @@ begin
   end loop;
 end;
 $$;
+
+
+-- ─── 0004_bootstrap.sql ───────────────────────────────────────────
+-- ===========================================================================
+--  0004 — Amorçage du premier superadmin depuis l'application
+--
+--  Sans cela, l'initialisation obligeait à passer par le SQL Editor : la
+--  politique d'écriture sur `profiles` est réservée au superadmin, qui n'existe
+--  pas encore. On ouvre donc une porte unique, qui se referme d'elle-même dès
+--  qu'un superadmin existe — la condition est évaluée par PostgreSQL à chaque
+--  insertion, elle ne dépend pas du code client.
+-- ===========================================================================
+
+-- Indique à l'écran d'installation s'il reste quelque chose à faire.
+-- Ne divulgue qu'un booléen : ni compte, ni adresse, ni entreprise.
+create or replace function public.needs_bootstrap()
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select not exists (select 1 from public.profiles where role = 'superadmin')
+$$;
+
+grant execute on function public.needs_bootstrap() to anon, authenticated;
+
+-- Une seule auto-inscription possible, et uniquement pour soi-même.
+create policy profiles_bootstrap_first_superadmin on public.profiles
+  for insert
+  to authenticated
+  with check (
+    role = 'superadmin'
+    and company_id is null
+    -- On ne peut créer que SON propre profil : impossible d'en fabriquer un
+    -- pour quelqu'un d'autre.
+    and id = auth.uid()
+    -- Dès qu'un superadmin existe, cette politique ne peut plus être satisfaite.
+    and not exists (select 1 from public.profiles p where p.role = 'superadmin')
+  );
 
 

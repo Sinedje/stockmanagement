@@ -10,6 +10,7 @@ import AccountantDashboard from './pages/AccountantDashboard';
 import StorekeeperDashboard from './pages/StorekeeperDashboard';
 import CEODashboard from './pages/CEODashboard';
 import SuperAdminDashboard from './pages/SuperAdminDashboard';
+import PlatformSetup from './pages/PlatformSetup';
 import { DEFAULT_SECTION } from './routes/sections';
 
 // ── Protected Route — uses AuthContext ────────────────────────
@@ -57,6 +58,10 @@ const AppRoutes = () => {
 
   return (
     <Routes>
+      {/* Installation initiale — accessible sans compte, et seulement tant
+          qu'aucun superadmin n'existe (la base en décide, pas le client). */}
+      <Route path="/setup" element={<PlatformSetup />} />
+
       <Route path="/login" element={!currentUser ? <Login /> : <Navigate to={home} replace />} />
 
       {/* « / » renvoie vers la section d'accueil du rôle. */}

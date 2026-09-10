@@ -81,3 +81,52 @@ export const fetchCompanyMembers = async (companyId) => {
   if (error) throw error;
   return data || [];
 };
+
+/**
+ * Reste-t-il un superadmin à créer ?
+ *
+ * Fonction SQL `security definer` : elle ne renvoie qu'un booléen, sans
+ * exposer le moindre compte. Utilisée par l'écran d'installation.
+ */
+export const needsBootstrap = async () => {
+  const sb = requireSupabase();
+  const { data, error } = await sb.rpc('needs_bootstrap');
+  if (error) throw error;
+  return Boolean(data);
+};
+
+/**
+ * Crée le tout premier superadmin depuis l'application.
+ *
+ * L'autorisation n'est pas décidée ici : la politique RLS
+ * `profiles_bootstrap_first_superadmin` n'accepte cette insertion que tant
+ * qu'aucun superadmin n'existe. Un second appel échouera côté base, même si
+ * quelqu'un contournait cet écran.
+ */
+export const bootstrapSuperadmin = async ({ email, password, name }) => {
+  const sb = requireSupabase();
+
+  const { data: signUp, error: signUpError } = await sb.auth.signUp({
+    email,
+    password,
+    options: { data: { name } },
+  });
+  if (signUpError) throw signUpError;
+
+  // Sans session, la confirmation par e-mail est activée sur le projet :
+  // le profil ne peut pas encore être créé (auth.uid() serait nul).
+  if (!signUp.session) {
+    return { pendingEmailConfirmation: true };
+  }
+
+  const { error: profileError } = await sb.from('profiles').insert({
+    id: signUp.user.id,
+    company_id: null,
+    name,
+    username: 'superadmin',
+    role: 'superadmin',
+  });
+  if (profileError) throw profileError;
+
+  return { pendingEmailConfirmation: false };
+};
