@@ -1,5 +1,5 @@
 import { useSectionRoute } from '../routes/sections';
-import React, { useState } from 'react';
+import React from 'react';
 import DashboardLayout from '../components/layouts/DashboardLayout';
 import { useT } from '../i18n/I18nContext';
 import FinancialSummary from '../components/accountant/FinancialSummary';

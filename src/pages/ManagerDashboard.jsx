@@ -1,5 +1,5 @@
 import { useSectionRoute } from '../routes/sections';
-import React, { useState } from 'react';
+import React from 'react';
 import DashboardLayout from '../components/layouts/DashboardLayout';
 import DashboardHome from '../components/manager/DashboardHome';
 import CEODashboardHome from '../components/ceo/DashboardHome';
