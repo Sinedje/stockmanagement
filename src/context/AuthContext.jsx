@@ -27,8 +27,24 @@ export const AuthProvider = ({ children }) => {
       try {
         const user = await fetchCurrentUser();
         if (user) setCurrentUser(user);
-      } catch (_) {
-        // Token may be expired — just stay logged out
+      } catch (err) {
+        // Distinguer un refus d'un serveur injoignable. Un 401 signifie que la
+        // session n'est plus valable : il faut se déconnecter. Une panne réseau
+        // ne dit rien de la session — déconnecter dans ce cas empêche la caisse
+        // de fonctionner pendant une coupure, alors que tout est en cache.
+        const status = err?.response?.status;
+        const unreachable = !status || status >= 500;
+
+        if (unreachable) {
+          try {
+            const cached = JSON.parse(localStorage.getItem('auth_user') || 'null');
+            if (cached) {
+              console.warn('Serveur injoignable : session restaurée depuis ce poste.');
+              setCurrentUser(cached);
+            }
+          } catch { /* rien de exploitable en local */ }
+        }
+        // Session refusée (401/403) : on reste déconnecté.
       } finally {
         setAuthLoading(false);
       }

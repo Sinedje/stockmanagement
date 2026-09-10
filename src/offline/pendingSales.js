@@ -18,7 +18,7 @@
 
 const DB_NAME = 'stock-expert-offline';
 const STORE = 'pending-sales';
-const VERSION = 1;
+const VERSION = 2;   // v2 ajoute le magasin « reference-cache »
 
 const openDb = () => new Promise((resolve, reject) => {
   const req = indexedDB.open(DB_NAME, VERSION);
@@ -26,6 +26,11 @@ const openDb = () => new Promise((resolve, reject) => {
     const db = req.result;
     if (!db.objectStoreNames.contains(STORE)) {
       db.createObjectStore(STORE, { keyPath: 'queueId' });
+    }
+    // Déclaré ici aussi : les deux modules ouvrent la même base, et seule la
+    // première ouverture déclenche la mise à niveau du schéma.
+    if (!db.objectStoreNames.contains('reference-cache')) {
+      db.createObjectStore('reference-cache', { keyPath: 'key' });
     }
   };
   req.onsuccess = () => resolve(req.result);

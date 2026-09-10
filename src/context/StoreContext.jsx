@@ -11,6 +11,7 @@ import { fetchCustomerTransactions } from '../services/customerService';
 import { fetchBreakages } from '../services/breakageService';
 import { fetchRepackagings } from '../services/breakageService';
 import { fetchCompanySettings, updateCompanySettings as apiUpdateCompanySettings } from '../services/settingsService';
+import { putCache, getCache } from '../offline/cache';
 import { fetchExpenses, fetchVersements, fetchCashReports } from '../services/saleService';
 
 const StoreContext = createContext();
@@ -48,6 +49,9 @@ export const StoreProvider = ({ children }) => {
   const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'light');
 
   // Paramètres globaux de l'entreprise
+  // Vrai lorsque l'écran s'appuie sur le cache local plutôt que sur le serveur.
+  const [usingCachedData, setUsingCachedData] = useState(false);
+
   const [companySettings, setCompanySettings] = useState({
     name: 'FEU FLAMENCO',
     activity: 'VENTE DE MATERIELS SECURITE INCENDIE ET ACCESSOIRES',
@@ -133,7 +137,37 @@ export const StoreProvider = ({ children }) => {
         sources.map(([, run], i) => (needed[i] ? run() : Promise.resolve(null)))
       );
 
-      const get = (i) => (needed[i] && results[i].status === 'fulfilled' ? results[i].value : null);
+      // Ce que le serveur a réellement renvoyé.
+      const fresh = (i) => (needed[i] && results[i].status === 'fulfilled' ? results[i].value : null);
+
+      // Le catalogue et les magasins sont conservés localement : une caisse qui
+      // démarre sans réseau doit pouvoir afficher ce qu'elle vend. On n'écrit
+      // que des réponses effectivement reçues, jamais un repli.
+      sources.forEach(([key], i) => {
+        const value = fresh(i);
+        if (value) putCache(key, value);
+      });
+
+      // Repli : pour les données de référence uniquement. Les ventes, dépenses
+      // et bilans ne sont pas mis en cache — mieux vaut une liste vide qu'un
+      // historique périmé présenté comme à jour.
+      const cached = Object.fromEntries(await Promise.all(
+        sources.map(async ([key], i) => {
+          if (fresh(i) || !needed[i]) return [key, null];
+          const hit = await getCache(key);
+          return [key, hit?.value ?? null];
+        })
+      ));
+
+      const get = (i) => fresh(i) ?? cached[sources[i][0]] ?? null;
+
+      const servedFromCache = sources.some(([key], i) => needed[i] && !fresh(i) && cached[key]);
+      if (servedFromCache) {
+        console.warn('Serveur injoignable : catalogue et magasins restitués depuis le cache local.');
+        setUsingCachedData(true);
+      } else {
+        setUsingCachedData(false);
+      }
       const storesData = get(0);
       if (storesData) {
         const stores = norm(storesData);
@@ -1254,6 +1288,7 @@ export const StoreProvider = ({ children }) => {
     repackagings, createRepackaging,
     // Company Settings
     companySettings, updateCompanySettings,
+    usingCachedData,
     // Theme Settings
     theme, toggleTheme
   };

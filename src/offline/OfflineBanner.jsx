@@ -1,6 +1,8 @@
 import React from 'react';
 import { CloudSyncOutlined, DisconnectOutlined, SyncOutlined } from '@ant-design/icons';
 import { useOfflineQueue } from './useOfflineQueue';
+import { useStore } from '../context/StoreContext';
+import { cacheAge } from './cache';
 
 /**
  * Bandeau d'état de la file.
@@ -12,10 +14,17 @@ import { useOfflineQueue } from './useOfflineQueue';
  */
 const OfflineBanner = () => {
   const { pending, flushing, online, flush } = useOfflineQueue();
+  const { usingCachedData } = useStore();
+  const [savedAt, setSavedAt] = React.useState(null);
 
-  if (online && pending === 0) return null;
+  React.useEffect(() => {
+    if (usingCachedData) cacheAge().then(setSavedAt);
+  }, [usingCachedData]);
 
-  const tone = !online
+  // Rien à signaler : pas de bandeau permanent, qu'on finirait par ignorer.
+  if (online && pending === 0 && !usingCachedData) return null;
+
+  const tone = (!online || usingCachedData)
     ? 'bg-amber-500/12 border-amber-500/25 text-amber-700 dark:text-amber-400'
     : 'bg-blue-500/12 border-blue-500/25 text-blue-700 dark:text-blue-400';
 
@@ -24,6 +33,13 @@ const OfflineBanner = () => {
       {!online ? <DisconnectOutlined /> : flushing ? <SyncOutlined spin /> : <CloudSyncOutlined />}
 
       <span className="text-[0.8rem]">
+        {usingCachedData && (
+          <>Catalogue affiché depuis ce poste
+            {savedAt && <> (relevé du {new Date(savedAt).toLocaleString('fr-FR',
+              { dateStyle: 'short', timeStyle: 'short' })})</>}
+            . Les stocks peuvent avoir changé.{' '}
+          </>
+        )}
         {!online && pending > 0 && (
           <>Hors connexion — <strong>{pending}</strong> vente{pending > 1 ? 's' : ''} enregistrée
             {pending > 1 ? 's' : ''} sur ce poste, en attente d'envoi.</>
