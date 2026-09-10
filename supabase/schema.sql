@@ -627,7 +627,7 @@ alter table public.companies
   add column if not exists notes      text not null default '';
 
 comment on column public.companies.max_stores is 'Plafond de magasins. NULL = illimité.';
-comment on column public.companies.max_users  is "Plafond d'utilisateurs. NULL = illimité.";
+comment on column public.companies.max_users  is 'Plafond d''utilisateurs. NULL = illimité.';
 
 -- Refus d'un magasin au-delà du quota.
 create or replace function public.enforce_store_quota()
