@@ -1,9 +1,24 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { BankOutlined, ShopOutlined, TeamOutlined, CheckCircleOutlined, StopOutlined } from '@ant-design/icons';
 import { Panel, StatsCard, Widget, WidgetRow } from '../ui';
+import { fetchCompanyActivity } from '../../services/operationsService';
 
 /** Vue d'ensemble du parc : ce que l'exploitant regarde en premier. */
 const PlatformOverview = ({ companies, loading, onGoToCompanies }) => {
+  // L'activité vient d'une fonction agrégée côté base : compter en JavaScript
+  // exigerait de rapatrier toutes les ventes de toutes les entreprises.
+  const [activity, setActivity] = useState({});
+  useEffect(() => {
+    fetchCompanyActivity()
+      .then(rows => setActivity(Object.fromEntries(rows.map(r => [r.company_id, r]))))
+      .catch(() => { /* le tableau de bord reste utilisable sans ces chiffres */ });
+  }, []);
+
+  const dormant = useMemo(
+    () => companies.filter(c => !activity[c.id]?.last_login_at),
+    [companies, activity]
+  );
+
   const totals = useMemo(() => ({
     companies: companies.length,
     active: companies.filter(c => c.status === 'active').length,
@@ -19,8 +34,10 @@ const PlatformOverview = ({ companies, loading, onGoToCompanies }) => {
   );
 
   const biggest = useMemo(
-    () => [...companies].sort((a, b) => b.memberCount - a.memberCount),
-    [companies]
+    () => [...companies].sort((a, b) =>
+      (activity[b.id]?.sales_30d || 0) - (activity[a.id]?.sales_30d || 0)
+      || b.memberCount - a.memberCount),
+    [companies, activity]
   );
 
   return (
@@ -32,6 +49,15 @@ const PlatformOverview = ({ companies, loading, onGoToCompanies }) => {
         <StatsCard icon={ShopOutlined} label="Magasins" value={totals.stores} accentColor="#3b82f6" />
         <StatsCard icon={TeamOutlined} label="Utilisateurs" value={totals.members} accentColor="#8b5cf6" />
       </div>
+
+      {dormant.length > 0 && (
+        <div className="px-4 py-2.5 bg-amber-500/10 border border-amber-500/20 rounded-xl">
+          <p className="text-[0.8rem] text-amber-700 dark:text-amber-400">
+            <strong>{dormant.length} entreprise{dormant.length > 1 ? 's' : ''}</strong> sans
+            aucune connexion à ce jour — création faite, mais produit jamais utilisé.
+          </p>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Widget
@@ -55,8 +81,11 @@ const PlatformOverview = ({ companies, loading, onGoToCompanies }) => {
           renderItem={(c) => (
             <WidgetRow
               label={c.name}
-              sub={`${c.storeCount} magasin${c.storeCount > 1 ? 's' : ''}`}
-              value={`${c.memberCount} membre${c.memberCount > 1 ? 's' : ''}`}
+              sub={`${c.storeCount} magasin${c.storeCount > 1 ? 's' : ''} · ${activity[c.id]?.sales_30d || 0} ventes / 30j`}
+              value={activity[c.id]?.last_login_at
+                ? `Vu le ${new Date(activity[c.id].last_login_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })}`
+                : 'Jamais connecté'}
+              valueClassName={activity[c.id]?.last_login_at ? 'text-primary' : 'text-amber-500'}
             />
           )}
         />

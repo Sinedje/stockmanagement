@@ -1,19 +1,25 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { message, Tag } from 'antd';
-import { AppstoreOutlined, BankOutlined, CheckCircleOutlined, DashboardOutlined, GlobalOutlined, PlusOutlined, SettingOutlined } from '@ant-design/icons';
+import { AppstoreOutlined, BankOutlined, CheckCircleOutlined, DashboardOutlined, FileTextOutlined, GlobalOutlined, PlusOutlined, SettingOutlined, TeamOutlined } from '@ant-design/icons';
 import DashboardLayout from '../components/layouts/DashboardLayout';
 import { Toolbar, Panel, Table, SearchInput, Button } from '../components/ui';
 import CompanyWizard from '../components/superadmin/CompanyWizard';
 import CompanyDetail from '../components/superadmin/CompanyDetail';
 import PlatformOverview from '../components/superadmin/PlatformOverview';
 import PlatformSettingsPanel from '../components/superadmin/PlatformSettingsPanel';
+import UserSearch from '../components/superadmin/UserSearch';
+import AuditTable from '../components/superadmin/AuditTable';
 import { useSectionRoute } from '../routes/sections';
 import { isSupabaseConfigured } from '../lib/supabase';
+import { recordAudit } from '../services/operationsService';
+import { useAuth } from '../context/AuthContext';
 import { fetchCompanies, createCompany } from '../services/companyService';
 
 const sidebarItems = [
   { id: 'dashboard', label: 'Tableau de bord', icon: DashboardOutlined },
   { id: 'companies', label: 'Entreprises', icon: BankOutlined },
+  { id: 'users',     label: 'Utilisateurs', icon: TeamOutlined },
+  { id: 'audit',     label: 'Journal', icon: FileTextOutlined },
   { id: 'settings',  label: 'Paramètres', icon: SettingOutlined },
 ];
 
@@ -22,12 +28,16 @@ const SECTIONS = sidebarItems.map(i => i.id);
 const TITLES = {
   dashboard: 'Tableau de bord',
   companies: 'Entreprises',
+  users: 'Utilisateurs',
+  audit: "Journal d'activité",
   settings: 'Paramètres de la plateforme',
 };
 
 const SUBTITLES = {
   dashboard: "Vue d'ensemble du parc",
   companies: 'Créez et supervisez les entreprises clientes',
+  users: 'Rechercher un compte dans toutes les entreprises',
+  audit: 'Trace des actions sensibles, en ajout seul',
   settings: 'Modules par défaut et votre compte',
 };
 
@@ -39,6 +49,7 @@ const SUBTITLES = {
  * seule aux écritures des entreprises clientes.
  */
 const SuperAdminDashboard = () => {
+  const { currentUser } = useAuth();
   const [companies, setCompanies] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -69,6 +80,11 @@ const SuperAdminDashboard = () => {
       const res = await createCompany(payload);
       // Le mot de passe provisoire n'est affiché qu'une fois : il faut le
       // transmettre à l'administrateur, on le laisse donc à l'écran sans délai.
+      await recordAudit({
+        actor: currentUser, companyName: payload.name,
+        action: 'company.created', target: payload.name,
+        details: { slug: payload.slug, admin: payload.admin.email },
+      });
       setCreated({
         name: payload.name,
         email: res?.adminEmail || payload.admin.email,
@@ -162,6 +178,10 @@ const SuperAdminDashboard = () => {
           loading={loading}
           onGoToCompanies={() => setActiveTab('companies')}
         />
+      ) : activeTab === 'users' ? (
+        <UserSearch />
+      ) : activeTab === 'audit' ? (
+        <AuditTable />
       ) : activeTab === 'settings' ? (
         <PlatformSettingsPanel />
       ) : showWizard ? (

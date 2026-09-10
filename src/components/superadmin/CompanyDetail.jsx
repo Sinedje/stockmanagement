@@ -3,6 +3,7 @@ import { Tabs, Switch, Tag, message, Popconfirm } from 'antd';
 import {
   BankOutlined, AppstoreOutlined, TeamOutlined, WarningOutlined,
   ArrowLeftOutlined, MailOutlined, StopOutlined, CheckCircleOutlined, DeleteOutlined,
+  FileTextOutlined, DownloadOutlined,
 } from '@ant-design/icons';
 import { Panel, Input, Select, Button, Table } from '../ui';
 import { FEATURES, isFeatureEnabled } from '../../config/features';
@@ -12,6 +13,16 @@ import {
   setMemberActive, setMemberRole, sendMemberPasswordReset,
   setCompanyStatus, deleteCompany,
 } from '../../services/companyService';
+import { recordAudit, exportCompany, downloadJson } from '../../services/operationsService';
+import AuditTable from './AuditTable';
+import { useAuth } from '../../context/AuthContext';
+
+const BILLING = [
+  { value: 'trial',     label: 'Essai' },
+  { value: 'active',    label: 'À jour' },
+  { value: 'overdue',   label: 'Impayé' },
+  { value: 'cancelled', label: 'Résilié' },
+];
 
 const ROLES = [
   { value: 'ceo', label: 'Direction' },
@@ -27,11 +38,21 @@ const ROLES = [
  * client est bloqué, sans avoir à ouvrir la console Supabase.
  */
 const CompanyDetail = ({ company, onBack, onChanged }) => {
+  const { currentUser } = useAuth();
+
+  // Toute action sensible laisse une trace : c'est ce qui rend une
+  // intervention de l'exploitant opposable en cas de contestation.
+  const trace = (action, target, details) => recordAudit({
+    actor: currentUser, companyId: company.id, companyName: company.name,
+    action, target, details,
+  });
+
   const [info, setInfo] = useState({ ...company });
   const [features, setFeatures] = useState(company.features || {});
   const [members, setMembers] = useState([]);
   const [saving, setSaving] = useState(false);
   const [confirmName, setConfirmName] = useState('');
+  const [exporting, setExporting] = useState(false);
 
   const loadMembers = useCallback(async () => {
     try { setMembers(await fetchCompanyMembers(company.id)); }
@@ -49,7 +70,12 @@ const CompanyDetail = ({ company, onBack, onChanged }) => {
         max_stores: info.max_stores ? Number(info.max_stores) : null,
         max_users: info.max_users ? Number(info.max_users) : null,
         notes: info.notes || '',
+        plan: info.plan || 'standard',
+        billing_status: info.billing_status || 'trial',
+        renewal_date: info.renewal_date || null,
+        monthly_amount: info.monthly_amount ? Number(info.monthly_amount) : null,
       });
+      await trace('company.updated', company.name);
       message.success('Entreprise mise à jour.');
       onChanged?.();
     } catch (err) { message.error(err.message); }
@@ -59,7 +85,11 @@ const CompanyDetail = ({ company, onBack, onChanged }) => {
   const saveFeatures = async (key, enabled) => {
     const next = { ...features, [key]: enabled };
     setFeatures(next);
-    try { await setCompanyFeatures(company.id, next); onChanged?.(); }
+    try {
+      await setCompanyFeatures(company.id, next);
+      await trace('company.feature_changed', key, { enabled });
+      onChanged?.();
+    }
     catch (err) { setFeatures(features); message.error(err.message); }
   };
 
@@ -78,7 +108,11 @@ const CompanyDetail = ({ company, onBack, onChanged }) => {
       render: (v, row) => (
         <Select value={v} width={140} options={ROLES}
                 onChange={async (role) => {
-                  try { await setMemberRole(row.id, role); message.success('Rôle modifié.'); loadMembers(); }
+                  try {
+                    await setMemberRole(row.id, role);
+                    await trace('member.role_changed', row.name, { role });
+                    message.success('Rôle modifié.'); loadMembers();
+                  }
                   catch (err) { message.error(err.message); }
                 }} />
       ),
@@ -95,6 +129,7 @@ const CompanyDetail = ({ company, onBack, onChanged }) => {
                   onClick={async () => {
                     try {
                       await sendMemberPasswordReset(row.email || '');
+                      await trace('member.password_reset_sent', row.name);
                       message.success('Lien de réinitialisation envoyé.');
                     } catch (err) { message.error(err.message); }
                   }}>
@@ -102,7 +137,11 @@ const CompanyDetail = ({ company, onBack, onChanged }) => {
           </Button>
           <Button danger={row.is_active} icon={row.is_active ? <StopOutlined /> : <CheckCircleOutlined />}
                   onClick={async () => {
-                    try { await setMemberActive(row.id, !row.is_active); loadMembers(); }
+                    try {
+                      await setMemberActive(row.id, !row.is_active);
+                      await trace(row.is_active ? 'member.suspended' : 'member.reactivated', row.name);
+                      loadMembers();
+                    }
                     catch (err) { message.error(err.message); }
                   }}>
             {row.is_active ? 'Suspendre' : 'Réactiver'}
@@ -137,6 +176,19 @@ const CompanyDetail = ({ company, onBack, onChanged }) => {
                      value={info.max_stores ?? ''} onChange={e => setInfo(i => ({ ...i, max_stores: e.target.value }))} />
               <Input label="Utilisateurs max." type="number" placeholder="Illimité"
                      value={info.max_users ?? ''} onChange={e => setInfo(i => ({ ...i, max_users: e.target.value }))} />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 pt-2 border-t border-black/5 dark:border-white/10">
+              <Input label="Formule" value={info.plan || ''}
+                     onChange={e => setInfo(i => ({ ...i, plan: e.target.value }))} placeholder="standard" />
+              <div>
+                <label className="custom-input-label">Facturation</label>
+                <Select value={info.billing_status} width="100%" options={BILLING}
+                        onChange={v => setInfo(i => ({ ...i, billing_status: v }))} />
+              </div>
+              <Input label="Échéance" type="date" value={info.renewal_date || ''}
+                     onChange={e => setInfo(i => ({ ...i, renewal_date: e.target.value }))} />
+              <Input label="Montant mensuel" type="number" value={info.monthly_amount ?? ''}
+                     onChange={e => setInfo(i => ({ ...i, monthly_amount: e.target.value }))} placeholder="0" />
             </div>
             <Input label="Notes internes" value={info.notes || ''}
                    onChange={e => setInfo(i => ({ ...i, notes: e.target.value }))}
@@ -178,6 +230,10 @@ const CompanyDetail = ({ company, onBack, onChanged }) => {
       ),
     },
     {
+      key: 'audit', label: <span className="flex items-center gap-1.5"><FileTextOutlined /> Journal</span>,
+      children: <AuditTable companyId={company.id} />,
+    },
+    {
       key: 'danger', label: <span className="flex items-center gap-1.5"><WarningOutlined /> Zone sensible</span>,
       children: (
         <div className="space-y-4">
@@ -187,7 +243,9 @@ const CompanyDetail = ({ company, onBack, onChanged }) => {
               title={company.status === 'active' ? "Suspendre l'entreprise ?" : 'Réactiver ?'}
               onConfirm={async () => {
                 try {
-                  await setCompanyStatus(company.id, company.status === 'active' ? 'suspended' : 'active');
+                  const next = company.status === 'active' ? 'suspended' : 'active';
+                  await setCompanyStatus(company.id, next);
+                  await trace(next === 'suspended' ? 'company.suspended' : 'company.reactivated', company.name);
                   message.success('Statut modifié.'); onChanged?.(); onBack();
                 } catch (err) { message.error(err.message); }
               }}
@@ -196,6 +254,23 @@ const CompanyDetail = ({ company, onBack, onChanged }) => {
                 {company.status === 'active' ? "Suspendre l'entreprise" : "Réactiver l'entreprise"}
               </Button>
             </Popconfirm>
+          </Panel>
+
+          <Panel title="Exporter les données" icon={DownloadOutlined}
+                 subtitle="Restitution complète au format JSON, à remettre au client.">
+            <Button icon={<DownloadOutlined />} loading={exporting}
+                    onClick={async () => {
+                      setExporting(true);
+                      try {
+                        const dump = await exportCompany(company);
+                        downloadJson(`${company.slug || 'entreprise'}-export.json`, dump);
+                        await trace('company.exported', company.name);
+                        message.success('Export téléchargé.');
+                      } catch (err) { message.error(err.message); }
+                      finally { setExporting(false); }
+                    }}>
+              Télécharger l'export
+            </Button>
           </Panel>
 
           <Panel title="Supprimer définitivement" icon={DeleteOutlined}
@@ -211,6 +286,11 @@ const CompanyDetail = ({ company, onBack, onChanged }) => {
                       disabled={confirmName !== company.name}
                       onClick={async () => {
                         try {
+                          // La trace est écrite AVANT la suppression : ensuite
+                          // l'entreprise n'existe plus, mais le nom copié dans
+                          // la ligne d'audit conserve le souvenir de l'acte.
+                          await trace('company.deleted', company.name,
+                                      { slug: company.slug, status: company.status });
                           await deleteCompany(company.id);
                           message.success('Entreprise supprimée.');
                           onChanged?.(); onBack();

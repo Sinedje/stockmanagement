@@ -59,6 +59,12 @@ const supabaseLogin = async (email, password) => {
     });
   }
 
+  // Horodatage de connexion : alimente le suivi d'activité par entreprise.
+  // Volontairement sans await — un échec ici ne doit pas retarder l'entrée.
+  import('./operationsService')
+    .then(m => m.touchLastLogin(data.user.id))
+    .catch(() => { /* sans incidence */ });
+
   return { user: toAppUser(data.user, profile), token: data.session.access_token };
 };
 
