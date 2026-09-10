@@ -29,3 +29,6 @@ server/.env.local
 
 # Sortie du service worker en développement
 dev-dist
+
+# Fichier de transmission des secrets — ne doit jamais être commité
+SETUP-SECRETS.env
