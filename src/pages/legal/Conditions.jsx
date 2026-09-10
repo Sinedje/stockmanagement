@@ -92,7 +92,9 @@ const Conditions = () => (
     <p>
       Le service est un outil de gestion&nbsp;; il ne se substitue pas aux
       obligations comptables et fiscales de l'entreprise, qui demeure seule
-      responsable de l'exactitude de ses écritures et de ses déclarations.
+      responsable de l'exactitude de ses écritures et de ses déclarations,
+      notamment au regard du référentiel comptable OHADA (SYSCOHADA) et de ses
+      obligations envers la Direction Générale des Impôts.
     </p>
     <p>
       La responsabilité de l'éditeur ne saurait être engagée pour les
@@ -109,9 +111,11 @@ const Conditions = () => (
 
     <h2>11. Droit applicable</h2>
     <p>
-      Les présentes conditions sont régies par le droit [pays]. À défaut de
-      résolution amiable, tout litige relève des juridictions compétentes de
-      [ville].
+      Les présentes conditions sont régies par le droit camerounais. Les
+      relations commerciales entre entreprises relèvent en outre des actes
+      uniformes OHADA. À défaut de résolution amiable, tout litige relève des
+      juridictions compétentes de [Yaoundé ou Douala, selon le siège de
+      l'éditeur].
     </p>
   </LegalLayout>
 );

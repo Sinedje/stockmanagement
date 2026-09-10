@@ -163,7 +163,7 @@ const CompanyDetail = ({ company, onBack, onChanged }) => {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <Input label="Téléphones" value={info.phones || ''} onChange={e => setInfo(i => ({ ...i, phones: e.target.value }))} />
-              <Input label="NCC" value={info.ncc || ''} onChange={e => setInfo(i => ({ ...i, ncc: e.target.value }))} />
+              <Input label="NIU" value={info.ncc || ''} onChange={e => setInfo(i => ({ ...i, ncc: e.target.value }))} />
               <Input label="RCCM" value={info.rccm || ''} onChange={e => setInfo(i => ({ ...i, rccm: e.target.value }))} />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">

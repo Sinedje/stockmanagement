@@ -185,7 +185,7 @@ const printDepositReceipt = (customer, txn, companySettings, stores) => {
                 <div style="font-size: 9.5px; margin-top: 1px; font-weight: bold;">${agencyName}</div>
                 <div style="font-size: 9.5px; margin-top: 1px;">TEL : ${companySettings?.phones || '659 146 882 / 672 126 507'}</div>
                 <div style="font-size: 9px; margin-top: 3px; display: flex; gap: 24px;">
-                  <span>NCC : ${companySettings?.ncc || 'M042318164160W'}</span>
+                  <span>NIU : ${companySettings?.ncc || 'M042318164160W'}</span>
                   <span style="margin-left: 20px;">RCC : ${companySettings?.rccm || '1391CH/N°94C1175/71994'}</span>
                 </div>
               </td>

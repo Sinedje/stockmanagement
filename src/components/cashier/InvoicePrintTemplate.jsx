@@ -91,7 +91,7 @@ const InvoicePrintTemplate = ({ sale }) => {
               <div style={{ fontSize: '9.5px', marginTop: '1px', fontWeight: 'bold' }}>{agencyName}</div>
               <div style={{ fontSize: '9.5px', marginTop: '1px' }}>TEL : {companySettings?.phones || '659 146 882 / 672 126 507'}</div>
               <div style={{ fontSize: '9px', marginTop: '3px', display: 'flex', gap: '24px' }}>
-                <span>NCC : {companySettings?.ncc || 'M042318164160W'}</span>
+                <span>NIU : {companySettings?.ncc || 'M042318164160W'}</span>
                 <span>RCC : {companySettings?.rccm || '1391CH/N°94C1175/71994'}</span>
               </div>
             </td>

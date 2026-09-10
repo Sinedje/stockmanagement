@@ -6,8 +6,10 @@ const MentionsLegales = () => (
   <LegalLayout title="Mentions légales">
     <div className="legal-note">
       <strong>À compléter avant mise en service.</strong> Les champs entre crochets
-      doivent être renseignés avec les informations réelles de l'éditeur. Leur
-      absence est elle-même une irrégularité.
+      doivent être renseignés avec les informations réelles de l'éditeur. Au
+      Cameroun, la loi n°2010/021 régissant le commerce électronique impose au
+      fournisseur de service en ligne d'être identifiable : l'absence de ces
+      mentions est elle-même une irrégularité.
     </div>
 
     <h2>Éditeur du service</h2>
@@ -17,9 +19,9 @@ const MentionsLegales = () => (
     <ul>
       <li>Dénomination : <strong>[Raison sociale]</strong></li>
       <li>Forme juridique : [SARL / SA / entreprise individuelle]</li>
-      <li>Siège social : [Adresse complète]</li>
-      <li>RCCM : [Numéro RCCM]</li>
-      <li>Numéro de compte contribuable (NCC) : [NCC]</li>
+      <li>Siège social : [Adresse complète], Cameroun</li>
+      <li>RCCM : [Numéro RCCM — format camerounais, ex. RC/YAE/2019/B/1234]</li>
+      <li>Numéro d'identifiant unique (NIU) : [NIU]</li>
       <li>Responsable de la publication : [Nom et prénom]</li>
       <li>Contact : [adresse e-mail] — [téléphone]</li>
     </ul>
@@ -44,7 +46,8 @@ const MentionsLegales = () => (
     <p>
       Toute anomalie, contenu litigieux ou faille de sécurité peut être signalé à
       [adresse e-mail de contact]. Les signalements de sécurité sont traités en
-      priorité.
+      priorité. L'ANTIC est l'autorité de référence en matière de sécurité des
+      systèmes d'information au Cameroun.
     </p>
   </LegalLayout>
 );

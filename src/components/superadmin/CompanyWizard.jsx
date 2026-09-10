@@ -114,7 +114,7 @@ const CompanyWizard = ({ onCancel, onSubmit, saving }) => {
                    placeholder="Ex : Vente de matériel de sécurité incendie" />
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <Input label="Téléphones" value={form.phones} onChange={set('phones')} />
-              <Input label="NCC" value={form.ncc} onChange={set('ncc')} />
+              <Input label="NIU" value={form.ncc} onChange={set('ncc')} hint="Numéro d'identifiant unique" />
               <Input label="RCCM" value={form.rccm} onChange={set('rccm')} />
             </div>
             <div>

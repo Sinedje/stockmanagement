@@ -5,11 +5,14 @@ import './legal.css';
 const Confidentialite = () => (
   <LegalLayout title="Politique de confidentialité">
     <div className="legal-note">
-      <strong>À faire relire par un juriste.</strong> En Côte d'Ivoire, le
-      traitement de données à caractère personnel relève de la loi n°2013-450 et
-      doit faire l'objet d'une déclaration auprès de l'ARTCI. Ce document en
-      décrit fidèlement le fonctionnement technique, mais ne remplace pas cette
-      formalité.
+      <strong>À faire relire par un juriste camerounais.</strong> Au Cameroun,
+      la protection des données relève principalement de la loi n°2010/012 sur
+      la cybersécurité et la cybercriminalité, sous l'autorité de l'ANTIC, et de
+      la loi n°2010/021 sur le commerce électronique. Le pays ne dispose pas
+      encore d'une loi générale unique sur les données personnelles comparable au
+      RGPD&nbsp;: les obligations exactes doivent être confirmées localement. Ce
+      document décrit fidèlement le fonctionnement technique du service, mais ne
+      vaut pas analyse juridique.
     </div>
 
     <h2>Deux niveaux de responsabilité</h2>
@@ -79,8 +82,9 @@ const Confidentialite = () => (
 
     <h2>Vos droits</h2>
     <p>
-      Toute personne dispose d'un droit d'accès, de rectification, d'opposition
-      et de suppression sur ses données. Un utilisateur s'adresse d'abord à
+      Le service reconnaît à toute personne un droit d'accès, de rectification,
+      d'opposition et de suppression sur ses données, indépendamment de
+      l'existence d'une obligation légale expresse au Cameroun. Un utilisateur s'adresse d'abord à
       l'administrateur de son entreprise. L'entreprise elle-même peut demander
       l'export complet de ses données ou leur suppression en écrivant à
       [adresse e-mail de contact].
