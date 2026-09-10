@@ -85,13 +85,21 @@ const simulateDelay = (ms = 300) => new Promise((r) => setTimeout(r, ms));
  * @returns {Promise<{ user: object, token: string }>}
  */
 export const loginRequest = async (username, password) => {
+  // L'identifiant est normalisé (les espaces autour n'ont jamais de sens),
+  // mais surtout PAS le mot de passe : un mot de passe est une chaîne opaque.
+  // Le rogner ici alors qu'il est enregistré tel quel à l'inscription rendait
+  // la connexion impossible dès qu'il commençait ou finissait par un espace.
   const cleanUsername = (username || '').toString().trim().toLowerCase();
-  const cleanPassword = (password || '').toString().trim();
+  const rawPassword = (password ?? '').toString();
 
   // Un e-mail désigne un compte Supabase ; un pseudo, un compte historique.
   if (isSupabaseConfigured && looksLikeEmail(cleanUsername)) {
-    return supabaseLogin(cleanUsername, cleanPassword);
+    return supabaseLogin(cleanUsername, rawPassword);
   }
+
+  // L'API historique conserve son comportement d'origine, pour ne rien changer
+  // aux comptes MongoDB existants.
+  const cleanPassword = rawPassword.trim();
 
   if (import.meta.env.VITE_API_URL) {
     // ── Real server call ──
