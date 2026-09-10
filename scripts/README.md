@@ -24,6 +24,10 @@ retour arrière. Le script est réexécutable — les objets sont retrouvés par
 identifiant naturel (nom du magasin, couple magasin + nom pour un produit) et
 mis à jour plutôt que dupliqués.
 
+Les images produit passent de la base64 vers Supabase Storage avec
+`--with-images` : seau public `product-images`, chemins préfixés par
+l'identifiant de l'entreprise, et `products.image_path` mis à jour.
+
 Les comptes de connexion exigent `SUPABASE_SERVICE_ROLE_KEY` : `profiles.id`
 référence `auth.users`, table que seule la clé de service peut alimenter.
 Placer la clé dans `.env.local`, jamais dans un fichier suivi par git.

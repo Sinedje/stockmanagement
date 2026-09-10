@@ -188,6 +188,59 @@ async function migrate() {
   }
 
   /* Utilisateurs */
+  /* Images — de la base64 vers Supabase Storage */
+  if (WITH_IMAGES) {
+    step('Images');
+    const withImg = src.products.filter(p => (p.image || '').startsWith('data:'));
+    log(`   ${withImg.length} images à transférer`);
+
+    if (APPLY) {
+      if (!SB_SERVICE) throw new Error('Le transfert des images exige SUPABASE_SERVICE_ROLE_KEY.');
+
+      // Seau public : les fiches produit affichent l'image directement, sans
+      // signature à renouveler. Rien de confidentiel dans un visuel de produit.
+      const BUCKET = 'product-images';
+      const { data: buckets } = await sb.storage.listBuckets();
+      if (!buckets?.some(b => b.name === BUCKET)) {
+        const { error } = await sb.storage.createBucket(BUCKET, {
+          public: true, fileSizeLimit: 5 * 1024 * 1024,
+          allowedMimeTypes: ['image/png', 'image/jpeg', 'image/webp', 'image/gif'],
+        });
+        if (error) throw new Error(`seau : ${error.message}`);
+        log(`   seau « ${BUCKET} » créé`);
+      }
+
+      let done = 0, failed = 0;
+      for (const p of withImg) {
+        const storeId = storeMap.get(String(p.storeId));
+        if (!storeId) { failed++; continue; }
+
+        // data:image/png;base64,AAAA…
+        const match = /^data:([^;]+);base64,(.*)$/s.exec(p.image);
+        if (!match) { failed++; continue; }
+        const [, mime, b64] = match;
+        const ext = (mime.split('/')[1] || 'png').replace('jpeg', 'jpg');
+
+        // Chemin préfixé par l'entreprise : le cloisonnement se lit dans
+        // l'arborescence, et une règle de seau peut s'y appuyer plus tard.
+        const safe = String(p.name).replace(/[^a-zA-Z0-9._-]+/g, '-').slice(0, 60);
+        const path = `${companyId}/${safe}-${String(p._id).slice(-6)}.${ext}`;
+
+        const { error: upErr } = await sb.storage.from(BUCKET)
+          .upload(path, Buffer.from(b64, 'base64'), { contentType: mime, upsert: true });
+        if (upErr) { log(`   ⚠ ${p.name} : ${upErr.message}`); failed++; continue; }
+
+        const { error: updErr } = await sb.from('products')
+          .update({ image_path: path }).eq('store_id', storeId).eq('name', p.name);
+        if (updErr) { failed++; continue; }
+
+        done++;
+        if (done % 20 === 0) log(`   ${done} / ${withImg.length}`);
+      }
+      log(`   ${done} transférées${failed ? `, ${failed} en échec` : ''}`);
+    }
+  }
+
   step('Utilisateurs');
   log(`   ${src.users.length} comptes dans MongoDB`);
   if (!SB_SERVICE) {
