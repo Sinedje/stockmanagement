@@ -1,3 +1,4 @@
+import { useSectionRoute } from '../routes/sections';
 import { useT } from '../i18n/I18nContext';
 import React, { useState } from 'react';
 import DashboardLayout from '../components/layouts/DashboardLayout';
@@ -24,9 +25,12 @@ const sidebarItems = [
   { id: 'history', labelKey: 's.liste_des_bilans', icon: HistoryOutlined },
 ];
 
+// Sections adressables pour ce rôle : une URL hors de cette liste retombe sur l'accueil.
+const SECTIONS = sidebarItems.flatMap(n => n.children ? n.children.map(c => c.id) : [n.id]);
+
 const CashierPOS = () => {
   const t = useT();
-  const [activeTab, setActiveTab] = useState('invoice');
+  const [activeTab, setActiveTab] = useSectionRoute(SECTIONS, 'invoice');
   const [showPayment, setShowPayment] = useState(false);
   const { cart, cartTotal } = useSales();
 

@@ -1,3 +1,4 @@
+import { useSectionRoute } from '../routes/sections';
 import React, { useState } from 'react';
 import DashboardLayout from '../components/layouts/DashboardLayout';
 import DashboardHome from '../components/manager/DashboardHome';
@@ -83,12 +84,15 @@ const sidebarItems = [
 // servent pour n'afficher « Voir plus » que vers une page qui existe ici.
 const availableTabs = sidebarItems.flatMap(node => node.children ? node.children.map(c => c.id) : [node.id]);
 
+// Sections adressables pour ce rôle : une URL hors de cette liste retombe sur l'accueil.
+const SECTIONS = availableTabs;
+
 const CEODashboard = () => {
   const t = useT();
   const { logout } = useAuth();
   const { activeStoreId, transfers } = useStores();
   const { lowStockProducts } = useProducts();
-  const [activeTab, setActiveTab] = useState('strategic');
+  const [activeTab, setActiveTab] = useSectionRoute(SECTIONS, 'strategic');
 
   const pendingIncomingTransfers = transfers.filter(t => t.toStoreId === activeStoreId && t.status === 'in_transit').length;
 

@@ -1,3 +1,4 @@
+import { useSectionRoute } from '../routes/sections';
 import { useT } from '../i18n/I18nContext';
 import React, { useState } from 'react';
 import DashboardLayout from '../components/layouts/DashboardLayout';
@@ -12,9 +13,12 @@ const sidebarItems = [
   { id: 'inventory', labelKey: 's.etat_du_stock', icon: InboxOutlined },
 ];
 
+// Sections adressables pour ce rôle : une URL hors de cette liste retombe sur l'accueil.
+const SECTIONS = sidebarItems.flatMap(n => n.children ? n.children.map(c => c.id) : [n.id]);
+
 const StorekeeperDashboard = () => {
   const t = useT();
-  const [activeTab, setActiveTab] = useState('deliveries');
+  const [activeTab, setActiveTab] = useSectionRoute(SECTIONS, 'deliveries');
 
   const titles = { 
     deliveries: t('s.gestion_des_livraisons'), 

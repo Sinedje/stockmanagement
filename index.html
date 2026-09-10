@@ -1,13 +1,41 @@
 <!doctype html>
-<html lang="en">
+<html lang="fr">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>stock-1</title>
+
+    <title>Stock Expert — Gestion de stock et de caisse</title>
+    <meta name="description" content="Stock Expert : gestion de stock multi-magasins, facturation, inventaire physique et suivi de caisse pour les commerces et distributeurs." />
+    <meta name="application-name" content="Stock Expert" />
+    <meta name="author" content="Stock Expert" />
+
+    <!-- Icônes -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/favicon.svg" />
+    <link rel="mask-icon" href="/favicon.svg" color="#10b981" />
+
+    <!-- Couleur de la barre de navigateur, accordée à la couleur de marque -->
+    <meta name="theme-color" content="#10b981" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0b1120" media="(prefers-color-scheme: dark)" />
+    <meta name="color-scheme" content="light dark" />
+
+    <!-- Application interne : ne pas indexer -->
+    <meta name="robots" content="noindex, nofollow" />
+
+    <!-- Aperçu lors du partage d'un lien (Slack, WhatsApp…) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Stock Expert" />
+    <meta property="og:title" content="Stock Expert — Gestion de stock et de caisse" />
+    <meta property="og:description" content="Gestion de stock multi-magasins, facturation, inventaire physique et suivi de caisse." />
+    <meta property="og:image" content="/favicon.svg" />
+    <meta name="twitter:card" content="summary" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   </head>
   <body>
     <div id="root"></div>
+    <noscript>Stock Expert nécessite JavaScript pour fonctionner.</noscript>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

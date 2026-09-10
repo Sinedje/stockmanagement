@@ -22,3 +22,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Surcharges locales (clés, base de dev) — jamais commitées
+.env.local
+server/.env.local

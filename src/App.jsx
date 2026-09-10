@@ -10,9 +10,10 @@ import AccountantDashboard from './pages/AccountantDashboard';
 import StorekeeperDashboard from './pages/StorekeeperDashboard';
 import CEODashboard from './pages/CEODashboard';
 import SuperAdminDashboard from './pages/SuperAdminDashboard';
+import { DEFAULT_SECTION } from './routes/sections';
 
 // ── Protected Route — uses AuthContext ────────────────────────
-const ProtectedRoute = ({ children, allowedRoles }) => {
+const ProtectedRoute = ({ children }) => {
   const { currentUser, authLoading } = useAuth();
 
   if (authLoading) {
@@ -25,11 +26,25 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
 
   if (!currentUser) return <Navigate to="/login" replace />;
 
-  if (allowedRoles && !allowedRoles.includes(currentUser.role)) {
-    return <Navigate to="/" replace />;
-  }
-
   return children;
+};
+
+// ── Tableau de bord selon le rôle ─────────────────────────────
+// L'adresse porte la page consultée ; c'est le rôle de l'utilisateur qui
+// détermine quel tableau de bord la rend. Le rôle n'a donc plus à figurer
+// dans l'URL — il est déjà affiché dans la barre latérale.
+const RoleDashboard = () => {
+  const { currentUser } = useAuth();
+
+  switch (currentUser?.role) {
+    case 'superadmin':  return <SuperAdminDashboard />;
+    case 'ceo':         return <CEODashboard />;
+    case 'manager':     return <ManagerDashboard />;
+    case 'accountant':  return <AccountantDashboard />;
+    case 'storekeeper': return <StorekeeperDashboard />;
+    case 'cashier':     return <CashierPOS />;
+    default:            return <Navigate to="/login" replace />;
+  }
 };
 
 // ── App routes — uses AuthContext ─────────────────────────────
@@ -38,57 +53,24 @@ const AppRoutes = () => {
 
   if (authLoading) return null;
 
+  const home = currentUser ? `/${DEFAULT_SECTION[currentUser.role] || 'dashboard'}` : '/login';
+
   return (
     <Routes>
-      <Route path="/login" element={!currentUser ? <Login /> : <Navigate to="/" replace />} />
+      <Route path="/login" element={!currentUser ? <Login /> : <Navigate to={home} replace />} />
 
-      {/* Default redirect by role */}
-      <Route path="/" element={
-        !currentUser ? <Navigate to="/login" replace /> :
-        currentUser.role === 'superadmin'  ? <Navigate to="/platform" replace /> :
-        currentUser.role === 'ceo'         ? <Navigate to="/ceo" replace /> :
-        currentUser.role === 'manager'     ? <Navigate to="/manager" replace /> :
-        currentUser.role === 'cashier'     ? <Navigate to="/pos" replace /> :
-        currentUser.role === 'storekeeper' ? <Navigate to="/storekeeper" replace /> :
-        <Navigate to="/accountant" replace />
-      } />
+      {/* « / » renvoie vers la section d'accueil du rôle. */}
+      <Route path="/" element={<Navigate to={home} replace />} />
 
-      {/* Console de l'exploitant de la plateforme — hors périmètre d'une entreprise */}
-      <Route path="/platform" element={
-        <ProtectedRoute allowedRoles={['superadmin']}>
-          <SuperAdminDashboard />
+      {/* Une seule route pour toutes les pages : /articles, /inventory, /stock-entry… */}
+      <Route path="/:section" element={
+        <ProtectedRoute>
+          <RoleDashboard />
         </ProtectedRoute>
       } />
 
-      <Route path="/ceo/*" element={
-        <ProtectedRoute allowedRoles={['ceo']}>
-          <CEODashboard />
-        </ProtectedRoute>
-      } />
-
-      <Route path="/manager/*" element={
-        <ProtectedRoute allowedRoles={['manager']}>
-          <ManagerDashboard />
-        </ProtectedRoute>
-      } />
-
-      <Route path="/pos" element={
-        <ProtectedRoute allowedRoles={['cashier', 'manager']}>
-          <CashierPOS />
-        </ProtectedRoute>
-      } />
-
-      <Route path="/accountant" element={
-        <ProtectedRoute allowedRoles={['accountant', 'manager']}>
-          <AccountantDashboard />
-        </ProtectedRoute>
-      } />
-
-      <Route path="/storekeeper" element={
-        <ProtectedRoute allowedRoles={['storekeeper', 'manager']}>
-          <StorekeeperDashboard />
-        </ProtectedRoute>
-      } />
+      {/* Toute autre adresse retombe sur l'accueil plutôt que sur un écran vide. */}
+      <Route path="*" element={<Navigate to={home} replace />} />
     </Routes>
   );
 };
