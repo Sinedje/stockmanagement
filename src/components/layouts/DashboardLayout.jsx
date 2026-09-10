@@ -1,6 +1,7 @@
 import { useT } from '../../i18n/I18nContext';
 import React, { useState } from 'react';
 import Sidebar from '../common/Sidebar';
+import OfflineBanner from '../../offline/OfflineBanner';
 import { useCompanyBranding } from '../../hooks';
 import { disabledSections } from '../../config/features';
 import { useAuth } from '../../context/AuthContext';
@@ -120,6 +121,9 @@ const DashboardLayout = ({
 
         {/* Page Content */}
         <div className="px-4 sm:px-6 lg:px-10 pt-5 sm:pt-6 pb-10 max-w-7xl mx-auto w-full flex-1">
+          {/* Placé au-dessus du contenu : une vente non transmise doit se voir
+              depuis n'importe quel écran, pas seulement depuis la caisse. */}
+          <div className="mb-4 empty:mb-0"><OfflineBanner /></div>
           {children}
         </div>
 

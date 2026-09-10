@@ -21,6 +21,7 @@ import {
   fetchSales as apiFetchSales,
 } from '../services/saleService';
 import { useStore } from '../context/StoreContext';
+import { enqueueSale } from '../offline/pendingSales';
 
 const useSales = () => {
   const {
@@ -73,8 +74,8 @@ const useSales = () => {
   const completeSale = useCallback(async (paymentMethod) => {
     setLoading(true);
     setError(null);
+    const sale = storeCompleteSale(paymentMethod);
     try {
-      const sale = storeCompleteSale(paymentMethod);
       if (import.meta.env.VITE_API_URL && sale) {
         const saved = await apiCreateSale(sale);
         // Patch local state id with server _id if returned
@@ -85,6 +86,23 @@ const useSales = () => {
       }
       return sale;
     } catch (err) {
+      // La vente est déjà passée en caisse : la laisser remonter en exception
+      // la ferait disparaître. On la met en file comme l'autre chemin.
+      console.warn('Vente non transmise au serveur :', err?.message);
+      if (sale) {
+        try {
+          await enqueueSale(sale, 'direct');
+          setError('Vente enregistrée sur ce poste. Elle sera transmise dès le retour du réseau.');
+          return sale;
+        } catch (queueErr) {
+          console.error('Mise en file impossible :', queueErr?.message);
+          setError(
+            'ATTENTION : la vente n\'a pu être ni transmise ni enregistrée sur ce poste. '
+            + 'Notez le numéro de facture ' + (sale.invoiceNumber || '') + ' avant de continuer.'
+          );
+          return sale;
+        }
+      }
       setError(err.message);
       throw err;
     } finally {
@@ -105,9 +123,23 @@ const useSales = () => {
         try {
           await apiCreateInvoiceSale(sale);
         } catch (apiErr) {
-          // Log API error silently — sale is already in local state
-          console.error('⚠️ Erreur API lors de l\'enregistrement de la vente (local OK):', apiErr.message);
-          setError(`Vente enregistrée localement. Erreur serveur: ${apiErr.message}`);
+          console.warn('Vente non transmise au serveur :', apiErr?.message);
+          // Le serveur n'a pas pris la vente. Elle est écrite sur le disque du
+          // poste : sans cela, elle ne vivait que dans l'état React et
+          // disparaissait au premier rafraîchissement, alors que le client
+          // avait payé.
+          try {
+            await enqueueSale(sale, 'invoice');
+            setError('Vente enregistrée sur ce poste. Elle sera transmise dès le retour du réseau.');
+          } catch (queueErr) {
+            // Dernier recours : on ne peut ni transmettre ni conserver.
+            // Mieux vaut le dire franchement que laisser croire à un succès.
+            console.error('Mise en file impossible :', queueErr?.message);
+            setError(
+              'ATTENTION : la vente n\'a pu être ni transmise ni enregistrée sur ce poste. '
+              + 'Notez le numéro de facture ' + (sale.invoiceNumber || '') + ' avant de continuer.'
+            );
+          }
         }
       }
       return sale;
