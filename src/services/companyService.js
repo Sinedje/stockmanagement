@@ -107,10 +107,23 @@ const createCompanyFromBrowser = async (sb, company, admin) => {
       options: { data: { name: admin.name } },
     });
     if (signUpError) throw signUpError;
+
     if (!signUp?.user?.id) {
       throw new Error(
         "Le compte n'a pas pu être créé. Vérifiez que les inscriptions sont autorisées "
         + '(Authentication → Providers), ou déployez la fonction create-company.'
+      );
+    }
+
+    // Pour ne pas révéler quelles adresses sont enregistrées, Supabase renvoie
+    // un utilisateur factice — identifiant aléatoire, `identities` vide —
+    // lorsque l'adresse existe déjà. L'insérer tel quel violait la clé
+    // étrangère vers auth.users, avec un message incompréhensible.
+    if (Array.isArray(signUp.user.identities) && signUp.user.identities.length === 0) {
+      throw new Error(
+        `L'adresse ${admin.email} est déjà utilisée par un compte. `
+        + 'Choisissez-en une autre, ou supprimez le compte existant dans '
+        + 'Authentication → Users.'
       );
     }
 
@@ -123,7 +136,16 @@ const createCompanyFromBrowser = async (sb, company, admin) => {
       username: admin.username || 'admin',
       role: 'ceo',
     });
-    if (profileError) throw profileError;
+    if (profileError) {
+      if (profileError.code === '23503') {
+        throw new Error(
+          "Le compte d'authentification n'a pas été créé (adresse déjà prise, ou "
+          + 'inscriptions désactivées). Déployez la fonction create-company pour '
+          + 'contourner cette limite.'
+        );
+      }
+      throw profileError;
+    }
 
     return { company: created, adminEmail: admin.email, tempPassword, viaFallback: true };
   } catch (err) {
