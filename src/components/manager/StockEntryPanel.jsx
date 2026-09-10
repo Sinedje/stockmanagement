@@ -1,14 +1,19 @@
+import { useT } from '../../i18n/I18nContext';
+import { Toolbar, Panel, SearchInput } from '../ui';
 import React, { useState, useMemo } from 'react';
+import Pagination from '../common/Pagination';
+import { usePagination } from '../../hooks';
 import { formatPrice } from '../../context/StoreContext';
 import { useProducts, useStores, useSettings } from '../../hooks';
 import Modal from '../common/Modal';
 import Input from '../common/Input';
 import MySelect from '../common/Select';
-import { Plus, Trash2, Save, Printer, Package, User, FileText, Search, Store, PlusCircle, CheckCircle, List, History, Eye } from 'lucide-react';
-import { Button, message, Popconfirm } from 'antd';
+import { CheckCircleOutlined, DeleteOutlined, EyeOutlined, FileTextOutlined, HistoryOutlined, InboxOutlined, PlusCircleOutlined, PlusOutlined, PrinterOutlined, SaveOutlined, SearchOutlined, ShopOutlined, UnorderedListOutlined, UserOutlined } from '@ant-design/icons';
+import { Button, Popconfirm, Segmented, message } from 'antd';
 import CatalogManagement from './CatalogManagement';
 
 const StockEntryPanel = () => {
+  const t = useT();
   const { products, allProducts, categories, bulkUpdateStock, receiveStock, addProduct, addCategory } = useProducts();
   const { stores, activeStoreId, stockEntries } = useStores();
   const { companySettings } = useSettings();
@@ -166,69 +171,51 @@ const StockEntryPanel = () => {
 
   const totalAmount = entryItems.reduce((sum, item) => sum + (item.quantity * item.cost), 0);
 
+  // Pagination : le tableau n'affiche que 20 lignes à la fois.
+  const { page, setPage, pageCount, total, pageSize, pageItems } = usePagination(filteredHistory);
+
   return (
-    <div className="animate-fade-in space-y-8">
-      {/* Tab Switcher */}
-      <div className="overflow-x-auto custom-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0">
-        <div className="flex gap-1 p-1.5 bg-black/5 dark:bg-white/5 rounded-2xl w-fit border border-black/5 dark:border-white/5">
-          <button
-            onClick={() => setActiveMode('reception')}
-            className={`shrink-0 whitespace-nowrap flex items-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl text-xs sm:text-sm font-black uppercase tracking-widest transition-all ${activeMode === 'reception' ? 'bg-primary text-black shadow-lg shadow-primary/20' : 'text-text-muted hover:text-text-primary'}`}
-          >
-            <PlusCircle size={18} />
-            Réception de Marchandises
-          </button>
-          <button
-            onClick={() => setActiveMode('catalog')}
-            className={`shrink-0 whitespace-nowrap flex items-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl text-xs sm:text-sm font-black uppercase tracking-widest transition-all ${activeMode === 'catalog' ? 'bg-primary text-black shadow-lg shadow-primary/20' : 'text-text-muted hover:text-text-primary'}`}
-          >
-            <List size={18} />
-            Gestion du Catalogue
-          </button>
-          <button
-            onClick={() => setActiveMode('history')}
-            className={`shrink-0 whitespace-nowrap flex items-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl text-xs sm:text-sm font-black uppercase tracking-widest transition-all ${activeMode === 'history' ? 'bg-primary text-black shadow-lg shadow-primary/20' : 'text-text-muted hover:text-text-primary'}`}
-          >
-            <History size={18} />
-            Historique des Réceptions
-          </button>
-        </div>
-      </div>
+    <div className="animate-fade-in space-y-4">
+      {/* Bascule de mode — même Toolbar que les autres écrans */}
+      <Toolbar>
+        <Segmented
+          value={activeMode}
+          onChange={setActiveMode}
+          options={[
+            { value: 'reception', label: <span className="flex items-center gap-1.5"><PlusCircleOutlined /> {t('s.reception')}</span> },
+            { value: 'catalog', label: <span className="flex items-center gap-1.5"><UnorderedListOutlined /> {t('s.catalogue')}</span> },
+            { value: 'history', label: <span className="flex items-center gap-1.5"><HistoryOutlined /> {t('s.historique')}</span> },
+          ]}
+        />
+      </Toolbar>
 
       {activeMode === 'catalog' ? (
         <CatalogManagement />
       ) : activeMode === 'history' ? (
-        <div className="space-y-6 animate-fade-in">
-          <div className="bg-bg-card border border-white/5 rounded-3xl p-8 shadow-xl no-print">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
-              <div>
-                <h3 className="text-xl font-black text-text-heading tracking-tight">Historique des Bons d'Entrée</h3>
-                <p className="text-text-muted text-sm mt-1">Consultez ou imprimez à nouveau les bons de réception passés.</p>
-              </div>
-              <div className="relative w-full md:w-64">
-                <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted" />
-                <input 
-                  className="w-full bg-black/5 dark:bg-white/5 border border-white/10 rounded-xl pl-11 pr-4 py-3 text-sm focus:outline-none focus:border-primary/50"
-                  placeholder="Rechercher fournisseur ou n°..."
-                  value={historySearchTerm}
-                  onChange={e => setHistorySearchTerm(e.target.value)}
-                />
-              </div>
-            </div>
+        <div className="space-y-4 animate-fade-in">
+          <Toolbar className="no-print">
+            <SearchInput
+              value={historySearchTerm}
+              onChange={setHistorySearchTerm}
+              placeholder={t('s.rechercher_fournisseur_ou_n')}
+              width={260}
+            />
+          </Toolbar>
 
-            <div className="overflow-x-auto custom-scrollbar rounded-2xl border border-white/5">
-              <table className="w-full min-w-[640px] text-left">
-                <thead className="bg-white/5">
+          <Panel title={t('s.historique_des_bons_d_entree')} icon={HistoryOutlined} noPadding className="no-print">
+            <div className="overflow-x-auto custom-scrollbar">
+              <table className="w-full min-w-[640px] text-left text-[0.8rem]">
+                <thead className="bg-black/5 dark:bg-white/5">
                   <tr>
-                    <th className="px-6 py-4 text-[0.65rem] font-black uppercase tracking-widest text-text-muted">Date & N°</th>
-                    <th className="px-6 py-4 text-[0.65rem] font-black uppercase tracking-widest text-text-muted">Fournisseur / Réf</th>
-                    <th className="px-6 py-4 text-[0.65rem] font-black uppercase tracking-widest text-text-muted text-right">Articles</th>
-                    <th className="px-6 py-4 text-[0.65rem] font-black uppercase tracking-widest text-text-muted text-right">Montant Total</th>
-                    <th className="px-6 py-4 text-[0.65rem] font-black uppercase tracking-widest text-text-muted text-right">Actions</th>
+                    <th className="px-6 py-4 text-[0.65rem] font-semibold uppercase tracking-widest text-text-muted">{t('s.date_n')}</th>
+                    <th className="px-6 py-4 text-[0.65rem] font-semibold uppercase tracking-widest text-text-muted">{t('s.fournisseur_ref')}</th>
+                    <th className="px-6 py-4 text-[0.65rem] font-semibold uppercase tracking-widest text-text-muted text-right">{t('s.articles')}</th>
+                    <th className="px-6 py-4 text-[0.65rem] font-semibold uppercase tracking-widest text-text-muted text-right">{t('s.montant_total')}</th>
+                    <th className="px-6 py-4 text-[0.65rem] font-semibold uppercase tracking-widest text-text-muted text-right">{t('s.actions')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5">
-                  {filteredHistory.map(entry => (
+                  {pageItems.map(entry => (
                     <tr key={entry.id} className="hover:bg-white/[0.02]">
                       <td className="px-6 py-4">
                         <div className="font-bold text-text-heading">{new Date(entry.date).toLocaleDateString('fr-FR')}</div>
@@ -245,34 +232,25 @@ const StockEntryPanel = () => {
                         {formatPrice(entry.totalCost)}
                       </td>
                       <td className="px-6 py-4 text-right">
-                        <Button 
-                          size="small" 
-                          icon={<Eye size={14} />} 
-                          onClick={() => setSelectedPastEntry(entry)}
-                          className="rounded-lg bg-primary/10 text-primary border-none hover:bg-primary hover:text-black font-bold text-[0.7rem] uppercase tracking-widest mr-2"
-                        >
+                        <Button icon={<EyeOutlined style={{ fontSize: 14 }} />} onClick={() => setSelectedPastEntry(entry)} className="bg-primary/10 text-primary border-none hover:bg-primary hover:text-white mr-2" >
                           Voir
                         </Button>
-                        <Button 
-                          size="small" 
-                          icon={<Printer size={14} />} 
-                          onClick={() => handlePrintPastEntry(entry)}
-                          className="rounded-lg bg-white/5 text-text-heading border-none hover:bg-white/10 font-bold"
-                        />
+                        <Button icon={<PrinterOutlined style={{ fontSize: 14 }} />} onClick={() => handlePrintPastEntry(entry)} className="bg-white/5 text-text-heading border-none hover:bg-white/10" />
                       </td>
                     </tr>
                   ))}
                   {filteredHistory.length === 0 && (
                     <tr>
                       <td colSpan="5" className="px-6 py-12 text-center opacity-30 italic text-sm">
-                        Aucun bon d'entrée trouvé.
+                        {t('s.aucun_bon_d_entree_trouve')}
                       </td>
                     </tr>
                   )}
                 </tbody>
               </table>
             </div>
-          </div>
+            <Pagination page={page} pageCount={pageCount} total={total} pageSize={pageSize} onChange={setPage} label={t('s.entrees')} />
+          </Panel>
         </div>
       ) : (
         <div className="space-y-6">
@@ -297,15 +275,15 @@ const StockEntryPanel = () => {
       </style>
 
       {/* Header Info */}
-      <div className="bg-bg-card border border-white/5 rounded-3xl p-4 sm:p-8 shadow-xl no-print">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="glass-panel rounded-xl p-4 sm:p-5 shadow-sm no-print">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="space-y-2">
-            <label className="text-[0.65rem] font-black text-text-muted uppercase tracking-widest px-1">Fournisseur</label>
+            <label className="text-[0.65rem] font-semibold text-text-muted uppercase tracking-widest px-1">{t('s.fournisseur_2')}</label>
             <div className="relative">
-              <User size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted" />
+              <UserOutlined style={{ fontSize: 16 }} className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted" />
               <input 
                 className="w-full bg-black/5 dark:bg-white/5 border border-white/10 rounded-xl pl-11 pr-4 py-3 text-sm focus:outline-none focus:border-primary/50"
-                placeholder="Nom du fournisseur..."
+                placeholder={t('s.nom_du_fournisseur_2')}
                 value={supplier}
                 onChange={e => setSupplier(e.target.value)}
                 disabled={isSaved}
@@ -313,12 +291,12 @@ const StockEntryPanel = () => {
             </div>
           </div>
           <div className="space-y-2">
-            <label className="text-[0.65rem] font-black text-text-muted uppercase tracking-widest px-1">N° Bon de Livraison</label>
+            <label className="text-[0.65rem] font-semibold text-text-muted uppercase tracking-widest px-1">{t('s.n_bon_de_livraison')}</label>
             <div className="relative">
-              <FileText size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted" />
+              <FileTextOutlined style={{ fontSize: 16 }} className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted" />
               <input 
                 className="w-full bg-black/5 dark:bg-white/5 border border-white/10 rounded-xl pl-11 pr-4 py-3 text-sm focus:outline-none focus:border-primary/50"
-                placeholder="Ex: BL-2024-X"
+                placeholder={t('s.ex_bl_2024_x')}
                 value={noteNumber}
                 onChange={e => setNoteNumber(e.target.value)}
                 disabled={isSaved}
@@ -326,9 +304,9 @@ const StockEntryPanel = () => {
             </div>
           </div>
           <div className="space-y-2">
-            <label className="text-[0.65rem] font-black text-text-muted uppercase tracking-widest px-1">Magasin de Réception</label>
+            <label className="text-[0.65rem] font-semibold text-text-muted uppercase tracking-widest px-1">{t('s.magasin_de_reception')}</label>
             <div className="relative">
-              <Store size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted" />
+              <ShopOutlined style={{ fontSize: 16 }} className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted" />
               <input 
                 className="w-full bg-black/5 dark:bg-white/5 border border-white/10 rounded-xl pl-11 pr-4 py-3 text-sm opacity-50 cursor-not-allowed"
                 value={currentStore?.name || ''}
@@ -340,15 +318,15 @@ const StockEntryPanel = () => {
       </div>
 
       {/* Product Selection */}
-      <div className="bg-bg-card border border-white/5 rounded-3xl p-4 sm:p-8 shadow-xl no-print">
-        <div className="flex flex-col md:flex-row gap-4 md:gap-6 items-stretch md:items-end">
+      <div className="glass-panel rounded-xl p-4 sm:p-5 shadow-sm no-print">
+        <div className="flex flex-col md:flex-row gap-4 md:gap-4 items-stretch md:items-end">
           <div className="w-full md:flex-1 space-y-2 relative">
-            <label className="text-[0.65rem] font-black text-text-muted uppercase tracking-widest px-1">Rechercher un article à ajouter</label>
+            <label className="text-[0.65rem] font-semibold text-text-muted uppercase tracking-widest px-1">{t('s.rechercher_un_article_a_ajouter')}</label>
             <div className="relative">
-              <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted" />
+              <SearchOutlined style={{ fontSize: 18 }} className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted" />
               <input 
                 className="w-full bg-black/5 dark:bg-white/5 border border-white/10 rounded-xl pl-11 pr-4 py-3 text-sm focus:outline-none focus:border-primary/50"
-                placeholder="Taper le nom du produit..."
+                placeholder={t('s.taper_le_nom_du_produit')}
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
               />
@@ -363,10 +341,10 @@ const StockEntryPanel = () => {
                     className="w-full px-6 py-4 flex items-center justify-between hover:bg-primary/10 transition-colors border-b border-white/5 last:border-0"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded bg-primary/10 flex items-center justify-center text-primary"><Package size={14} /></div>
+                      <div className="w-8 h-8 rounded bg-primary/10 flex items-center justify-center text-primary"><InboxOutlined style={{ fontSize: 14 }} /></div>
                       <span className="font-bold text-text-heading">{p.name}</span>
                     </div>
-                    <span className="text-[0.7rem] font-black text-primary uppercase">{formatPrice(p.cost)}</span>
+                    <span className="text-[0.7rem] font-semibold text-primary uppercase">{formatPrice(p.cost)}</span>
                   </button>
                 ))}
               </div>
@@ -375,16 +353,7 @@ const StockEntryPanel = () => {
             {searchTerm && filteredProducts.length === 0 && (
               <div className="absolute z-50 left-0 right-0 top-full mt-2 bg-bg-card border border-white/10 rounded-2xl p-4 shadow-2xl text-center">
                 <p className="text-sm text-text-muted mb-3">Aucun produit ne correspond à "{searchTerm}"</p>
-                <Button 
-                  type="primary" 
-                  size="small" 
-                  icon={<PlusCircle size={14} />}
-                  onClick={() => {
-                    setQuickForm({ ...quickForm, name: searchTerm });
-                    setShowQuickAdd(true);
-                  }}
-                  className="rounded-lg bg-primary text-black border-none font-bold"
-                >
+                <Button type="primary" icon={<PlusCircleOutlined style={{ fontSize: 14 }} />} onClick={() => { setQuickForm({ ...quickForm, name: searchTerm }); setShowQuickAdd(true); }} className="bg-primary text-white border-none" >
                   Créer "{searchTerm}"
                 </Button>
               </div>
@@ -394,69 +363,48 @@ const StockEntryPanel = () => {
           <div className="flex flex-wrap gap-3 w-full md:w-auto">
             {!isSaved ? (
               <>
-                <Button 
-                  icon={<Plus size={18} />}
-                  onClick={() => setShowQuickAdd(true)}
-                  className="h-12 px-6 rounded-xl font-bold bg-white/5 border-white/10 text-text-heading hover:bg-white/10"
-                >
-                  Nouveau Produit
+                <Button icon={<PlusOutlined style={{ fontSize: 18 }} />} onClick={() => setShowQuickAdd(true)} className="bg-white/5 border-white/10 text-text-heading hover:bg-white/10" >
+                  {t('s.nouveau_produit_2')}
                 </Button>
                 <Popconfirm 
-                  title="Voulez-vous vraiment enregistrer cette entrée ?" 
+                  title={t('s.voulez_vous_vraiment_enregistrer_cette_entre')} 
                   onConfirm={handleSave}
                   disabled={entryItems.length === 0}
                 >
-                  <Button 
-                    type="primary" 
-                    size="large" 
-                    icon={<Save size={18} />}
-                    className="h-12 px-8 rounded-xl font-bold bg-green-600 border-none"
-                    disabled={entryItems.length === 0}
-                  >
-                    Valider l'Entrée
+                  <Button type="primary" icon={<SaveOutlined style={{ fontSize: 18 }} />} className="bg-green-600 border-none" disabled={entryItems.length === 0} >
+                    {t('s.valider_l_entree')}
                   </Button>
                 </Popconfirm>
               </>
             ) : (
-              <Button 
-                size="large" 
-                icon={<PlusCircle size={18} />}
-                onClick={resetForm}
-                className="h-12 px-8 rounded-xl font-bold bg-primary text-black border-none"
-              >
-                Nouveau Bon de Réception
+              <Button icon={<PlusCircleOutlined style={{ fontSize: 18 }} />} onClick={resetForm} className="bg-primary text-white border-none" >
+                {t('s.nouveau_bon_de_reception')}
               </Button>
             )}
             
-            <Button 
-              size="large" 
-              icon={<Printer size={18} />}
-              onClick={handlePrint}
-              disabled={entryItems.length === 0}
-              className={`h-12 px-8 rounded-xl font-bold border-white/10 text-text-heading ${isSaved ? 'bg-blue-600 border-none' : 'bg-white/5 hover:bg-white/10'}`}
-            >
-              Imprimer Bon
+            <Button icon={<PrinterOutlined style={{ fontSize: 18 }} />} onClick={handlePrint} disabled={entryItems.length === 0} className={isSaved ? 'bg-blue-600 border-none text-white' : ''} >
+              {t('s.imprimer_bon')}
             </Button>
           </div>
         </div>
 
         {isSaved && (
           <div className="mt-4 p-4 bg-green-500/10 border border-green-500/20 rounded-xl flex items-center gap-3 animate-bounce-subtle">
-            <CheckCircle size={20} className="text-green-500" />
-            <span className="text-green-500 font-bold text-sm uppercase tracking-widest">Entrée enregistrée avec succès - Prêt pour l'impression</span>
+            <CheckCircleOutlined style={{ fontSize: 20 }} className="text-green-500" />
+            <span className="text-green-500 font-bold text-sm uppercase tracking-widest">{t('s.entree_enregistree_avec_succes_pret_pour_l_i')}</span>
           </div>
         )}
 
         {/* Entry Table */}
         <div className="mt-8 overflow-x-auto custom-scrollbar rounded-2xl border border-white/5">
           <table className="w-full min-w-[600px] text-left">
-            <thead className="bg-white/5">
+            <thead className="bg-black/5 dark:bg-white/5">
               <tr>
-                <th className="px-6 py-4 text-[0.65rem] font-black uppercase tracking-widest text-text-muted">Article</th>
-                <th className="px-6 py-4 text-[0.65rem] font-black uppercase tracking-widest text-text-muted w-32">Quantité</th>
-                <th className="px-6 py-4 text-[0.65rem] font-black uppercase tracking-widest text-text-muted w-48">Prix d'Achat Unitaire</th>
-                <th className="px-6 py-4 text-[0.65rem] font-black uppercase tracking-widest text-text-muted">Total</th>
-                <th className="px-6 py-4 text-[0.65rem] font-black uppercase tracking-widest text-text-muted w-16"></th>
+                <th className="px-6 py-4 text-[0.65rem] font-semibold uppercase tracking-widest text-text-muted">{t('s.article')}</th>
+                <th className="px-6 py-4 text-[0.65rem] font-semibold uppercase tracking-widest text-text-muted w-32">{t('s.quantite')}</th>
+                <th className="px-6 py-4 text-[0.65rem] font-semibold uppercase tracking-widest text-text-muted w-48">{t('s.prix_d_achat_unitaire')}</th>
+                <th className="px-6 py-4 text-[0.65rem] font-semibold uppercase tracking-widest text-text-muted">{t('s.total')}</th>
+                <th className="px-6 py-4 text-[0.65rem] font-semibold uppercase tracking-widest text-text-muted w-16"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
@@ -482,7 +430,7 @@ const StockEntryPanel = () => {
                         onChange={e => updateItem(item.productId, 'cost', parseInt(e.target.value) || 0)}
                         disabled={isSaved}
                       />
-                      <span className="text-[0.6rem] opacity-30 font-bold uppercase">FCFA</span>
+                      <span className="text-[0.6rem] opacity-30 font-bold uppercase">{t('s.fcfa')}</span>
                     </div>
                   </td>
                   <td className="px-6 py-4 font-black text-text-heading">
@@ -493,7 +441,7 @@ const StockEntryPanel = () => {
                       onClick={() => removeRow(item.productId)}
                       className="p-2 text-red-500/50 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all"
                     >
-                      <Trash2 size={16} />
+                      <DeleteOutlined style={{ fontSize: 16 }} />
                     </button>
                   </td>
                 </tr>
@@ -501,7 +449,7 @@ const StockEntryPanel = () => {
               {entryItems.length === 0 && (
                 <tr>
                   <td colSpan="5" className="px-6 py-12 text-center opacity-30 italic text-sm">
-                    Aucun article ajouté. Recherchez un produit ci-dessus pour commencer.
+                    {t('s.aucun_article_ajoute_recherchez_un_produit_c')}
                   </td>
                 </tr>
               )}
@@ -509,7 +457,7 @@ const StockEntryPanel = () => {
             {entryItems.length > 0 && (
               <tfoot className="bg-primary/5">
                 <tr>
-                  <td colSpan="3" className="px-6 py-5 text-right font-black text-text-muted uppercase tracking-widest text-[0.7rem]">Montant Total du Bon :</td>
+                  <td colSpan="3" className="px-6 py-5 text-right font-semibold text-text-muted uppercase tracking-widest text-[0.7rem]">{t('s.montant_total_du_bon')}</td>
                   <td colSpan="2" className="px-6 py-5 text-xl font-black text-primary">{formatPrice(totalAmount)}</td>
                 </tr>
               </tfoot>
@@ -524,31 +472,31 @@ const StockEntryPanel = () => {
 
       {showQuickAdd && (
         <Modal
-          title="Création Rapide de Produit"
+          title={t('s.creation_rapide_de_produit')}
           onClose={() => setShowQuickAdd(false)}
           footer={<div className="flex justify-end gap-3">
-            <Button onClick={() => setShowQuickAdd(false)}>Annuler</Button>
-            <Button type="primary" onClick={handleQuickAdd} className="bg-primary text-black border-none font-bold">Créer le Produit</Button>
+            <Button onClick={() => setShowQuickAdd(false)}>{t('s.annuler')}</Button>
+            <Button type="primary" onClick={handleQuickAdd} className="bg-primary text-white border-none">{t('s.creer_le_produit')}</Button>
           </div>}
         >
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <Input
-                label="Référence du Produit"
+                label={t('s.reference_du_produit')}
                 value={quickForm.name}
                 onChange={e => setQuickForm({ ...quickForm, name: e.target.value })}
-                placeholder="Ex: REF001"
+                placeholder={t('s.ex_ref001')}
               />
               <Input
-                label="Désignation"
+                label={t('s.designation')}
                 value={quickForm.designation}
                 onChange={e => setQuickForm({ ...quickForm, designation: e.target.value })}
-                placeholder="Ex: Riz 50kg"
+                placeholder={t('s.ex_riz_50kg')}
               />
             </div>
             {!isAddingNewCategory ? (
               <MySelect
-                label="Catégorie"
+                label={t('s.categorie')}
                 value={quickForm.category}
                 onChange={val => {
                   if (val === 'ADD_NEW') {
@@ -557,36 +505,36 @@ const StockEntryPanel = () => {
                     setQuickForm({ ...quickForm, category: val });
                   }
                 }}
-                options={[...categories, { label: '+ Nouveau...', value: 'ADD_NEW' }]}
-                placeholder="Sélectionner..."
+                options={[...categories, { label: t('s.nouveau'), value: 'ADD_NEW' }]}
+                placeholder={t('s.selectionner')}
               />
             ) : (
               <div className="space-y-2">
                 <Input
-                  label="Nouvelle Catégorie"
+                  label={t('s.nouvelle_categorie')}
                   value={newCategory}
                   onChange={e => setNewCategory(e.target.value)}
-                  placeholder="Ex: Surgelés, Electronique..."
+                  placeholder={t('s.ex_surgeles_electronique')}
                   autoFocus
                 />
                 <button 
                   className="text-primary text-[0.7rem] font-bold uppercase tracking-wider hover:underline"
                   onClick={() => setIsAddingNewCategory(false)}
                 >
-                  Choisir une catégorie existante
+                  {t('s.choisir_une_categorie_existante')}
                 </button>
               </div>
             )}
             <div className="grid grid-cols-2 gap-4">
               <Input
-                label="Prix de Vente (PV)"
+                label={t('s.prix_de_vente_pv')}
                 type="number"
                 value={quickForm.price}
                 onChange={e => setQuickForm({ ...quickForm, price: e.target.value })}
                 placeholder="0"
               />
               <Input
-                label="Prix d'Achat (PA)"
+                label={t('s.prix_d_achat_pa')}
                 type="number"
                 value={quickForm.cost}
                 onChange={e => setQuickForm({ ...quickForm, cost: e.target.value })}
@@ -595,13 +543,13 @@ const StockEntryPanel = () => {
             </div>
 
             <div className="space-y-2 pt-2 border-t border-black/5 dark:border-white/5">
-              <label className="text-[0.65rem] font-black text-text-muted uppercase tracking-widest px-1">Image du Produit</label>
+              <label className="text-[0.65rem] font-semibold text-text-muted uppercase tracking-widest px-1">{t('s.image_du_produit')}</label>
               <div className="flex items-center gap-4 p-4 bg-black/5 dark:bg-white/5 border border-dashed border-black/20 dark:border-white/20 rounded-2xl">
                 <div className="w-16 h-16 rounded-xl overflow-hidden bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5 flex items-center justify-center flex-shrink-0">
                   {quickForm.image ? (
                     <img src={quickForm.image} alt="Preview" className="w-full h-full object-cover" />
                   ) : (
-                    <Package size={20} className="opacity-20" />
+                    <InboxOutlined style={{ fontSize: 20 }} className="opacity-20" />
                   )}
                 </div>
                 <div className="flex-1 space-y-1">
@@ -623,9 +571,9 @@ const StockEntryPanel = () => {
                   />
                   <label 
                     htmlFor="quick-product-image"
-                    className="inline-flex items-center gap-2 px-3 py-1.5 bg-primary text-black text-[0.6rem] font-black rounded-lg cursor-pointer hover:bg-primary/90 transition-all uppercase tracking-tighter"
+                    className="inline-flex items-center gap-2 px-3 py-1.5 bg-primary text-white text-[0.6rem] font-semibold rounded-lg cursor-pointer hover:bg-primary/90 transition-all uppercase tracking-tighter"
                   >
-                    Sélectionner Image
+                    {t('s.selectionner_image')}
                   </label>
                 </div>
                 {quickForm.image && (
@@ -633,7 +581,7 @@ const StockEntryPanel = () => {
                     onClick={() => setQuickForm({ ...quickForm, image: '' })}
                     className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
                   >
-                    <Trash2 size={14} />
+                    <DeleteOutlined style={{ fontSize: 14 }} />
                   </button>
                 )}
               </div>
@@ -648,14 +596,9 @@ const StockEntryPanel = () => {
           onClose={() => setSelectedPastEntry(null)}
           footer={
             <div className="flex justify-end gap-3">
-              <Button onClick={() => setSelectedPastEntry(null)}>Fermer</Button>
-              <Button 
-                type="primary" 
-                icon={<Printer size={16} />} 
-                onClick={() => window.print()}
-                className="bg-primary text-black border-none font-bold"
-              >
-                Imprimer ce Bon
+              <Button onClick={() => setSelectedPastEntry(null)}>{t('s.fermer')}</Button>
+              <Button type="primary" icon={<PrinterOutlined style={{ fontSize: 16 }} />} onClick={() => window.print()} className="bg-primary text-white border-none" >
+                {t('s.imprimer_ce_bon')}
               </Button>
             </div>
           }
@@ -663,31 +606,31 @@ const StockEntryPanel = () => {
           <div className="space-y-6">
             <div className="grid grid-cols-2 gap-5 p-6 bg-gradient-to-br from-primary/10 to-primary/5 rounded-2xl border border-primary/20 shadow-inner">
               <div>
-                <p className="text-[0.7rem] font-black text-primary/80 uppercase tracking-widest mb-1">Fournisseur</p>
+                <p className="text-[0.7rem] font-semibold text-primary/80 uppercase tracking-widest mb-1">{t('s.fournisseur_2')}</p>
                 <p className="font-black text-lg text-text-heading drop-shadow-sm">{selectedPastEntry.supplier}</p>
               </div>
               <div>
-                <p className="text-[0.7rem] font-black text-primary/80 uppercase tracking-widest mb-1">Date</p>
+                <p className="text-[0.7rem] font-semibold text-primary/80 uppercase tracking-widest mb-1">{t('s.date')}</p>
                 <p className="font-bold text-text-heading">{new Date(selectedPastEntry.date).toLocaleDateString('fr-FR')}</p>
               </div>
               <div>
-                <p className="text-[0.7rem] font-black text-primary/80 uppercase tracking-widest mb-1">N° BL / Référence</p>
+                <p className="text-[0.7rem] font-semibold text-primary/80 uppercase tracking-widest mb-1">{t('s.n_bl_reference')}</p>
                 <p className="font-bold text-text-heading">{selectedPastEntry.noteNumber || selectedPastEntry.reference}</p>
               </div>
               <div>
-                <p className="text-[0.7rem] font-black text-primary/80 uppercase tracking-widest mb-1">Magasin</p>
+                <p className="text-[0.7rem] font-semibold text-primary/80 uppercase tracking-widest mb-1">{t('s.magasin')}</p>
                 <p className="font-bold text-text-heading">{stores.find(s => s.id === selectedPastEntry.storeId)?.name}</p>
               </div>
             </div>
 
-            <div className="overflow-x-auto custom-scrollbar rounded-2xl border border-primary/20 bg-white/5 shadow-xl">
+            <div className="overflow-x-auto custom-scrollbar rounded-xl border border-primary/20 bg-white/5 shadow-sm">
               <table className="w-full min-w-[500px] text-left">
                 <thead className="bg-primary/10 border-b border-primary/20">
                   <tr>
-                    <th className="px-5 py-4 text-[0.7rem] font-black uppercase tracking-widest text-primary">Article</th>
-                    <th className="px-5 py-4 text-[0.7rem] font-black uppercase tracking-widest text-primary text-center">Qté</th>
-                    <th className="px-5 py-4 text-[0.7rem] font-black uppercase tracking-widest text-primary text-right">Prix Achat</th>
-                    <th className="px-5 py-4 text-[0.7rem] font-black uppercase tracking-widest text-primary text-right">Total</th>
+                    <th className="px-5 py-4 text-[0.7rem] font-semibold uppercase tracking-widest text-primary">{t('s.article')}</th>
+                    <th className="px-5 py-4 text-[0.7rem] font-semibold uppercase tracking-widest text-primary text-center">{t('s.qte')}</th>
+                    <th className="px-5 py-4 text-[0.7rem] font-semibold uppercase tracking-widest text-primary text-right">{t('s.prix_achat')}</th>
+                    <th className="px-5 py-4 text-[0.7rem] font-semibold uppercase tracking-widest text-primary text-right">{t('s.total')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-primary/10">
@@ -696,13 +639,13 @@ const StockEntryPanel = () => {
                       <td className="px-5 py-4 font-bold text-sm text-text-heading">{item.name}</td>
                       <td className="px-5 py-4 text-center font-bold text-sm bg-primary/5">{item.quantity}</td>
                       <td className="px-5 py-4 text-right font-medium text-sm text-text-heading">{formatPrice(item.cost)}</td>
-                      <td className="px-5 py-4 text-right font-black text-sm text-primary">{formatPrice(item.quantity * item.cost)}</td>
+                      <td className="px-5 py-4 text-right font-semibold text-sm text-primary">{formatPrice(item.quantity * item.cost)}</td>
                     </tr>
                   ))}
                 </tbody>
                 <tfoot className="bg-gradient-to-r from-primary/10 to-primary/20 border-t border-primary/20">
                   <tr>
-                    <td colSpan="3" className="px-5 py-5 text-right font-black text-primary/80 uppercase tracking-widest text-[0.7rem]">Montant Total :</td>
+                    <td colSpan="3" className="px-5 py-5 text-right font-semibold text-primary/80 uppercase tracking-widest text-[0.7rem]">{t('s.montant_total_2')}</td>
                     <td className="px-5 py-5 text-right font-black text-primary text-xl drop-shadow-md">{formatPrice(selectedPastEntry.totalCost)}</td>
                   </tr>
                 </tfoot>
@@ -739,30 +682,30 @@ const StockEntryPanel = () => {
               ? stores.find(s => s.id === selectedPastEntry.storeId)?.name 
               : currentStore?.name) || 'STOCK EXPERT'}
           </h1>
-          <h2 style={{ margin: '10px 0', fontSize: '18pt' }}>BON D'ENTRÉE DE MARCHANDISE</h2>
-          <p style={{ fontSize: '10pt', color: '#666' }}>Document de réception de stock</p>
+          <h2 style={{ margin: '10px 0', fontSize: '18pt' }}>{t('s.bon_d_entree_de_marchandise')}</h2>
+          <p style={{ fontSize: '10pt', color: '#666' }}>{t('s.document_de_reception_de_stock')}</p>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '40px', marginBottom: '40px' }}>
           <div style={{ padding: '20px', border: '1px solid #ddd', borderRadius: '10px' }}>
-            <p style={{ margin: '0 0 10px 0', fontSize: '8pt', fontWeight: 'bold', color: '#888' }}>FOURNISSEUR</p>
+            <p style={{ margin: '0 0 10px 0', fontSize: '8pt', fontWeight: 'bold', color: '#888' }}>{t('s.fournisseur')}</p>
             <p style={{ margin: 0, fontSize: '14pt', fontWeight: 'bold' }}>{(activeMode === 'history' && selectedPastEntry) ? selectedPastEntry.supplier : (supplier || 'Non spécifié')}</p>
           </div>
           <div style={{ padding: '20px', border: '1px solid #ddd', borderRadius: '10px' }}>
-            <p style={{ margin: '0 0 10px 0', fontSize: '8pt', fontWeight: 'bold', color: '#888' }}>INFORMATIONS BON</p>
-            <p style={{ margin: '0 0 5px 0' }}><strong>N° Bon Livraison :</strong> {(activeMode === 'history' && selectedPastEntry) ? selectedPastEntry.noteNumber : (noteNumber || 'N/A')}</p>
-            <p style={{ margin: '0 0 5px 0' }}><strong>Date :</strong> {(activeMode === 'history' && selectedPastEntry) ? new Date(selectedPastEntry.date).toLocaleDateString('fr-FR') : new Date().toLocaleDateString('fr-FR')}</p>
-            <p style={{ margin: 0 }}><strong>Magasin :</strong> {(activeMode === 'history' && selectedPastEntry) ? stores.find(s => s.id === selectedPastEntry.storeId)?.name : currentStore?.name}</p>
+            <p style={{ margin: '0 0 10px 0', fontSize: '8pt', fontWeight: 'bold', color: '#888' }}>{t('s.informations_bon')}</p>
+            <p style={{ margin: '0 0 5px 0' }}><strong>{t('s.n_bon_livraison')}</strong> {(activeMode === 'history' && selectedPastEntry) ? selectedPastEntry.noteNumber : (noteNumber || 'N/A')}</p>
+            <p style={{ margin: '0 0 5px 0' }}><strong>{t('s.date_2')}</strong> {(activeMode === 'history' && selectedPastEntry) ? new Date(selectedPastEntry.date).toLocaleDateString('fr-FR') : new Date().toLocaleDateString('fr-FR')}</p>
+            <p style={{ margin: 0 }}><strong>{t('s.magasin_2')}</strong> {(activeMode === 'history' && selectedPastEntry) ? stores.find(s => s.id === selectedPastEntry.storeId)?.name : currentStore?.name}</p>
           </div>
         </div>
 
         <table>
           <thead>
             <tr>
-              <th>Désignation de l'Article</th>
-              <th>Quantité</th>
-              <th>Prix d'Achat Unit.</th>
-              <th>Total Ligne</th>
+              <th>{t('s.designation_de_l_article')}</th>
+              <th>{t('s.quantite')}</th>
+              <th>{t('s.prix_d_achat_unit')}</th>
+              <th>{t('s.total_ligne')}</th>
             </tr>
           </thead>
           <tbody>
@@ -777,7 +720,7 @@ const StockEntryPanel = () => {
           </tbody>
           <tfoot>
             <tr>
-              <td colSpan="3" style={{ textAlign: 'right', fontWeight: 'bold', fontSize: '12pt' }}>MONTANT TOTAL GÉNÉRAL :</td>
+              <td colSpan="3" style={{ textAlign: 'right', fontWeight: 'bold', fontSize: '12pt' }}>{t('s.montant_total_general')}</td>
               <td style={{ textAlign: 'right', fontWeight: 'bold', fontSize: '14pt' }}>{formatPrice((activeMode === 'history' && selectedPastEntry) ? selectedPastEntry.totalCost : totalAmount)}</td>
             </tr>
           </tfoot>
@@ -785,11 +728,11 @@ const StockEntryPanel = () => {
 
         <div style={{ marginTop: '80px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '100px', textAlign: 'center' }}>
           <div>
-            <p style={{ fontWeight: 'bold', textDecoration: 'underline' }}>Le Chef d'Agence</p>
+            <p style={{ fontWeight: 'bold', textDecoration: 'underline' }}>{t('s.le_chef_d_agence')}</p>
             <p style={{ fontSize: '8pt', color: '#aaa', marginTop: '60px' }}>(Signature et Cachet)</p>
           </div>
           <div>
-            <p style={{ fontWeight: 'bold', textDecoration: 'underline' }}>Le Chef Magasinier</p>
+            <p style={{ fontWeight: 'bold', textDecoration: 'underline' }}>{t('s.le_chef_magasinier')}</p>
             <p style={{ fontSize: '8pt', color: '#aaa', marginTop: '60px' }}>(Signature et Cachet)</p>
           </div>
         </div>

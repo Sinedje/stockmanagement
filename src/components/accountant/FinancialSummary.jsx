@@ -1,97 +1,89 @@
-import React from 'react';
+import { useT } from '../../i18n/I18nContext';
+import React, { useMemo, useState } from 'react';
 import { formatPrice } from '../../context/StoreContext';
 import { useSales, useProducts } from '../../hooks';
 import StatsCard from '../common/StatsCard';
-import Card from '../common/Card';
-import { DollarSign, TrendingUp, ShoppingCart, Package, ArrowUpRight, ArrowDownRight, BarChart3 } from 'lucide-react';
+import Widget, { WidgetRow, makeNavigator } from '../common/Widget';
+import { BarChartOutlined, DollarOutlined, GroupOutlined, InboxOutlined, RiseOutlined, ShoppingCartOutlined } from '@ant-design/icons';
 
-const FinancialSummary = () => {
+const FinancialSummary = ({ onNavigate, availableTabs }) => {
+  const t = useT();
+  const go = makeNavigator(onNavigate, availableTabs);
   const { totalRevenue, todayRevenue, todaySales, sales } = useSales();
   const { totalStockValue, products } = useProducts();
 
-  const totalCost = sales.reduce((sum, s) => {
-    return sum + s.items.reduce((itemSum, item) => {
+  // Marge réelle : basée sur le coût d'achat de chaque article vendu.
+  const totalCost = useMemo(() => sales.reduce((sum, s) =>
+    sum + s.items.reduce((itemSum, item) => {
       const product = products.find(p => p.id === item.productId);
       return itemSum + (product ? product.cost * item.quantity : 0);
-    }, 0);
-  }, 0);
-  const totalProfit = totalRevenue - totalCost;
-  const margin = totalRevenue > 0 ? ((totalProfit / totalRevenue) * 100).toFixed(1) : 0;
+    }, 0), 0), [sales, products]);
 
-  const last7Days = sales.filter(s => {
-    const d = new Date(s.date);
-    const now = new Date();
-    return (now - d) / (1000 * 60 * 60 * 24) <= 7;
-  });
-  const revenue7d = last7Days.reduce((s, sale) => s + sale.total, 0);
+  const totalProfit = totalRevenue - totalCost;
+  const margin = totalRevenue > 0 ? ((totalProfit / totalRevenue) * 100).toFixed(1) : '0';
+
+  // Horodatage figé au montage : lire l'heure pendant le rendu rendrait celui-ci impur.
+  const [mountedAt] = useState(() => Date.now());
+  const revenue7d = useMemo(() => {
+    const cutoff = mountedAt - 7 * 24 * 60 * 60 * 1000;
+    return sales.filter(s => new Date(s.date).getTime() >= cutoff).reduce((sum, s) => sum + s.total, 0);
+  }, [sales, mountedAt]);
+
+  // Récapitulatif : cinq lignes, comme les autres widgets.
+  const summaryRows = [
+    { id: 'ca', label: t('s.chiffre_d_affaires_total'), value: formatPrice(totalRevenue), cls: 'text-primary' },
+    { id: 'cost', label: t('s.cout_des_marchandises'), value: formatPrice(totalCost), cls: 'text-red-500' },
+    { id: 'profit', label: t('s.benefice_brut'), value: formatPrice(totalProfit), cls: 'text-primary' },
+    { id: 'r7', label: 'Revenu 7 derniers jours', value: formatPrice(revenue7d), cls: 'text-blue-500' },
+    { id: 'count', label: t('s.nombre_de_ventes'), value: sales.length, cls: 'text-text-heading' },
+  ];
+
+  const categoryRows = useMemo(() => {
+    const byCategory = new Map();
+    sales.forEach(s => s.items.forEach(item => {
+      const product = products.find(p => p.id === item.productId);
+      if (!product) return;
+      const key = product.category || 'Sans catégorie';
+      byCategory.set(key, (byCategory.get(key) || 0) + item.price * item.quantity);
+    }));
+    return [...byCategory.entries()]
+      .map(([name, value]) => ({ id: name, name, value }))
+      .sort((a, b) => b.value - a.value);
+  }, [sales, products]);
+
+  const maxCategory = categoryRows[0]?.value || 1;
 
   return (
-    <div className="animate-fade-in space-y-6">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatsCard icon={DollarSign} label="Revenu Total" value={formatPrice(totalRevenue)} color="green" accentColor="#10b981" change="+12%" />
-        <StatsCard icon={TrendingUp} label="Bénéfice Net" value={formatPrice(totalProfit)} color="green" accentColor="#22c55e" change={`${margin}% marge`} />
-        <StatsCard icon={ShoppingCart} label="Revenu Aujourd'hui" value={formatPrice(todayRevenue)} color="blue" accentColor="#3b82f6" change={`${todaySales.length} ventes`} />
-        <StatsCard icon={Package} label="Valeur du Stock" value={formatPrice(totalStockValue)} color="purple" accentColor="#8b5cf6" />
+    <div className="animate-fade-in space-y-5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <StatsCard icon={DollarOutlined} label={t('s.revenu_total')} value={formatPrice(totalRevenue)} accentColor="#10b981" />
+        <StatsCard icon={RiseOutlined} label={t('s.benefice_net')} value={formatPrice(totalProfit)} accentColor="#22c55e" change={`${margin} % de marge`} />
+        <StatsCard icon={ShoppingCartOutlined} label={t('s.revenu_aujourd_hui')} value={formatPrice(todayRevenue)} accentColor="#3b82f6" change={`${todaySales.length} vente${todaySales.length > 1 ? 's' : ''}`} />
+        <StatsCard icon={InboxOutlined} label={t('s.valeur_du_stock')} value={formatPrice(totalStockValue)} accentColor="#8b5cf6" />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card title="Résumé Financier" icon={BarChart3}>
-          <div className="space-y-4">
-            {[
-              { label: 'Chiffre d\'affaires total', value: formatPrice(totalRevenue), color: 'text-primary', icon: ArrowUpRight, iconColor: '#10b981' },
-              { label: 'Coût total des marchandises', value: formatPrice(totalCost), color: 'text-red-500', icon: ArrowDownRight, iconColor: '#ef4444' },
-              { label: 'Bénéfice brut', value: formatPrice(totalProfit), color: 'text-primary', icon: ArrowUpRight, iconColor: '#10b981' },
-              { label: 'Revenu 7 derniers jours', value: formatPrice(revenue7d), color: 'text-blue-500', icon: TrendingUp, iconColor: '#3b82f6' },
-              { label: 'Nombre total de ventes', value: sales.length, color: 'text-purple-500', icon: ShoppingCart, iconColor: '#8b5cf6' },
-              { label: 'Marge bénéficiaire', value: `${margin}%`, color: 'text-primary', icon: TrendingUp, iconColor: '#10b981' },
-            ].map((row, i) => (
-              <div key={i} className="flex justify-between items-center py-2 border-b border-white/5 last:border-0">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center">
-                    <row.icon size={14} style={{ color: row.iconColor }} />
-                  </div>
-                  <span className="text-[0.85rem] text-text-secondary font-medium">{row.label}</span>
-                </div>
-                <span className={`text-[0.95rem] font-black ${row.color}`}>{row.value}</span>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <Widget
+          title={t('s.recapitulatif_financier')} icon={BarChartOutlined} accentColor="#10b981"
+          items={summaryRows}
+          onSeeMore={go('transactions')} seeMoreLabel={t('s.voir_les_transactions')}
+          renderItem={(row) => <WidgetRow label={row.label} value={row.value} valueClassName={row.cls} />}
+        />
+
+        <Widget
+          title={t('s.ventes_par_categorie')} icon={GroupOutlined} accentColor="#3b82f6"
+          items={categoryRows}
+          onSeeMore={go('movements')} seeMoreLabel={t('s.mouvements_de_stock')}
+          emptyText={t('s.aucune_donnee_de_vente')}
+          renderItem={(c) => (
+            <div>
+              <WidgetRow label={c.name} value={formatPrice(c.value)} valueClassName="text-primary" />
+              <div className="h-1 mt-1.5 rounded-full bg-black/5 dark:bg-white/10 overflow-hidden">
+                <div className="h-full rounded-full bg-primary" style={{ width: `${(c.value / maxCategory) * 100}%` }} />
               </div>
-            ))}
-          </div>
-        </Card>
-
-        <Card title="Ventes par Catégorie" icon={TrendingUp}>
-          <div className="space-y-6 py-2">
-            {(() => {
-              const catSales = {};
-              sales.forEach(s => {
-                s.items.forEach(item => {
-                  const product = products.find(p => p.id === item.productId);
-                  if (product) {
-                    catSales[product.category] = (catSales[product.category] || 0) + item.price * item.quantity;
-                  }
-                });
-              });
-              const sortedCats = Object.entries(catSales).sort((a, b) => b[1] - a[1]);
-              const maxVal = Math.max(...Object.values(catSales), 1);
-              
-              if (sortedCats.length === 0) return <div className="text-center text-text-muted py-8 italic">Aucune donnée de vente disponible.</div>;
-
-              return sortedCats.map(([cat, val]) => (
-                <div key={cat} className="group">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-[0.85rem] font-bold text-text-heading group-hover:text-primary transition-colors">{cat}</span>
-                    <span className="text-[0.85rem] font-black text-primary">{formatPrice(val)}</span>
-                  </div>
-                  <div className="h-2.5 bg-black/30 rounded-full border border-white/5 overflow-hidden p-[2px]">
-                    <div 
-                      className="h-full rounded-full bg-gradient-to-r from-primary-dark via-primary to-primary-light shadow-[0_0_10px_rgba(16,185,129,0.3)] transition-all duration-1000 ease-out" 
-                      style={{ width: `${(val / maxVal) * 100}%` }} 
-                    />
-                  </div>
-                </div>
-              ));
-            })()}
-          </div>
-        </Card>
+            </div>
+          )}
+        />
       </div>
     </div>
   );

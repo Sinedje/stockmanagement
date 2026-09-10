@@ -1,10 +1,13 @@
+import { useT } from '../../i18n/I18nContext';
+import { Toolbar, Panel, Table, Button } from '../ui';
+import Modal from '../common/Modal';
 import React, { useState, useMemo } from 'react';
 import { useStores, useProducts } from '../../hooks';
-import { ArrowRightLeft, Plus, CheckCircle, Package, Search, Printer, ArrowRight, ArrowDownToLine, ArrowUpFromLine, FileText } from 'lucide-react';
-import { Button, message, Popconfirm, Tag, Modal, Select, InputNumber } from 'antd';
-import DataTable from '../common/DataTable';
+import { ArrowRightOutlined, CheckCircleOutlined, FileTextOutlined, InboxOutlined, PlusOutlined, PrinterOutlined, SearchOutlined, SwapOutlined, VerticalAlignBottomOutlined, VerticalAlignTopOutlined } from '@ant-design/icons';
+import { InputNumber, Popconfirm, Segmented, Select, Tag, message } from 'antd';
 
 const TransferManager = () => {
+  const t = useT();
   const { 
     transfers, 
     activeStoreId, 
@@ -110,24 +113,24 @@ const TransferManager = () => {
           </style>
         </head>
         <body>
-          <h1>BON DE TRANSFERT INTERNE</h1>
+          <h1>{t('s.bon_de_transfert_interne')}</h1>
           <div class="meta">
             <div class="meta-box">
-              <strong>Réf :</strong> ${transfer.reference}<br/>
-              <strong>Date :</strong> ${new Date(transfer.date).toLocaleDateString()}<br/>
-              <strong>Statut :</strong> ${transfer.status === 'completed' ? 'Réceptionné' : 'En transit'}
+              <strong>{t('s.ref')}</strong> ${transfer.reference}<br/>
+              <strong>{t('s.date_2')}</strong> ${new Date(transfer.date).toLocaleDateString()}<br/>
+              <strong>{t('s.statut_2')}</strong> ${transfer.status === 'completed' ? 'Réceptionné' : 'En transit'}
             </div>
             <div class="meta-box">
-              <strong>De :</strong> ${fromStore}<br/>
-              <strong>Vers :</strong> ${toStore}<br/>
-              <strong>Initié par :</strong> ${transfer.initiatedBy}
+              <strong>{t('s.de')}</strong> ${fromStore}<br/>
+              <strong>{t('s.vers')}</strong> ${toStore}<br/>
+              <strong>{t('s.initie_par')}</strong> ${transfer.initiatedBy}
             </div>
           </div>
           <table>
             <thead>
               <tr>
-                <th>Article</th>
-                <th>Quantité</th>
+                <th>{t('s.article')}</th>
+                <th>{t('s.quantite')}</th>
               </tr>
             </thead>
             <tbody>
@@ -140,8 +143,8 @@ const TransferManager = () => {
             </tbody>
           </table>
           <div class="footer">
-            <div class="signature">Signature Expéditeur</div>
-            <div class="signature">Signature Réceptionnaire</div>
+            <div class="signature">{t('s.signature_expediteur')}</div>
+            <div class="signature">{t('s.signature_receptionnaire')}</div>
           </div>
           <script>window.onload = () => window.print();</script>
         </body>
@@ -153,12 +156,12 @@ const TransferManager = () => {
   const columns = [
     { 
       key: 'reference', 
-      title: 'Référence', 
+      title: t('s.reference'), 
       render: (val) => <span className="font-bold text-text-heading">{val}</span> 
     },
     { 
       key: 'date', 
-      title: 'Date', 
+      title: t('s.date'), 
       render: (val) => <span className="text-sm">{new Date(val).toLocaleDateString()}</span> 
     },
     {
@@ -172,7 +175,7 @@ const TransferManager = () => {
     },
     {
       key: 'items',
-      title: 'Articles',
+      title: t('s.articles'),
       render: (items) => (
         <div className="flex flex-col gap-1">
           {items.map((i, idx) => (
@@ -185,35 +188,30 @@ const TransferManager = () => {
     },
     {
       key: 'status',
-      title: 'Statut',
+      title: t('s.statut'),
       render: (val) => {
-        if (val === 'completed') return <Tag color="success">Réceptionné</Tag>;
-        return <Tag color="processing">En transit</Tag>;
+        if (val === 'completed') return <Tag color="success">{t('s.receptionne')}</Tag>;
+        return <Tag color="processing">{t('s.en_transit')}</Tag>;
       }
     },
     {
       key: 'actions',
-      title: 'Actions',
+      title: t('s.actions'),
       render: (_, record) => (
         <div className="flex items-center gap-2">
-          <Button 
-            size="small" 
-            icon={<Printer size={14} />} 
-            onClick={() => handlePrintTransfer(record)}
-            title="Imprimer le bon"
-          />
+          <Button icon={<PrinterOutlined style={{ fontSize: 14 }} />} onClick={() => handlePrintTransfer(record)} title={t('s.imprimer_le_bon')} />
           {activeTab === 'incoming' && record.status === 'in_transit' && (
             <Popconfirm
-              title="Confirmer la réception ?"
-              description="Les articles seront ajoutés à votre stock."
+              title={t('s.confirmer_la_reception')}
+              description={t('s.les_articles_seront_ajoutes_a_votre_stock')}
               onConfirm={() => {
                 receiveTransfer(record.id);
                 message.success('Réception validée !');
               }}
-              okText="Oui, recevoir"
-              cancelText="Annuler"
+              okText={t('s.oui_recevoir')}
+              cancelText={t('s.annuler')}
             >
-              <Button type="primary" size="small" className="bg-emerald-500 hover:bg-emerald-600 border-none">
+              <Button type="primary" className="bg-emerald-500 hover:bg-emerald-600 border-none">
                 Recevoir
               </Button>
             </Popconfirm>
@@ -224,99 +222,70 @@ const TransferManager = () => {
   ];
 
   return (
-    <div className="animate-fade-in space-y-6">
-      <div className="bg-bg-card border border-black/5 dark:border-white/5 rounded-3xl p-8 shadow-xl">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
-              <ArrowRightLeft size={24} />
-            </div>
-            <div>
-              <h2 className="text-2xl font-black text-text-heading tracking-tight">Transferts Inter-Magasins</h2>
-              <p className="text-[0.7rem] text-text-muted font-black uppercase tracking-widest">
-                Gérer les mouvements de stock
-              </p>
-            </div>
-          </div>
-          <Button 
-            type="primary" 
-            icon={<Plus size={18} />} 
-            onClick={() => setIsModalVisible(true)}
-            className="h-11 px-6 rounded-xl font-bold shadow-lg shadow-primary/20"
-          >
-            Nouveau Transfert
-          </Button>
-        </div>
-
-        {/* Custom Tabs */}
-        <div className="flex gap-4 mb-6 border-b border-black/5 dark:border-white/5 pb-2">
-          <button
-            onClick={() => setActiveTab('outgoing')}
-            className={`pb-2 px-4 text-sm font-bold uppercase tracking-wider transition-all duration-300 relative ${
-              activeTab === 'outgoing' ? 'text-primary' : 'text-text-muted hover:text-text-primary'
-            }`}
-          >
-            <div className="flex items-center gap-2">
-              <ArrowUpFromLine size={16} />
-              Sortants
-              {outgoingTransfers.filter(t => t.status === 'in_transit').length > 0 && (
-                <span className="bg-primary/20 text-primary px-2 py-0.5 rounded-full text-xs">
-                  {outgoingTransfers.filter(t => t.status === 'in_transit').length}
+    <div className="animate-fade-in space-y-4">
+      {/* Commandes : onglets de sens + création — carte distincte du tableau */}
+      <Toolbar right={<Button type="primary" icon={<PlusOutlined />} onClick={() => setIsModalVisible(true)}>{t('s.nouveau_transfert')}</Button>}>
+        <Segmented
+          value={activeTab}
+          onChange={setActiveTab}
+          options={[
+            {
+              value: 'outgoing',
+              label: (
+                <span className="flex items-center gap-1.5">
+                  <VerticalAlignTopOutlined /> Sortants
+                  {outgoingTransfers.filter(t => t.status === 'in_transit').length > 0 && (
+                    <span className="bg-primary/20 text-primary px-1.5 rounded text-[0.65rem]">
+                      {outgoingTransfers.filter(t => t.status === 'in_transit').length}
+                    </span>
+                  )}
                 </span>
-              )}
-            </div>
-            {activeTab === 'outgoing' && (
-              <div className="absolute bottom-0 left-0 w-full h-1 bg-primary rounded-t-full"></div>
-            )}
-          </button>
-          
-          <button
-            onClick={() => setActiveTab('incoming')}
-            className={`pb-2 px-4 text-sm font-bold uppercase tracking-wider transition-all duration-300 relative ${
-              activeTab === 'incoming' ? 'text-primary' : 'text-text-muted hover:text-text-primary'
-            }`}
-          >
-            <div className="flex items-center gap-2">
-              <ArrowDownToLine size={16} />
-              Entrants
-              {incomingTransfers.filter(t => t.status === 'in_transit').length > 0 && (
-                <span className="bg-red-500 text-white px-2 py-0.5 rounded-full text-xs animate-pulse">
-                  {incomingTransfers.filter(t => t.status === 'in_transit').length}
+              ),
+            },
+            {
+              value: 'incoming',
+              label: (
+                <span className="flex items-center gap-1.5">
+                  <VerticalAlignBottomOutlined /> Entrants
+                  {incomingTransfers.filter(t => t.status === 'in_transit').length > 0 && (
+                    <span className="bg-red-500 text-white px-1.5 rounded text-[0.65rem]">
+                      {incomingTransfers.filter(t => t.status === 'in_transit').length}
+                    </span>
+                  )}
                 </span>
-              )}
-            </div>
-            {activeTab === 'incoming' && (
-              <div className="absolute bottom-0 left-0 w-full h-1 bg-primary rounded-t-full"></div>
-            )}
-          </button>
-        </div>
+              ),
+            },
+          ]}
+        />
+      </Toolbar>
 
-        <DataTable 
-          columns={columns} 
-          data={displayedTransfers} 
-          emptyIcon={FileText}
-          emptyTitle="Aucun transfert"
+      {/* Données */}
+      <Panel noPadding>
+        <Table
+          columns={columns}
+          data={displayedTransfers}
+          emptyIcon={FileTextOutlined}
+          emptyTitle={t('s.aucun_transfert')}
           emptyDescription={`Vous n'avez aucun transfert ${activeTab === 'outgoing' ? 'sortant' : 'entrant'} pour le moment.`}
         />
-      </div>
+      </Panel>
 
       {/* Modal Nouveau Transfert */}
       <Modal
         title={
           <div className="flex items-center gap-2 text-text-heading font-black text-xl mb-4">
-            <ArrowRightLeft className="text-primary" />
-            Nouveau Transfert
+            <SwapOutlined className="text-primary" />
+            {t('s.nouveau_transfert_2')}
           </div>
         }
         open={isModalVisible}
-        onCancel={() => {
+        onClose={() => {
           setIsModalVisible(false);
           setTransferItems([]);
           setSelectedToStore(null);
         }}
         footer={null}
         width={800}
-        destroyOnClose
       >
         <div className="space-y-6">
           <div className="bg-primary/5 border border-primary/20 rounded-xl p-6">
@@ -324,7 +293,7 @@ const TransferManager = () => {
             <Select
               className="w-full"
               size="large"
-              placeholder="Sélectionnez le magasin de destination"
+              placeholder={t('s.selectionnez_le_magasin_de_destination')}
               value={selectedToStore}
               onChange={setSelectedToStore}
               options={otherStores.map(s => ({ value: s.id, label: s.name }))}
@@ -332,12 +301,12 @@ const TransferManager = () => {
           </div>
 
           <div className="bg-bg-secondary border border-black/5 dark:border-white/5 rounded-xl p-6">
-            <h3 className="text-sm font-bold text-text-heading uppercase tracking-widest mb-4">2. Articles à transférer</h3>
+            <h3 className="text-sm font-bold text-text-heading uppercase tracking-widest mb-4">{t('s.2_articles_a_transferer')}</h3>
             <div className="flex gap-4 mb-4">
               <Select
                 className="flex-1"
                 showSearch
-                placeholder="Rechercher un produit..."
+                placeholder={t('s.rechercher_un_produit')}
                 value={selectedProduct}
                 onChange={setSelectedProduct}
                 options={products.map(p => ({ 
@@ -356,7 +325,7 @@ const TransferManager = () => {
                 className="w-24"
               />
               <Button type="primary" onClick={handleAddItem}>
-                Ajouter
+                {t('s.ajouter')}
               </Button>
             </div>
 
@@ -365,9 +334,9 @@ const TransferManager = () => {
                 <table className="w-full text-sm text-left">
                   <thead className="bg-black/5 dark:bg-white/5 font-bold uppercase tracking-wider text-[0.7rem] text-text-muted">
                     <tr>
-                      <th className="px-4 py-3">Article</th>
-                      <th className="px-4 py-3">Quantité</th>
-                      <th className="px-4 py-3 text-right">Action</th>
+                      <th className="px-4 py-3">{t('s.article')}</th>
+                      <th className="px-4 py-3">{t('s.quantite')}</th>
+                      <th className="px-4 py-3 text-right">{t('s.action')}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-black/5 dark:divide-white/5">
@@ -376,7 +345,7 @@ const TransferManager = () => {
                         <td className="px-4 py-3 font-semibold text-text-primary">{item.name}</td>
                         <td className="px-4 py-3 text-primary font-bold">{item.quantity}</td>
                         <td className="px-4 py-3 text-right">
-                          <Button danger size="small" type="text" onClick={() => handleRemoveItem(item.productId)}>
+                          <Button danger type="text" onClick={() => handleRemoveItem(item.productId)}>
                             Retirer
                           </Button>
                         </td>
@@ -389,14 +358,9 @@ const TransferManager = () => {
           </div>
 
           <div className="flex justify-end gap-3 pt-4 border-t border-black/5 dark:border-white/5">
-            <Button onClick={() => setIsModalVisible(false)}>Annuler</Button>
-            <Button 
-              type="primary" 
-              onClick={handleSubmitTransfer}
-              className="bg-primary hover:bg-primary-dark border-none"
-              disabled={!selectedToStore || transferItems.length === 0}
-            >
-              Créer le transfert
+            <Button onClick={() => setIsModalVisible(false)}>{t('s.annuler')}</Button>
+            <Button type="primary" onClick={handleSubmitTransfer} className="bg-primary hover:bg-primary-dark border-none" disabled={!selectedToStore || transferItems.length === 0} >
+              {t('s.creer_le_transfert')}
             </Button>
           </div>
         </div>

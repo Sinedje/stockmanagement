@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import DashboardLayout from '../components/layouts/DashboardLayout';
+import { useT } from '../i18n/I18nContext';
 import FinancialSummary from '../components/accountant/FinancialSummary';
 import TransactionsTable from '../components/accountant/TransactionsTable';
 import StockMovementsPanel from '../components/accountant/StockMovementsPanel';
@@ -7,51 +8,78 @@ import ReleaseNotes from '../components/manager/ReleaseNotes';
 import ClosureHistory from '../components/common/ClosureHistory';
 import CEODashboardHome from '../components/ceo/DashboardHome';
 import PendingInvoicesPanel from '../components/manager/PendingInvoicesPanel';
-import { BarChart3, Receipt, FileText, ClipboardList, TrendingUp, Truck, FileWarning } from 'lucide-react';
+import { BankOutlined, BarChartOutlined, CarOutlined, CompassOutlined, ExclamationCircleOutlined, FileDoneOutlined, FileTextOutlined, ProfileOutlined, RiseOutlined } from '@ant-design/icons';
 
+// Navigation groupée : chaque section se déplie / replie dans la barre latérale.
 const sidebarItems = [
-  { id: 'summary', label: 'Résumé Financier', icon: BarChart3 },
-  { id: 'strategic', label: 'Vue Stratégique', icon: TrendingUp },
-  { id: 'transactions', label: 'Transactions', icon: Receipt },
-  { id: 'pending_invoices', label: 'Suivi des Factures', icon: FileWarning },
-  { id: 'movements', label: 'Mouvements de Stock', icon: Truck },
-  { id: 'reports', label: 'Liste des Bilans', icon: ClipboardList },
-  { id: 'releases', label: 'Bon de Sortie', icon: FileText },
+  {
+    id: 'grp_pilotage',
+    labelKey: 'nav.group.pilotage',
+    icon: CompassOutlined,
+    children: [
+      { id: 'summary', labelKey: 'nav.summary', icon: BarChartOutlined },
+      { id: 'strategic', labelKey: 'nav.strategic', icon: RiseOutlined },
+    ],
+  },
+  {
+    id: 'grp_flux',
+    labelKey: 'nav.group.sales',
+    icon: FileDoneOutlined,
+    children: [
+      { id: 'transactions', label: 'Transactions', icon: FileDoneOutlined },
+      { id: 'pending_invoices', labelKey: 'nav.pending_invoices', icon: ExclamationCircleOutlined },
+      { id: 'movements', labelKey: 'nav.movements', icon: CarOutlined },
+    ],
+  },
+  {
+    id: 'grp_documents',
+    labelKey: 'nav.group.finance',
+    icon: BankOutlined,
+    children: [
+      { id: 'reports', labelKey: 'nav.reports', icon: ProfileOutlined },
+      { id: 'releases', labelKey: 'nav.releases', icon: FileTextOutlined },
+    ],
+  },
 ];
 
+// Identifiants des onglets réellement présents dans ce menu : les widgets s'en
+// servent pour n'afficher « Voir plus » que vers une page qui existe ici.
+const availableTabs = sidebarItems.flatMap(node => node.children ? node.children.map(c => c.id) : [node.id]);
+
 const AccountantDashboard = () => {
+  const t = useT();
   const [activeTab, setActiveTab] = useState('summary');
 
   const titles = { 
-    summary: 'Résumé Financier', 
-    strategic: 'Vue Stratégique',
-    transactions: 'Historique des Transactions',
-    pending_invoices: 'Suivi des Factures',
-    movements: 'Mouvements de Stock',
-    reports: 'Liste des Bilans de Caisse',
-    releases: 'Bons de Sortie Marchandises'
+    summary: t('s.resume_financier'), 
+    strategic: t('s.vue_strategique'),
+    transactions: t('s.historique_des_transactions'),
+    pending_invoices: t('s.suivi_des_factures'),
+    movements: t('s.mouvements_de_stock_2'),
+    reports: t('s.liste_des_bilans_de_caisse'),
+    releases: t('s.bons_de_sortie_marchandises'),
   };
   const subtitles = { 
-    summary: 'Aperçu de la performance financière', 
-    strategic: 'Performances globales, stocks et analyse du catalogue',
-    transactions: 'Détails de toutes les transactions',
-    pending_invoices: 'Suivi des factures impayées et non livrées',
+    summary: t('s.apercu_de_la_performance_financiere'), 
+    strategic: t('s.performances_globales_stocks_et_analyse_du_c'),
+    transactions: t('s.details_de_toutes_les_transactions'),
+    pending_invoices: t('s.suivi_des_factures_impayees_et_non_livrees'),
     movements: 'Entrées fournisseurs et transferts inter-magasins avec prix d\'achat',
-    reports: 'Historique des clôtures journalières par caisse',
-    releases: 'Suivi et export des sorties marchandises'
+    reports: t('s.historique_des_clotures_journalieres_par_cai'),
+    releases: t('s.suivi_et_export_des_sorties_marchandises'),
   };
 
   return (
     <DashboardLayout
-      items={sidebarItems}
+      items={sidebarItems.map(g => ({ ...g, label: t(g.labelKey), children: g.children?.map(c => ({ ...c, label: t(c.labelKey) })) }))}
       activeItem={activeTab}
       onItemClick={setActiveTab}
-      title={titles[activeTab]}
+      title={t(`nav.${activeTab}`)}
       subtitle={subtitles[activeTab]}
     >
       <div className="animate-fade-in min-h-[600px]">
-        {activeTab === 'summary' && <FinancialSummary />}
-        {activeTab === 'strategic' && <CEODashboardHome />}
+        {activeTab === 'summary' && <FinancialSummary onNavigate={setActiveTab} availableTabs={availableTabs} />}
+        {activeTab === 'strategic' && <CEODashboardHome onNavigate={setActiveTab} availableTabs={availableTabs} />}
         {activeTab === 'transactions' && <TransactionsTable />}
         {activeTab === 'pending_invoices' && <PendingInvoicesPanel />}
         {activeTab === 'movements' && <StockMovementsPanel />}

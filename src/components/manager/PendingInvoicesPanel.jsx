@@ -1,11 +1,13 @@
+import { useT } from '../../i18n/I18nContext';
+import { Table } from '../ui';
 import React, { useState, useMemo } from 'react';
 import { formatPrice } from '../../context/StoreContext';
 import { useSales } from '../../hooks';
-import DataTable from '../common/DataTable';
-import { AlertCircle, Search, FileWarning, Wallet, Truck, Printer } from 'lucide-react';
+import { CarOutlined, ExclamationCircleOutlined, PrinterOutlined, SearchOutlined, WalletOutlined } from '@ant-design/icons';
 import { Tag } from 'antd';
 
 const PendingInvoicesPanel = () => {
+  const t = useT();
   const { allSales } = useSales();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all'); // 'all', 'payment', 'delivery'
@@ -39,7 +41,7 @@ const PendingInvoicesPanel = () => {
   const columns = [
     { 
       key: 'invoiceNumber', 
-      title: 'N° Facture', 
+      title: t('s.n_facture'), 
       render: (val, row) => (
         <div className="flex flex-col">
           <span className="font-black text-primary">{val || `#${row.id}`}</span>
@@ -49,17 +51,17 @@ const PendingInvoicesPanel = () => {
     },
     { 
       key: 'customer', 
-      title: 'Client', 
+      title: t('s.client'), 
       render: (_, row) => (
         <div className="flex flex-col">
-          <span className="text-sm font-black text-text-heading">{row.customerName || 'Passager'}</span>
+          <span className="text-sm font-semibold text-text-heading">{row.customerName || 'Passager'}</span>
           {row.customerPhone && <span className="text-[0.65rem] opacity-70">{row.customerPhone}</span>}
         </div>
       )
     },
     { 
       key: 'cashier', 
-      title: 'Caissier', 
+      title: t('s.caissier'), 
       render: (val) => <span className="font-medium text-text-secondary text-[0.8rem]">{val}</span> 
     },
     { 
@@ -68,16 +70,16 @@ const PendingInvoicesPanel = () => {
       render: (_, row) => (
         <div className="flex flex-col gap-1">
           <div className="flex justify-between items-center gap-4 text-[0.75rem]">
-            <span className="text-text-muted">Total:</span>
+            <span className="text-text-muted">{t('s.total_2')}</span>
             <span className="font-bold">{formatPrice(row.total)}</span>
           </div>
           <div className="flex justify-between items-center gap-4 text-[0.75rem]">
-            <span className="text-text-muted">Payé:</span>
+            <span className="text-text-muted">{t('s.paye_3')}</span>
             <span className="font-bold text-emerald-500">{formatPrice(row.amountPaid)}</span>
           </div>
           {row.amountDue > 0 && (
             <div className="flex justify-between items-center gap-4 text-[0.75rem] pt-1 border-t border-black/5 dark:border-white/5">
-              <span className="text-red-500 font-bold uppercase tracking-widest text-[0.6rem]">Reste:</span>
+              <span className="text-red-500 font-bold uppercase tracking-widest text-[0.6rem]">{t('s.reste_2')}</span>
               <span className="font-black text-red-500">{formatPrice(row.amountDue)}</span>
             </div>
           )}
@@ -86,20 +88,20 @@ const PendingInvoicesPanel = () => {
     },
     { 
       key: 'paymentStatus', 
-      title: 'Paiement', 
+      title: t('s.paiement'), 
       render: (val) => {
-        if (val === 'fully_paid') return <Tag color="success">PAYÉ</Tag>;
-        if (val === 'partial') return <Tag color="warning">PARTIEL</Tag>;
-        return <Tag color="error">IMPAYÉ</Tag>;
+        if (val === 'fully_paid') return <Tag color="success">{t('s.paye')}</Tag>;
+        if (val === 'partial') return <Tag color="warning">{t('s.partiel')}</Tag>;
+        return <Tag color="error">{t('s.impaye')}</Tag>;
       }
     },
     { 
       key: 'deliveryStatus', 
-      title: 'Livraison', 
+      title: t('s.livraison'), 
       render: (val) => {
-        if (val === 'delivered') return <Tag color="success">LIVRÉ</Tag>;
-        if (val === 'partially_delivered') return <Tag color="warning">PARTIEL</Tag>;
-        return <Tag color="default">NON LIVRÉ</Tag>;
+        if (val === 'delivered') return <Tag color="success">{t('s.livre')}</Tag>;
+        if (val === 'partially_delivered') return <Tag color="warning">{t('s.partiel')}</Tag>;
+        return <Tag color="default">{t('s.non_livre')}</Tag>;
       }
     }
   ];
@@ -127,19 +129,8 @@ const PendingInvoicesPanel = () => {
           }
         `}
       </style>
-      <div className="bg-bg-card border border-black/5 dark:border-white/5 rounded-3xl p-8 shadow-xl no-print">
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-orange-500/10 flex items-center justify-center text-orange-500 shadow-lg shadow-orange-500/10">
-              <FileWarning size={24} />
-            </div>
-            <div>
-              <h2 className="text-2xl font-black text-text-heading tracking-tight">Suivi des Factures</h2>
-              <p className="text-[0.7rem] text-text-muted font-black uppercase tracking-widest">
-                Factures impayées ou non livrées
-              </p>
-            </div>
-          </div>
+      <div className="glass-panel rounded-xl p-4 no-print">
+        <div className="flex items-center justify-between gap-3 flex-wrap mb-5">
           
           <div className="flex flex-col sm:flex-row items-center gap-4">
             <div className="flex bg-black/5 dark:bg-white/5 p-1 rounded-xl">
@@ -153,20 +144,20 @@ const PendingInvoicesPanel = () => {
                 className={`px-4 py-2 text-[0.75rem] font-bold rounded-lg transition-all flex items-center gap-2 ${filterType === 'payment' ? 'bg-white dark:bg-dark-paper text-red-500 shadow-sm' : 'text-text-muted hover:text-text-heading'}`}
                 onClick={() => setFilterType('payment')}
               >
-                <Wallet size={14} /> Impayées
+                <WalletOutlined style={{ fontSize: 14 }} /> {t('s.impayees')}
               </button>
               <button
                 className={`px-4 py-2 text-[0.75rem] font-bold rounded-lg transition-all flex items-center gap-2 ${filterType === 'delivery' ? 'bg-white dark:bg-dark-paper text-orange-500 shadow-sm' : 'text-text-muted hover:text-text-heading'}`}
                 onClick={() => setFilterType('delivery')}
               >
-                <Truck size={14} /> Non Livrées
+                <CarOutlined style={{ fontSize: 14 }} /> {t('s.non_livrees')}
               </button>
             </div>
             <div className="relative w-full sm:w-64">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted" size={18} />
+              <SearchOutlined style={{ fontSize: 18 }} className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted" />
               <input 
                 type="text"
-                placeholder="Rechercher..."
+                placeholder={t('s.rechercher')}
                 className="w-full bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-2xl pl-12 pr-4 py-3 text-[0.85rem] text-text-heading focus:outline-none focus:border-primary/50 transition-all font-bold"
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
@@ -175,15 +166,15 @@ const PendingInvoicesPanel = () => {
             <button
               onClick={() => window.print()}
               className="flex items-center gap-2 px-4 py-3 bg-primary text-white rounded-xl font-bold hover:opacity-90 transition-opacity shadow-lg shadow-primary/30 shrink-0"
-              title="Imprimer ou Sauvegarder en PDF"
+              title={t('s.imprimer_ou_sauvegarder_en_pdf')}
             >
-              <Printer size={18} />
-              <span className="hidden sm:inline">Imprimer / PDF</span>
+              <PrinterOutlined style={{ fontSize: 18 }} />
+              <span className="hidden sm:inline">{t('s.imprimer_pdf')}</span>
             </button>
           </div>
         </div>
 
-        <DataTable 
+        <Table 
           columns={columns} 
           data={pendingSales} 
         />
@@ -191,30 +182,30 @@ const PendingInvoicesPanel = () => {
         {pendingSales.length === 0 && (
           <div className="py-20 text-center space-y-4">
             <div className="w-16 h-16 bg-black/5 dark:bg-white/5 rounded-full flex items-center justify-center mx-auto text-emerald-500/50">
-              <AlertCircle size={32} />
+              <ExclamationCircleOutlined style={{ fontSize: 32 }} />
             </div>
-            <p className="text-text-muted font-bold">Aucune facture en attente ! Tout est à jour.</p>
+            <p className="text-text-muted font-bold">{t('s.aucune_facture_en_attente_tout_est_a_jour')}</p>
           </div>
         )}
       </div>
 
       <div className="hidden print:block print-area">
-        <div className="text-center mb-8">
-          <h1 className="text-2xl font-black uppercase mb-2">Suivi des Factures (Impayées / Non Livrées)</h1>
+        <div className="text-center mb-5">
+          <h1 className="text-lg font-bold uppercase mb-2">{t('s.suivi_des_factures_impayees_non_livrees')}</h1>
           <p className="text-sm text-gray-500">Imprimé le {new Date().toLocaleString('fr-FR')}</p>
         </div>
         <table>
           <thead>
             <tr>
-              <th>N° Facture</th>
-              <th>Date</th>
-              <th>Client</th>
-              <th>Caissier</th>
-              <th>Total</th>
-              <th>Payé</th>
-              <th>Reste</th>
-              <th>Paiement</th>
-              <th>Livraison</th>
+              <th>{t('s.n_facture')}</th>
+              <th>{t('s.date')}</th>
+              <th>{t('s.client')}</th>
+              <th>{t('s.caissier')}</th>
+              <th>{t('s.total')}</th>
+              <th>{t('s.paye_2')}</th>
+              <th>{t('s.reste')}</th>
+              <th>{t('s.paiement')}</th>
+              <th>{t('s.livraison')}</th>
             </tr>
           </thead>
           <tbody>
@@ -237,7 +228,7 @@ const PendingInvoicesPanel = () => {
             ))}
             {pendingSales.length === 0 && (
               <tr>
-                <td colSpan="9" className="text-center py-4">Aucune facture en attente.</td>
+                <td colSpan="9" className="text-center py-4">{t('s.aucune_facture_en_attente')}</td>
               </tr>
             )}
           </tbody>

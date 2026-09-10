@@ -1,13 +1,16 @@
+import { useT } from '../../i18n/I18nContext';
+import Modal from '../common/Modal';
 import React, { useState } from 'react';
 import { formatPrice } from '../../context/StoreContext';
 import { useCustomers, useSales, useSettings, useStores } from '../../hooks';
-import { Users, Search, Eye, ArrowLeft, Receipt, Plus, TrendingUp, TrendingDown, Wallet, ArrowDownToLine, ArrowUpFromLine, Phone, Printer } from 'lucide-react';
+import { ArrowLeftOutlined, EyeOutlined, FallOutlined, FileDoneOutlined, PhoneOutlined, PlusOutlined, PrinterOutlined, RiseOutlined, SearchOutlined, TeamOutlined, VerticalAlignBottomOutlined, VerticalAlignTopOutlined, WalletOutlined } from '@ant-design/icons';
 import ReceiptView from './ReceiptView';
 import { numberToWords } from './InvoicePrintTemplate';
-import { Button, Modal, InputNumber, Select, Tag, message, Popconfirm } from 'antd';
+import { Button, InputNumber, Select, Tag, message, Popconfirm } from 'antd';
 
 // --- Deposit / Refund Modal ---
 const AccountActionModal = ({ customer, action, onClose, onConfirm }) => {
+  const t = useT();
   const [amount, setAmount] = useState(null);
   const [method, setMethod] = useState('Espèces');
 
@@ -28,13 +31,12 @@ const AccountActionModal = ({ customer, action, onClose, onConfirm }) => {
 
   return (
     <Modal
-      open={true}
-      onCancel={onClose}
+      onClose={onClose}
       footer={null}
       title={
         <div className="flex items-center gap-3 py-1">
           <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isDeposit ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'}`}>
-            {isDeposit ? <ArrowDownToLine size={20} /> : <ArrowUpFromLine size={20} />}
+            {isDeposit ? <VerticalAlignBottomOutlined style={{ fontSize: 20 }} /> : <VerticalAlignTopOutlined style={{ fontSize: 20 }} />}
           </div>
           <div>
             <div className="font-black text-text-heading text-lg">{isDeposit ? 'Enregistrer un Dépôt' : 'Remboursement Client'}</div>
@@ -42,30 +44,29 @@ const AccountActionModal = ({ customer, action, onClose, onConfirm }) => {
           </div>
         </div>
       }
-      destroyOnClose
     >
       <div className="space-y-5 pt-4">
         {!isDeposit && (
           <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 text-center">
-            <div className="text-xs font-black text-amber-600 uppercase tracking-widest mb-1">Solde disponible</div>
-            <div className="text-2xl font-black text-amber-600">{formatPrice(maxRefund)}</div>
+            <div className="text-xs font-semibold text-amber-600 uppercase tracking-widest mb-1">{t('s.solde_disponible_2')}</div>
+            <div className="text-lg font-bold text-amber-600">{formatPrice(maxRefund)}</div>
           </div>
         )}
 
         <div>
-          <label className="text-xs font-black text-text-muted uppercase tracking-widest block mb-2">Montant (FCFA)</label>
+          <label className="text-xs font-semibold text-text-muted uppercase tracking-widest block mb-2">{t('s.montant_fcfa')}</label>
           <input
             type="number"
             min={1}
             max={isDeposit ? undefined : maxRefund}
             value={amount ?? ''}
             onChange={e => setAmount(e.target.value === '' ? null : parseFloat(e.target.value))}
-            placeholder="Ex: 10000"
+            placeholder={t('s.ex_10000')}
             className="w-full bg-white dark:bg-black/20 border-2 border-black/15 dark:border-white/10 focus:border-primary rounded-xl px-4 py-3 text-text-heading font-black text-xl focus:outline-none transition-colors"
           />
           {/* Live formatted amount preview */}
           {amount > 0 && (
-            <div className={`mt-3 py-3 px-4 rounded-xl text-center text-2xl font-black tracking-tight ${isDeposit ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' : 'bg-red-500/10 text-red-500 border border-red-500/20'}`}>
+            <div className={`mt-3 py-3 px-4 rounded-xl text-center text-lg font-bold tracking-tight ${isDeposit ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' : 'bg-red-500/10 text-red-500 border border-red-500/20'}`}>
               {isDeposit ? '+' : '-'} {formatPrice(amount)}
             </div>
           )}
@@ -73,16 +74,16 @@ const AccountActionModal = ({ customer, action, onClose, onConfirm }) => {
 
         {isDeposit && (
           <div>
-            <label className="text-xs font-black text-text-muted uppercase tracking-widest block mb-2">Mode de paiement</label>
+            <label className="text-xs font-semibold text-text-muted uppercase tracking-widest block mb-2">{t('s.mode_de_paiement')}</label>
             <Select
               className="w-full"
               size="large"
               value={method}
               onChange={setMethod}
               options={[
-                { value: 'Espèces', label: 'Espèces' },
+                { value: 'Espèces', label: t('s.especes') },
                 { value: 'Virement', label: 'Virement Bancaire' },
-                { value: 'Chèque', label: 'Chèque' },
+                { value: 'Chèque', label: t('s.cheque') },
                 { value: 'Mobile Money', label: 'Mobile Money' },
               ]}
             />
@@ -90,12 +91,8 @@ const AccountActionModal = ({ customer, action, onClose, onConfirm }) => {
         )}
 
         <div className="flex gap-3 pt-2">
-          <Button className="flex-1 h-11 rounded-xl font-bold" onClick={onClose}>Annuler</Button>
-          <Button
-            type="primary"
-            className={`flex-1 h-11 rounded-xl font-bold border-none ${isDeposit ? 'bg-emerald-500 hover:bg-emerald-600' : 'bg-red-500 hover:bg-red-600'}`}
-            onClick={handleConfirm}
-          >
+          <Button className="flex-1" onClick={onClose}>{t('s.annuler')}</Button>
+          <Button type="primary" className={`flex-1 border-none ${isDeposit ? 'bg-emerald-500 hover:bg-emerald-600' : 'bg-red-500 hover:bg-red-600'}`} onClick={handleConfirm} >
             {isDeposit ? 'Confirmer le Dépôt' : 'Confirmer le Remboursement'}
           </Button>
         </div>
@@ -106,8 +103,9 @@ const AccountActionModal = ({ customer, action, onClose, onConfirm }) => {
 
 // --- Transaction Type Badge ---
 const TxnBadge = ({ type }) => {
+  const t = useT();
   const config = {
-    deposit:  { color: 'success', label: 'Dépôt' },
+    deposit:  { color: 'success', label: t('s.depot') },
     purchase: { color: 'processing', label: 'Achat' },
     refund:   { color: 'error', label: 'Remboursement' },
   };
@@ -194,11 +192,11 @@ const printDepositReceipt = (customer, txn, companySettings, stores) => {
               <!-- Droite -->
               <td style="padding-left: 12px;">
                 <div style="display: flex; gap: 20px; margin-bottom: 6px; font-weight: normal;">
-                  <span><strong>Date :</strong> ${dateStr}</span>
+                  <span><strong>{t('s.date_2')}</strong> ${dateStr}</span>
                   <span style="margin-left: 15px;">${timeStr}</span>
                 </div>
                 <div>
-                  <strong>Client :</strong>
+                  <strong>{t('s.client_2')}</strong>
                   <span style="margin-left: 8px; font-weight: bold; font-size: 11px;">
                     ${customer.name}
                   </span>
@@ -224,7 +222,7 @@ const printDepositReceipt = (customer, txn, companySettings, stores) => {
                 <span style="font-weight: bold; font-size: 11px;">N° : ${txn.reference}</span>
               </td>
               <td style="width: 35%;">
-                <span style="font-weight: bold;">CAISSE : </span>
+                <span style="font-weight: bold;">{t('s.caisse')} </span>
                 <span style="font-size: 10px;">${txn.cashier}</span>
               </td>
             </tr>
@@ -235,11 +233,11 @@ const printDepositReceipt = (customer, txn, companySettings, stores) => {
         <table class="items-table">
           <thead>
             <tr>
-              <th style="width: 15%; border-right: 1px solid #999;">Référence</th>
-              <th style="width: 45%; border-right: 1px solid #999;">Désignation</th>
-              <th style="width: 10%; border-right: 1px solid #999; text-align: center;">Qté</th>
-              <th style="width: 15%; border-right: 1px solid #999; text-align: right;">Prix unitaire</th>
-              <th style="width: 15%; text-align: right;">Montant HT</th>
+              <th style="width: 15%; border-right: 1px solid #999;">{t('s.reference')}</th>
+              <th style="width: 45%; border-right: 1px solid #999;">{t('s.designation')}</th>
+              <th style="width: 10%; border-right: 1px solid #999; text-align: center;">{t('s.qte')}</th>
+              <th style="width: 15%; border-right: 1px solid #999; text-align: right;">{t('s.prix_unitaire')}</th>
+              <th style="width: 15%; text-align: right;">{t('s.montant_ht')}</th>
             </tr>
           </thead>
           <tbody>
@@ -288,9 +286,9 @@ const printDepositReceipt = (customer, txn, companySettings, stores) => {
               <td style="width: 50%; font-size: 10px;">
                 <div style="font-style: italic; margin-bottom: 4px;">${amountInWords}</div>
                 <div style="border-top: 1px dashed #ddd; padding-top: 4px; color: #333;">
-                  <strong>Solde avant :</strong> ${formatPrice(soldeAvant)} &nbsp;&nbsp;|&nbsp;&nbsp; 
-                  <strong>Nouveau solde :</strong> ${formatPrice(soldeApres)}
-                  ${isDeposit ? `&nbsp;&nbsp;|&nbsp;&nbsp; <strong>Mode :</strong> ${txn.method}` : ''}
+                  <strong>{t('s.solde_avant')}</strong> ${formatPrice(soldeAvant)} &nbsp;&nbsp;|&nbsp;&nbsp; 
+                  <strong>{t('s.nouveau_solde')}</strong> ${formatPrice(soldeApres)}
+                  ${isDeposit ? `&nbsp;&nbsp;|&nbsp;&nbsp; <strong>{t('s.mode_2')}</strong> ${txn.method}` : ''}
                 </div>
               </td>
               <td style="text-align: right; font-weight: bold; font-size: 10px; border-left: 1px solid #000; width: 22%; padding-top: 8px;">
@@ -308,10 +306,10 @@ const printDepositReceipt = (customer, txn, companySettings, stores) => {
           <tbody>
             <tr>
               <td style="width: 18%; font-weight: bold; font-size: 10px; border-right: 1px solid #000;">
-                CLIENT
+                {t('s.client_3')}
               </td>
               <td style="font-size: 9px; font-style: italic;">
-                Merci de conserver ce reçu
+                {t('s.merci_de_conserver_ce_recu')}
               </td>
               <td style="width: 18%; font-weight: bold; font-size: 10px; border-left: 1px solid #000;">
                 VENDEUR
@@ -333,6 +331,7 @@ const printDepositReceipt = (customer, txn, companySettings, stores) => {
 };
 
 const InvoicePaymentModal = ({ sale, onClose }) => {
+  const t = useT();
   const { recordInvoicePayment } = useSales();
   const [amount, setAmount] = useState('');
   const [method, setMethod] = useState('Espèces');
@@ -349,22 +348,22 @@ const InvoicePaymentModal = ({ sale, onClose }) => {
   };
 
   return (
-    <Modal open={true} onCancel={onClose} footer={null} title={<span className="font-black text-text-heading text-xl">Paiement Facture {sale.invoiceNumber}</span>} destroyOnClose>
+    <Modal onClose={onClose} footer={null} title={`Paiement facture ${sale.invoiceNumber}`}>
       <div className="space-y-5 pt-4">
         <div className="bg-black/5 dark:bg-white/5 p-4 rounded-xl space-y-2 text-sm">
           <div className="flex justify-between font-bold">
-            <span className="text-text-muted">Total facture:</span> <span className="text-text-heading">{formatPrice(sale.total)}</span>
+            <span className="text-text-muted">{t('s.total_facture_3')}</span> <span className="text-text-heading">{formatPrice(sale.total)}</span>
           </div>
           <div className="flex justify-between font-bold text-emerald-500">
-            <span>Déjà payé:</span> <span>{formatPrice(sale.amountPaid ?? sale.total)}</span>
+            <span>{t('s.deja_paye')}</span> <span>{formatPrice(sale.amountPaid ?? sale.total)}</span>
           </div>
           <div className="flex justify-between font-black text-red-500 text-lg pt-2 border-t border-black/10 dark:border-white/10 mt-2">
-            <span>Reste à solder:</span> <span>{formatPrice(sale.amountDue || 0)}</span>
+            <span>{t('s.reste_a_solder')}</span> <span>{formatPrice(sale.amountDue || 0)}</span>
           </div>
         </div>
         
         <div>
-          <label className="text-xs font-black text-text-muted uppercase tracking-widest block mb-2">Montant versé aujourd'hui</label>
+          <label className="text-xs font-semibold text-text-muted uppercase tracking-widest block mb-2">{t('s.montant_verse_aujourd_hui')}</label>
           <InputNumber
             className="w-full" size="large" min={1} max={sale.amountDue}
             value={amount} onChange={setAmount}
@@ -373,19 +372,19 @@ const InvoicePaymentModal = ({ sale, onClose }) => {
           />
         </div>
         <div>
-          <label className="text-xs font-black text-text-muted uppercase tracking-widest block mb-2">Mode</label>
+          <label className="text-xs font-semibold text-text-muted uppercase tracking-widest block mb-2">{t('s.mode')}</label>
           <Select
             className="w-full" size="large" value={method} onChange={setMethod}
             options={[
-              { value: 'Espèces', label: 'Espèces' },
-              { value: 'Carte', label: 'Carte' },
+              { value: 'Espèces', label: t('s.especes') },
+              { value: 'Carte', label: t('s.carte') },
               { value: 'Mobile Money', label: 'Mobile Money' },
             ]}
           />
         </div>
         <div className="flex gap-3 pt-2">
-          <Button className="flex-1 h-11 rounded-xl font-bold" onClick={onClose}>Annuler</Button>
-          <Button type="primary" className="flex-1 h-11 rounded-xl font-bold bg-primary border-none text-black" onClick={handlePay}>Valider le Paiement</Button>
+          <Button className="flex-1" onClick={onClose}>{t('s.annuler')}</Button>
+          <Button type="primary" className="flex-1 bg-primary border-none text-white" onClick={handlePay}>{t('s.valider_le_paiement')}</Button>
         </div>
       </div>
     </Modal>
@@ -394,6 +393,7 @@ const InvoicePaymentModal = ({ sale, onClose }) => {
 
 // ========= MAIN COMPONENT =========
 const CustomerList = () => {
+  const t = useT();
   const { customers, customerTransactions, addCustomer, addCustomerDeposit, refundCustomer } = useCustomers();
   const { sales } = useSales();
   const { companySettings } = useSettings();
@@ -455,29 +455,29 @@ const CustomerList = () => {
           onClick={() => setSelectedCustomer(null)}
           className="flex items-center gap-2 text-text-muted hover:text-primary transition-colors font-bold uppercase text-[0.7rem] tracking-widest"
         >
-          <ArrowLeft size={16} /> Retour à la liste
+          <ArrowLeftOutlined style={{ fontSize: 16 }} /> {t('s.retour_a_la_liste')}
         </button>
 
         {/* Customer Header Card */}
-        <div className="bg-bg-card border border-black/5 dark:border-white/5 rounded-3xl p-6 shadow-xl">
-          <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
+        <div className="glass-panel rounded-xl p-4">
+          <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
             <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
-              <Users size={32} />
+              <TeamOutlined style={{ fontSize: 32 }} />
             </div>
             <div className="flex-1">
-              <h2 className="text-2xl font-black text-text-heading tracking-tight">{selectedCustomer.name}</h2>
+              <h2 className="text-lg font-bold text-text-heading tracking-tight">{selectedCustomer.name}</h2>
               {selectedCustomer.phone && (
                 <div className="flex items-center gap-2 text-text-muted text-sm mt-1">
-                  <Phone size={14} /> {selectedCustomer.phone}
+                  <PhoneOutlined style={{ fontSize: 14 }} /> {selectedCustomer.phone}
                 </div>
               )}
             </div>
             {/* Balance widget */}
             <div className="bg-primary/5 border border-primary/20 rounded-2xl px-6 py-4 text-center min-w-[180px]">
-              <div className="text-[0.65rem] font-black text-text-muted uppercase tracking-widest mb-1 flex items-center justify-center gap-1">
-                <Wallet size={12} /> Solde Disponible
+              <div className="text-[0.65rem] font-semibold text-text-muted uppercase tracking-widest mb-1 flex items-center justify-center gap-1">
+                <WalletOutlined style={{ fontSize: 12 }} /> {t('s.solde_disponible')}
               </div>
-              <div className={`text-2xl font-black ${selectedCustomer.balance > 0 ? 'text-emerald-500' : 'text-text-muted'}`}>
+              <div className={`text-lg font-bold ${selectedCustomer.balance > 0 ? 'text-emerald-500' : 'text-text-muted'}`}>
                 {formatPrice(selectedCustomer.balance)}
               </div>
             </div>
@@ -485,33 +485,24 @@ const CustomerList = () => {
 
           {/* Action buttons */}
           <div className="flex gap-3 mt-6 pt-6 border-t border-black/5 dark:border-white/5">
-            <Button
-              icon={<ArrowDownToLine size={16} />}
-              className="flex-1 h-11 rounded-xl font-bold border-emerald-500 text-emerald-600 hover:bg-emerald-50"
-              onClick={() => setActionModal('deposit')}
-            >
-              Faire un Dépôt
+            <Button icon={<VerticalAlignBottomOutlined style={{ fontSize: 16 }} />} className="flex-1 border-emerald-500 text-emerald-600 hover:bg-emerald-50" onClick={() => setActionModal('deposit')} >
+              {t('s.faire_un_depot')}
             </Button>
-            <Button
-              icon={<ArrowUpFromLine size={16} />}
-              className="flex-1 h-11 rounded-xl font-bold border-red-400 text-red-500 hover:bg-red-50"
-              onClick={() => setActionModal('refund')}
-              disabled={selectedCustomer.balance <= 0}
-            >
+            <Button icon={<VerticalAlignTopOutlined style={{ fontSize: 16 }} />} className="flex-1 border-red-400 text-red-500 hover:bg-red-50" onClick={() => setActionModal('refund')} disabled={selectedCustomer.balance <= 0} >
               Remboursement
             </Button>
           </div>
         </div>
 
         {/* Transactions History */}
-        <div className="bg-bg-card border border-black/5 dark:border-white/5 rounded-3xl p-6 shadow-xl">
-          <h3 className="text-sm font-black text-text-heading uppercase tracking-widest mb-4 flex items-center gap-2">
-            <Wallet size={16} className="text-primary" /> Mouvements du Compte
+        <div className="glass-panel rounded-xl p-4">
+          <h3 className="text-sm font-semibold text-text-heading uppercase tracking-widest mb-4 flex items-center gap-2">
+            <WalletOutlined style={{ fontSize: 16 }} className="text-primary" /> {t('s.mouvements_du_compte')}
           </h3>
           {txns.length === 0 ? (
             <div className="text-center py-12 text-text-muted opacity-40">
-              <Wallet size={32} className="mx-auto mb-2" />
-              <p className="text-sm font-semibold">Aucun mouvement enregistré</p>
+              <WalletOutlined style={{ fontSize: 32 }} className="mx-auto mb-2" />
+              <p className="text-sm font-semibold">{t('s.aucun_mouvement_enregistre')}</p>
             </div>
           ) : (
             <div className="space-y-2">
@@ -519,7 +510,7 @@ const CustomerList = () => {
                 <div key={txn.id} className="flex items-center justify-between p-4 rounded-xl bg-black/5 dark:bg-white/5 hover:bg-primary/5 transition-colors">
                   <div className="flex items-center gap-3">
                     <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${txn.type === 'deposit' ? 'bg-emerald-500/10 text-emerald-500' : txn.type === 'refund' ? 'bg-red-500/10 text-red-500' : 'bg-blue-500/10 text-blue-500'}`}>
-                      {txn.type === 'deposit' ? <TrendingUp size={16} /> : txn.type === 'refund' ? <TrendingDown size={16} /> : <Receipt size={16} />}
+                      {txn.type === 'deposit' ? <RiseOutlined style={{ fontSize: 16 }} /> : txn.type === 'refund' ? <FallOutlined style={{ fontSize: 16 }} /> : <FileDoneOutlined style={{ fontSize: 16 }} />}
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
@@ -547,9 +538,9 @@ const CustomerList = () => {
                           printDepositReceipt(selectedCustomer, txn, companySettings, stores, soldeAvant);
                         }}
                         className="w-8 h-8 rounded-lg bg-black/5 dark:bg-white/5 text-text-muted hover:text-primary hover:bg-primary/10 flex items-center justify-center transition-all"
-                        title="Imprimer le reçu"
+                        title={t('s.imprimer_le_recu')}
                       >
-                        <Printer size={14} />
+                        <PrinterOutlined style={{ fontSize: 14 }} />
                       </button>
                     )}
                   </div>
@@ -560,21 +551,21 @@ const CustomerList = () => {
         </div>
 
         {/* Invoice History */}
-        <div className="bg-bg-card border border-black/5 dark:border-white/5 rounded-3xl p-6 shadow-xl">
-          <h3 className="text-sm font-black text-text-heading uppercase tracking-widest mb-4 flex items-center gap-2">
-            <Receipt size={16} className="text-primary" /> Historique des Factures
+        <div className="glass-panel rounded-xl p-4">
+          <h3 className="text-sm font-semibold text-text-heading uppercase tracking-widest mb-4 flex items-center gap-2">
+            <FileDoneOutlined style={{ fontSize: 16 }} className="text-primary" /> {t('s.historique_des_factures')}
           </h3>
           {invoices.length === 0 ? (
             <div className="text-center py-12 text-text-muted opacity-40">
-              <Receipt size={32} className="mx-auto mb-2" />
-              <p className="text-sm font-semibold">Aucune facture</p>
+              <FileDoneOutlined style={{ fontSize: 32 }} className="mx-auto mb-2" />
+              <p className="text-sm font-semibold">{t('s.aucune_facture')}</p>
             </div>
           ) : (
             <div className="space-y-3">
               {invoices.map(invoice => (
                 <div key={invoice.id} className="flex items-center justify-between p-4 rounded-xl bg-black/5 dark:bg-white/5 border border-transparent hover:border-primary/20 transition-all group">
                   <div className="flex items-center gap-4">
-                    <div className="text-[0.75rem] font-black text-primary tracking-widest bg-primary/10 px-2 py-1 rounded-lg">{invoice.invoiceNumber}</div>
+                    <div className="text-[0.75rem] font-semibold text-primary tracking-widest bg-primary/10 px-2 py-1 rounded-lg">{invoice.invoiceNumber}</div>
                     <div>
                       <div className="text-sm font-bold text-text-heading">
                         {new Date(invoice.date).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}
@@ -584,7 +575,7 @@ const CustomerList = () => {
                   </div>
                   <div className="flex items-center gap-4">
                     <div className="text-right flex flex-col items-end">
-                      <div className="text-sm font-black text-text-heading">{formatPrice(invoice.total)}</div>
+                      <div className="text-sm font-semibold text-text-heading">{formatPrice(invoice.total)}</div>
                       {(invoice.amountDue > 0) && (
                         <div className="text-[0.65rem] font-bold text-red-500 bg-red-500/10 px-1.5 py-0.5 rounded mt-1">Reste: {formatPrice(invoice.amountDue)}</div>
                       )}
@@ -592,16 +583,16 @@ const CustomerList = () => {
                     {invoice.amountDue > 0 && (
                       <button
                         onClick={() => setPaymentInvoice(invoice)}
-                        className="h-10 px-3 rounded-lg bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500 hover:text-white transition-all duration-300 text-[0.7rem] font-black tracking-widest uppercase"
+                        className="h-10 px-3 rounded-lg bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500 hover:text-white transition-all duration-300 text-[0.7rem] font-semibold tracking-widest uppercase"
                       >
                         Payer
                       </button>
                     )}
                     <button
                       onClick={() => setSelectedInvoice(invoice)}
-                      className="w-10 h-10 rounded-lg bg-primary text-black flex items-center justify-center shadow-lg shadow-primary/20 hover:scale-105 transition-transform"
+                      className="w-10 h-10 rounded-lg bg-primary text-white flex items-center justify-center shadow-lg shadow-primary/20 hover:scale-105 transition-transform"
                     >
-                      <Eye size={18} strokeWidth={2.5} />
+                      <EyeOutlined style={{ fontSize: 18 }} />
                     </button>
                   </div>
                 </div>
@@ -633,40 +624,35 @@ const CustomerList = () => {
     <div className="space-y-6 animate-fade-in">
       <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
         <div className="relative flex-1 max-w-md">
-          <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted opacity-50" />
+          <SearchOutlined style={{ fontSize: 18 }} className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted opacity-50" />
           <input
             className="w-full bg-bg-secondary border border-black/10 dark:border-white/10 rounded-xl pl-11 pr-4 py-3 text-[0.9rem] text-text-heading placeholder-text-muted/40 focus:outline-none focus:border-primary/50 transition-all shadow-sm"
-            placeholder="Rechercher un client..."
+            placeholder={t('s.rechercher_un_client')}
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
           />
         </div>
-        <Button
-          type="primary"
-          icon={<Plus size={16} />}
-          onClick={() => setShowNewCustomerModal(true)}
-          className="h-11 px-6 rounded-xl font-bold shadow-lg shadow-primary/20"
-        >
-          Nouveau Client
+        <Button type="primary" icon={<PlusOutlined style={{ fontSize: 16 }} />} onClick={() => setShowNewCustomerModal(true)} >
+          {t('s.nouveau_client_2')}
         </Button>
       </div>
 
       {filteredCustomers.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-24 opacity-40 gap-4">
-          <Users size={48} strokeWidth={1.5} className="text-text-muted" />
-          <p className="text-text-secondary font-semibold">Aucun client trouvé</p>
+          <TeamOutlined style={{ fontSize: 48 }} className="text-text-muted" />
+          <p className="text-text-secondary font-semibold">{t('s.aucun_client_trouve')}</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredCustomers.map(customer => (
             <div
               key={customer.id}
-              className="bg-bg-card border border-black/5 dark:border-white/5 rounded-2xl p-5 shadow-lg hover:shadow-xl hover:border-primary/20 transition-all group cursor-pointer"
+              className="glass-panel rounded-xl p-4 hover:shadow-sm hover:border-primary/20 transition-all group cursor-pointer"
               onClick={() => setSelectedCustomer(customer)}
             >
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
-                  <Users size={24} />
+                  <TeamOutlined style={{ fontSize: 24 }} />
                 </div>
                 <div className="flex-1 min-w-0">
                   <h3 className="text-base font-black text-text-heading truncate tracking-tight">{customer.name}</h3>
@@ -676,21 +662,21 @@ const CustomerList = () => {
 
               <div className="grid grid-cols-2 gap-3 pt-4 border-t border-black/5 dark:border-white/5">
                 <div>
-                  <div className="text-[0.6rem] font-black text-text-muted uppercase tracking-widest mb-0.5">Total Achats</div>
-                  <div className="text-sm font-black text-primary">{formatPrice(customer.totalSpent)}</div>
+                  <div className="text-[0.6rem] font-semibold text-text-muted uppercase tracking-widest mb-0.5">{t('s.total_achats')}</div>
+                  <div className="text-sm font-semibold text-primary">{formatPrice(customer.totalSpent)}</div>
                 </div>
                 <div className="text-right">
-                  <div className="text-[0.6rem] font-black text-text-muted uppercase tracking-widest mb-0.5 flex items-center justify-end gap-1">
-                    <Wallet size={10} /> Solde
+                  <div className="text-[0.6rem] font-semibold text-text-muted uppercase tracking-widest mb-0.5 flex items-center justify-end gap-1">
+                    <WalletOutlined style={{ fontSize: 10 }} /> {t('s.solde')}
                   </div>
-                  <div className={`text-sm font-black ${customer.balance > 0 ? 'text-emerald-500' : 'text-text-muted'}`}>
+                  <div className={`text-sm font-semibold ${customer.balance > 0 ? 'text-emerald-500' : 'text-text-muted'}`}>
                     {formatPrice(customer.balance)}
                   </div>
                 </div>
               </div>
 
-              <div className="mt-4 flex items-center justify-center py-2 rounded-lg bg-black/5 dark:bg-white/5 text-[0.65rem] font-black text-text-muted uppercase tracking-widest group-hover:bg-primary group-hover:text-black transition-colors">
-                Voir le compte
+              <div className="mt-4 flex items-center justify-center py-2 rounded-lg bg-black/5 dark:bg-white/5 text-[0.65rem] font-semibold text-text-muted uppercase tracking-widest group-hover:bg-primary group-hover:text-white transition-colors">
+                {t('s.voir_le_compte')}
               </div>
             </div>
           ))}
@@ -699,35 +685,34 @@ const CustomerList = () => {
 
       {/* New Customer Modal */}
       <Modal
-        title={<span className="font-black text-text-heading text-xl">Nouveau Client</span>}
+        title={t('s.nouveau_client')}
         open={showNewCustomerModal}
-        onCancel={() => setShowNewCustomerModal(false)}
+        onClose={() => setShowNewCustomerModal(false)}
         footer={null}
-        destroyOnClose
       >
         <div className="space-y-4 pt-4">
           <div>
-            <label className="text-xs font-black text-text-muted uppercase tracking-widest block mb-2">Nom complet *</label>
+            <label className="text-xs font-semibold text-text-muted uppercase tracking-widest block mb-2">{t('s.nom_complet_3')}</label>
             <input
               className="w-full bg-bg-secondary border border-black/10 dark:border-white/10 rounded-xl px-4 py-3 text-sm text-text-heading focus:outline-none focus:border-primary/50 transition-all"
-              placeholder="Ex: Jean Dupont"
+              placeholder={t('s.ex_jean_dupont')}
               value={newCustomerForm.name}
               onChange={e => setNewCustomerForm(p => ({ ...p, name: e.target.value }))}
             />
           </div>
           <div>
-            <label className="text-xs font-black text-text-muted uppercase tracking-widest block mb-2">Téléphone</label>
+            <label className="text-xs font-semibold text-text-muted uppercase tracking-widest block mb-2">{t('s.telephone')}</label>
             <input
               className="w-full bg-bg-secondary border border-black/10 dark:border-white/10 rounded-xl px-4 py-3 text-sm text-text-heading focus:outline-none focus:border-primary/50 transition-all"
-              placeholder="Ex: 06 00 00 00 00"
+              placeholder={t('s.ex_06_00_00_00_00')}
               value={newCustomerForm.phone}
               onChange={e => setNewCustomerForm(p => ({ ...p, phone: e.target.value }))}
             />
           </div>
           <div className="flex gap-3 pt-2">
-            <Button className="flex-1 h-11 rounded-xl font-bold" onClick={() => setShowNewCustomerModal(false)}>Annuler</Button>
-            <Button type="primary" className="flex-1 h-11 rounded-xl font-bold" onClick={handleCreateCustomer}>
-              Créer le Client
+            <Button className="flex-1" onClick={() => setShowNewCustomerModal(false)}>{t('s.annuler')}</Button>
+            <Button type="primary" className="flex-1" onClick={handleCreateCustomer}>
+              {t('s.creer_le_client')}
             </Button>
           </div>
         </div>

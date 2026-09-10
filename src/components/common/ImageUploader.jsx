@@ -1,9 +1,11 @@
+import { useT } from '../../i18n/I18nContext';
 import React, { useState, useRef } from 'react';
-import { Upload, Image as ImageIcon, Trash2, Link as LinkIcon, Sparkles } from 'lucide-react';
+import { DeleteOutlined, LinkOutlined, PictureOutlined, ThunderboltOutlined, UploadOutlined } from '@ant-design/icons';
 import { compressImage } from '../../utils/excelImport';
 import { message } from 'antd';
 
 const ImageUploader = ({ value, onChange, label = "Image du Produit" }) => {
+  const t = useT();
   const [mode, setMode] = useState('upload'); // 'upload' | 'url'
   const [urlInput, setUrlInput] = useState('');
   const [compressing, setCompressing] = useState(false);
@@ -59,7 +61,7 @@ const ImageUploader = ({ value, onChange, label = "Image du Produit" }) => {
             className={`px-2 py-0.5 rounded transition-all ${mode === 'upload' ? 'bg-primary/20 text-primary' : 'text-text-muted hover:text-text-primary'}`}
             onClick={() => setMode('upload')}
           >
-            Fichier / Glisser-Déposer
+            {t('s.fichier_glisser_deposer')}
           </button>
           <button
             type="button"
@@ -78,17 +80,17 @@ const ImageUploader = ({ value, onChange, label = "Image du Produit" }) => {
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="px-3 py-1.5 rounded-lg bg-primary text-black font-bold text-xs hover:scale-105 transition-transform flex items-center gap-1"
+              className="px-3 py-1.5 rounded-lg bg-primary text-white font-bold text-xs hover:scale-105 transition-transform flex items-center gap-1"
             >
-              <Upload size={14} /> Modifier
+              <UploadOutlined style={{ fontSize: 14 }} /> {t('s.modifier')}
             </button>
             <button
               type="button"
               onClick={() => onChange('')}
               className="p-1.5 rounded-lg bg-red-500/80 hover:bg-red-500 text-white font-bold text-xs hover:scale-105 transition-transform"
-              title="Supprimer l'image"
+              title={t('s.supprimer_l_image')}
             >
-              <Trash2 size={16} />
+              <DeleteOutlined style={{ fontSize: 16 }} />
             </button>
           </div>
         </div>
@@ -101,16 +103,16 @@ const ImageUploader = ({ value, onChange, label = "Image du Produit" }) => {
         >
           {compressing ? (
             <div className="flex flex-col items-center gap-2">
-              <Sparkles className="animate-spin text-primary" size={24} />
-              <span className="text-xs font-semibold text-primary">Optimisation de l'image...</span>
+              <ThunderboltOutlined style={{ fontSize: 24 }} className="animate-spin text-primary" />
+              <span className="text-xs font-semibold text-primary">{t('s.optimisation_de_l_image')}</span>
             </div>
           ) : (
             <>
               <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center mb-2">
-                <Upload size={20} />
+                <UploadOutlined style={{ fontSize: 20 }} />
               </div>
-              <span className="text-xs font-bold text-text-heading">Glissez une image ici ou cliquez pour choisir</span>
-              <span className="text-[0.65rem] text-text-muted mt-1">Formats acceptés: PNG, JPG, WebP (auto-compressé)</span>
+              <span className="text-xs font-bold text-text-heading">{t('s.glissez_une_image_ici_ou_cliquez_pour_choisi')}</span>
+              <span className="text-[0.65rem] text-text-muted mt-1">{t('s.formats_acceptes_png_jpg_webp_auto_compresse')}</span>
             </>
           )}
         </div>
@@ -127,9 +129,9 @@ const ImageUploader = ({ value, onChange, label = "Image du Produit" }) => {
           <button
             type="button"
             onClick={handleUrlSubmit}
-            className="px-4 py-2 bg-primary text-black rounded-xl font-bold text-xs hover:opacity-90 flex items-center gap-1"
+            className="px-4 py-2 bg-primary text-white rounded-xl font-bold text-xs hover:opacity-90 flex items-center gap-1"
           >
-            <LinkIcon size={14} /> Valider
+            <LinkOutlined style={{ fontSize: 14 }} /> {t('s.valider')}
           </button>
         </div>
       )}

@@ -1,13 +1,15 @@
+import { useT } from '../../i18n/I18nContext';
+import { Toolbar, Panel, Table, Button } from '../ui';
 import React, { useState, useMemo } from 'react';
 import { formatPrice } from '../../context/StoreContext';
 import { useAuth } from '../../context/AuthContext';
 import { useProducts, useStores } from '../../hooks';
 import { inventoryService } from '../../services/inventoryService';
-import { ClipboardCheck, Store, AlertTriangle, CheckCircle, RefreshCcw, Package, Download, Printer, History } from 'lucide-react';
-import { Button, message, Popconfirm, Tag, InputNumber } from 'antd';
-import DataTable from '../common/DataTable';
+import { AuditOutlined, CheckCircleOutlined, DownloadOutlined, HistoryOutlined, InboxOutlined, PrinterOutlined, ReloadOutlined, ShopOutlined, WarningOutlined } from '@ant-design/icons';
+import { message, Popconfirm, Tag, InputNumber } from 'antd';
 
 const PhysicalInventory = () => {
+  const t = useT();
   const { currentUser } = useAuth();
   const { products, refreshProducts } = useProducts();
   const { stores, activeStoreId } = useStores();
@@ -84,8 +86,8 @@ const PhysicalInventory = () => {
     worksheet.columns = [
       { header: 'CATEGOR', key: 'category', width: 15 },
       { header: 'DESCRIPTION', key: 'name', width: 40 },
-      { header: 'STOCK A JOUR', key: 'stock', width: 18 },
-      { header: 'VENTE', key: 'vente', width: 15 },
+      { header: t('s.stock_a_jour'), key: 'stock', width: 18 },
+      { header: t('s.vente'), key: 'vente', width: 15 },
       { header: 'INVENTAIRE', key: 'inventaire', width: 15 },
     ];
 
@@ -175,12 +177,12 @@ const PhysicalInventory = () => {
       const worksheet = workbook.addWorksheet('Historique Global');
 
       worksheet.columns = [
-        { header: 'DATE', key: 'date', width: 20 },
+        { header: t('s.date_3'), key: 'date', width: 20 },
         { header: 'TYPE OPERATION', key: 'type', width: 25 },
-        { header: 'REFERENCE / NOM', key: 'reference', width: 30 },
+        { header: t('s.reference_nom'), key: 'reference', width: 30 },
         { header: 'ARTICLE', key: 'productName', width: 35 },
         { header: 'QTE', key: 'quantity', width: 15 },
-        { header: 'MAGASIN', key: 'store', width: 20 },
+        { header: t('s.magasin_3'), key: 'store', width: 20 },
         { header: 'DETAILS', key: 'details', width: 40 }
       ];
 
@@ -241,29 +243,29 @@ const PhysicalInventory = () => {
   const columns = [
     {
       key: 'category',
-      title: 'Catégorie',
+      title: t('s.categorie'),
       render: (val) => <Tag color="blue">{val}</Tag>,
       sorter: (a, b) => a.category.localeCompare(b.category)
     },
     {
       key: 'name',
-      title: 'Article',
+      title: t('s.article'),
       render: (val) => <span className="font-bold text-text-heading">{val}</span>,
       sorter: (a, b) => a.name.localeCompare(b.name)
     },
     {
       key: 'stock',
-      title: 'Stock Système',
+      title: t('s.stock_systeme'),
       render: (val) => (
         <div className="flex flex-col">
           <span className="font-black text-text-muted">{val}</span>
-          <span className="text-[0.6rem] uppercase font-bold opacity-50">Théorique</span>
+          <span className="text-[0.6rem] uppercase font-bold opacity-50">{t('s.theorique')}</span>
         </div>
       )
     },
     {
       key: 'count',
-      title: 'Comptage Réel',
+      title: t('s.comptage_reel'),
       render: (_, row) => (
         <InputNumber
           min={0}
@@ -275,9 +277,9 @@ const PhysicalInventory = () => {
     },
     {
       key: 'discrepancy',
-      title: 'Écart',
+      title: t('s.ecart'),
       render: (val) => {
-        if (val === 0) return <Tag color="success">OK (0)</Tag>;
+        if (val === 0) return <Tag color="success">{t('s.ok_0')}</Tag>;
         if (val < 0) return <Tag color="error">Perte ({val})</Tag>;
         return <Tag color="warning">Surplus (+{val})</Tag>;
       }
@@ -287,92 +289,53 @@ const PhysicalInventory = () => {
   const totalDiscrepancies = auditData.filter(d => d.discrepancy !== 0).length;
 
   return (
-    <div className="animate-fade-in space-y-6">
-      <div className="bg-bg-card border border-black/5 dark:border-white/5 rounded-3xl p-8 shadow-xl no-print">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
-              <ClipboardCheck size={24} />
-            </div>
-            <div>
-              <h2 className="text-2xl font-black text-text-heading tracking-tight">Inventaire Physique & Audit</h2>
-              <p className="text-[0.7rem] text-text-muted font-black uppercase tracking-widest">
-                Magasin Actuel : <span className="text-primary">{currentStore?.name}</span>
-              </p>
-            </div>
-          </div>
+    <div className="animate-fade-in space-y-4">
+      {/* Commandes — carte distincte du tableau */}
+      <Toolbar
+        className="no-print"
+        right={
+          <Popconfirm
+            title={t('s.valider_l_inventaire')}
+            description={t('s.cela_mettra_a_jour_les_stocks_du_systeme_pou')}
+            onConfirm={handleValidateAudit}
+          >
+            <Button type="primary" loading={isValidating} icon={!isValidating && <CheckCircleOutlined />} disabled={totalDiscrepancies === 0} >
+              {t('s.valider_le_comptage')}
+            </Button>
+          </Popconfirm>
+        }
+      >
+        <span className="flex items-center gap-1.5 text-[0.76rem] text-text-secondary pr-1">
+          <AuditOutlined className="text-primary" />
+          {currentStore?.name}
+        </span>
+        <Button icon={<HistoryOutlined />} onClick={handleExportGlobalHistory} loading={isExportingHistory}>
+          Historique (Excel)
+        </Button>
+        <Button icon={<DownloadOutlined />} onClick={handleExportExcel}>{t('s.inventaire_excel')}</Button>
+        <Button icon={<PrinterOutlined />} onClick={handlePrint}>{t('s.imprimer')}</Button>
+        <Button icon={<ReloadOutlined />} onClick={() => setCounts({})}>{t('s.reinitialiser')}</Button>
+      </Toolbar>
 
-          <div className="flex flex-wrap gap-3">
-            <Button
-              icon={<History size={16} />}
-              onClick={handleExportGlobalHistory}
-              loading={isExportingHistory}
-              className="h-11 rounded-xl font-bold bg-indigo-500/10 text-indigo-600 border-indigo-500/20 hover:bg-indigo-500/20!"
-            >
-              Historique Global (Excel)
-            </Button>
-            <Button
-              icon={<Download size={16} />}
-              onClick={handleExportExcel}
-              className="h-11 rounded-xl font-bold bg-emerald-500/10 text-emerald-600 border-emerald-500/20 hover:bg-emerald-500/20!"
-            >
-              Inventaire (Excel)
-            </Button>
-            <Button
-              icon={<Printer size={16} />}
-              onClick={handlePrint}
-              className="h-11 rounded-xl font-bold"
-            >
-              Imprimer PDF
-            </Button>
-            <Button
-              icon={<RefreshCcw size={16} />}
-              onClick={() => setCounts({})}
-              className="h-11 rounded-xl font-bold"
-            >
-              Réinitialiser
-            </Button>
-            <Popconfirm
-              title="Valider l'inventaire ?"
-              description="Cela mettra à jour les stocks du système pour correspondre à votre comptage réel."
-              onConfirm={handleValidateAudit}
-            >
-              <Button
-                type="primary"
-                size="large"
-                loading={isValidating}
-                icon={!isValidating && <CheckCircle size={18} />}
-                disabled={totalDiscrepancies === 0}
-                className="h-11 px-8 rounded-xl font-bold uppercase tracking-widest"
-              >
-                Valider le comptage
-              </Button>
-            </Popconfirm>
-          </div>
+      {totalDiscrepancies > 0 && (
+        <div className="no-print px-4 py-2.5 bg-orange-500/10 border border-orange-500/20 rounded-xl flex items-center gap-2.5">
+          <WarningOutlined className="text-orange-500 shrink-0" />
+          <p className="text-[0.78rem] text-orange-700 dark:text-orange-400">
+            <strong>{totalDiscrepancies} écart{totalDiscrepancies > 1 ? 's' : ''}</strong> détecté{totalDiscrepancies > 1 ? 's' : ''} — la validation ajustera les stocks.
+          </p>
         </div>
+      )}
 
-        {totalDiscrepancies > 0 && (
-          <div className="mb-6 p-4 bg-orange-500/10 border border-orange-500/20 rounded-2xl flex items-start gap-4">
-            <AlertTriangle className="text-orange-500 shrink-0 mt-0.5" size={20} />
-            <div>
-              <p className="text-sm font-bold text-orange-700 dark:text-orange-500">Attention : Écarts détectés</p>
-              <p className="text-[0.7rem] text-text-muted">
-                Vous avez identifié des différences sur {totalDiscrepancies} articles. En validant, le système sera ajusté.
-              </p>
-            </div>
-          </div>
-        )}
-
-        <div className="bg-bg-secondary rounded-2xl border border-black/5 dark:border-white/5 overflow-hidden no-print">
-          <DataTable
-            columns={columns}
-            data={auditData}
-            emptyIcon={Package}
-            emptyTitle="Aucun produit"
-            emptyDescription="Ajoutez des produits au catalogue pour commencer l'inventaire."
-          />
-        </div>
-      </div>
+      {/* Données */}
+      <Panel noPadding className="no-print">
+        <Table
+          columns={columns}
+          data={auditData}
+          emptyIcon={InboxOutlined}
+          emptyTitle={t('s.aucun_produit')}
+          emptyDescription={t('s.ajoutez_des_produits_au_catalogue_pour_comme')}
+        />
+      </Panel>
 
       {/* Print Template */}
       <div className="print-only hidden p-10 bg-white text-black">
@@ -392,19 +355,20 @@ const PhysicalInventory = () => {
           `}
         </style>
         <div className="header">
-          <h1 className="text-3xl font-black">FICHE D'INVENTAIRE PHYSIQUE</h1>
+          <h1 className="text-xl font-bold">{t('s.fiche_d_inventaire_physique')}</h1>
           <p className="text-xl">{currentStore?.name}</p>
           <p className="text-sm text-gray-500">Date : {new Date().toLocaleDateString('fr-FR')}</p>
         </div>
         <table>
           <thead>
             <tr>
-              <th>Catégorie</th>
-              <th>Article</th>
-              <th>Théorique</th>
-              <th>Physique</th>
-              <th style={{ width: '120px' }}></th> {/* Empty column for manual counting */}
-              <th>Écart</th>
+              <th>{t('s.categorie')}</th>
+              <th>{t('s.article')}</th>
+              <th>{t('s.theorique')}</th>
+              <th>{t('s.physique')}</th>
+              {/* Colonne laissée vide pour le comptage manuel sur papier */}
+              <th style={{ width: '120px' }}></th>
+              <th>{t('s.ecart')}</th>
             </tr>
           </thead>
           <tbody>
@@ -414,7 +378,8 @@ const PhysicalInventory = () => {
                 <td>{item.name}</td>
                 <td>{item.stock}</td>
                 <td>{item.count}</td>
-                <td></td> {/* Empty cell for writing */}
+                {/* Cellule laissée vide pour l'écriture manuelle */}
+                <td></td>
                 <td>{item.discrepancy}</td>
               </tr>
             ))}

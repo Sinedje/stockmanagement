@@ -1,7 +1,8 @@
+import { useT } from '../../i18n/I18nContext';
 import React, { useState, useMemo } from 'react';
 import { formatPrice } from '../../context/StoreContext';
 import { useStores, useUsers } from '../../hooks';
-import { Truck, ArrowRightLeft, Package, Store, User, Calendar, Search, FileText, ChevronDown, ChevronUp } from 'lucide-react';
+import { CalendarOutlined, CarOutlined, DownOutlined, FileTextOutlined, InboxOutlined, SearchOutlined, ShopOutlined, SwapOutlined, UpOutlined, UserOutlined } from '@ant-design/icons';
 import { Button, Select, DatePicker, ConfigProvider, Tag } from 'antd';
 import frFR from 'antd/locale/fr_FR';
 import dayjs from 'dayjs';
@@ -12,6 +13,7 @@ const { RangePicker } = DatePicker;
 
 // ─── STOCK ENTRIES TAB ───────────────────────────────────────────────────────
 const StockEntriesTab = () => {
+  const t = useT();
   const { stockEntries = [], stores = [] } = useStores();
   const [search, setSearch] = useState('');
   const [selectedStore, setSelectedStore] = useState('all');
@@ -49,12 +51,12 @@ const StockEntriesTab = () => {
   return (
     <div className="space-y-5">
       {/* Filters */}
-      <div className="bg-bg-card border border-black/5 dark:border-white/5 rounded-2xl p-5 flex flex-wrap gap-3 items-center">
+      <div className="glass-panel rounded-xl p-4 flex flex-wrap gap-3 items-center">
         <div className="relative flex-1 min-w-[200px]">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
+          <SearchOutlined style={{ fontSize: 16 }} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
           <input
             className="w-full bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-primary/50"
-            placeholder="Référence, fournisseur, article..."
+            placeholder={t('s.reference_fournisseur_article')}
             value={search}
             onChange={e => setSearch(e.target.value)}
           />
@@ -73,7 +75,7 @@ const StockEntriesTab = () => {
           onChange={setSelectedStore}
           className="h-10 min-w-[160px]"
           options={[
-            { value: 'all', label: 'Tous les magasins' },
+            { value: 'all', label: t('s.tous_les_magasins') },
             ...stores.map(s => ({ value: s.id.toString(), label: s.name }))
           ]}
         />
@@ -82,26 +84,26 @@ const StockEntriesTab = () => {
       {/* Stats */}
       <div className="grid grid-cols-2 gap-4">
         <div className="p-4 bg-primary/5 border border-primary/20 rounded-xl">
-          <div className="text-[0.65rem] font-black text-text-muted uppercase tracking-widest mb-1">Total Bons</div>
-          <div className="text-2xl font-black text-primary">{filtered.length}</div>
+          <div className="text-[0.65rem] font-semibold text-text-muted uppercase tracking-widest mb-1">{t('s.total_bons')}</div>
+          <div className="text-lg font-bold text-primary">{filtered.length}</div>
         </div>
         <div className="p-4 bg-blue-500/5 border border-blue-500/20 rounded-xl">
-          <div className="text-[0.65rem] font-black text-text-muted uppercase tracking-widest mb-1">Coût Total Entrées</div>
-          <div className="text-2xl font-black text-blue-500">{formatPrice(totalCost)}</div>
+          <div className="text-[0.65rem] font-semibold text-text-muted uppercase tracking-widest mb-1">{t('s.cout_total_entrees')}</div>
+          <div className="text-lg font-bold text-blue-500">{formatPrice(totalCost)}</div>
         </div>
       </div>
 
       {/* Table */}
-      <div className="bg-bg-card border border-black/5 dark:border-white/5 rounded-2xl overflow-hidden shadow-xl">
+      <div className="glass-panel rounded-xl p-4 overflow-hidden shadow-sm">
         <div className="px-6 py-4 border-b border-black/5 dark:border-white/5 bg-black/[0.01] dark:bg-white/[0.01]">
-          <h3 className="text-base font-black text-text-heading">Entrées de Stock</h3>
-          <p className="text-[0.65rem] text-text-muted font-bold uppercase tracking-widest mt-0.5">Bons de livraison fournisseur enregistrés</p>
+          <h3 className="text-base font-black text-text-heading">{t('s.entrees_de_stock')}</h3>
+          <p className="text-[0.65rem] text-text-muted font-bold uppercase tracking-widest mt-0.5">{t('s.bons_de_livraison_fournisseur_enregistres')}</p>
         </div>
 
         {filtered.length === 0 ? (
           <div className="flex flex-col items-center gap-3 py-16 opacity-30">
-            <Truck size={48} />
-            <span className="text-sm font-bold italic">Aucune entrée de stock trouvée</span>
+            <CarOutlined style={{ fontSize: 48 }} />
+            <span className="text-sm font-bold italic">{t('s.aucune_entree_de_stock_trouvee')}</span>
           </div>
         ) : (
           <div className="divide-y divide-black/5 dark:divide-white/5">
@@ -112,7 +114,7 @@ const StockEntriesTab = () => {
                   onClick={() => setExpandedId(expandedId === entry.id ? null : entry.id)}
                 >
                   <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center flex-shrink-0">
-                    <Truck size={18} className="text-blue-500" />
+                    <CarOutlined style={{ fontSize: 18 }} className="text-blue-500" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
@@ -124,18 +126,18 @@ const StockEntriesTab = () => {
                       )}
                     </div>
                     <div className="flex items-center gap-3 mt-1 text-[0.72rem] text-text-muted flex-wrap">
-                      <span className="flex items-center gap-1"><User size={11} /> {entry.supplier}</span>
-                      <span className="flex items-center gap-1"><Store size={11} /> {stores.find(s => s.id === entry.storeId)?.name || 'Magasin'}</span>
-                      <span className="flex items-center gap-1"><Calendar size={11} /> {new Date(entry.date).toLocaleDateString('fr-FR', { dateStyle: 'short' })}</span>
-                      <span className="flex items-center gap-1"><Package size={11} /> {entry.items?.length} article(s)</span>
+                      <span className="flex items-center gap-1"><UserOutlined style={{ fontSize: 11 }} /> {entry.supplier}</span>
+                      <span className="flex items-center gap-1"><ShopOutlined style={{ fontSize: 11 }} /> {stores.find(s => s.id === entry.storeId)?.name || 'Magasin'}</span>
+                      <span className="flex items-center gap-1"><CalendarOutlined style={{ fontSize: 11 }} /> {new Date(entry.date).toLocaleDateString('fr-FR', { dateStyle: 'short' })}</span>
+                      <span className="flex items-center gap-1"><InboxOutlined style={{ fontSize: 11 }} /> {entry.items?.length} article(s)</span>
                     </div>
                   </div>
                   <div className="text-right flex-shrink-0">
                     <div className="font-black text-text-heading text-base">{formatPrice(entry.totalCost)}</div>
-                    <div className="text-[0.65rem] text-text-muted mt-0.5">Coût d'achat</div>
+                    <div className="text-[0.65rem] text-text-muted mt-0.5">{t('s.cout_d_achat')}</div>
                   </div>
                   <div className="text-text-muted ml-2">
-                    {expandedId === entry.id ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                    {expandedId === entry.id ? <UpOutlined style={{ fontSize: 16 }} /> : <DownOutlined style={{ fontSize: 16 }} />}
                   </div>
                 </button>
 
@@ -145,10 +147,10 @@ const StockEntriesTab = () => {
                       <table className="w-full text-sm">
                         <thead className="bg-black/5 dark:bg-white/5">
                           <tr>
-                            <th className="px-4 py-3 text-left text-[0.65rem] font-black text-text-muted uppercase tracking-widest">Article</th>
-                            <th className="px-4 py-3 text-center text-[0.65rem] font-black text-text-muted uppercase tracking-widest">Qté</th>
-                            <th className="px-4 py-3 text-right text-[0.65rem] font-black text-text-muted uppercase tracking-widest">Prix d'Achat Unit.</th>
-                            <th className="px-4 py-3 text-right text-[0.65rem] font-black text-text-muted uppercase tracking-widest">Total Ligne</th>
+                            <th className="px-4 py-3 text-left text-[0.65rem] font-semibold text-text-muted uppercase tracking-widest">{t('s.article')}</th>
+                            <th className="px-4 py-3 text-center text-[0.65rem] font-semibold text-text-muted uppercase tracking-widest">{t('s.qte')}</th>
+                            <th className="px-4 py-3 text-right text-[0.65rem] font-semibold text-text-muted uppercase tracking-widest">{t('s.prix_d_achat_unit')}</th>
+                            <th className="px-4 py-3 text-right text-[0.65rem] font-semibold text-text-muted uppercase tracking-widest">{t('s.total_ligne')}</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-black/5 dark:divide-white/5">
@@ -163,7 +165,7 @@ const StockEntriesTab = () => {
                         </tbody>
                         <tfoot className="bg-primary/5">
                           <tr>
-                            <td colSpan="3" className="px-4 py-3 text-right text-[0.7rem] font-black text-text-muted uppercase tracking-widest">Total Bon :</td>
+                            <td colSpan="3" className="px-4 py-3 text-right text-[0.7rem] font-semibold text-text-muted uppercase tracking-widest">{t('s.total_bon')}</td>
                             <td className="px-4 py-3 text-right font-black text-primary text-base">{formatPrice(entry.totalCost)}</td>
                           </tr>
                         </tfoot>
@@ -182,6 +184,7 @@ const StockEntriesTab = () => {
 
 // ─── TRANSFERS TAB ────────────────────────────────────────────────────────────
 const TransfersTab = () => {
+  const t = useT();
   const { transfers = [], stores = [] } = useStores();
   const { allCashierProducts = [] } = useUsers();
   const [search, setSearch] = useState('');
@@ -226,17 +229,17 @@ const TransfersTab = () => {
     }, 0);
   }, 0);
 
-  const statusLabel = { in_transit: { label: 'En Transit', color: 'orange' }, received: { label: 'Reçu', color: 'green' } };
+  const statusLabel = { in_transit: { label: 'En Transit', color: 'orange' }, received: { label: t('s.recu'), color: 'green' } };
 
   return (
     <div className="space-y-5">
       {/* Filters */}
-      <div className="bg-bg-card border border-black/5 dark:border-white/5 rounded-2xl p-5 flex flex-wrap gap-3 items-center">
+      <div className="glass-panel rounded-xl p-4 flex flex-wrap gap-3 items-center">
         <div className="relative flex-1 min-w-[200px]">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
+          <SearchOutlined style={{ fontSize: 16 }} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
           <input
             className="w-full bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-primary/50"
-            placeholder="Référence, expéditeur, article..."
+            placeholder={t('s.reference_expediteur_article')}
             value={search}
             onChange={e => setSearch(e.target.value)}
           />
@@ -255,7 +258,7 @@ const TransfersTab = () => {
           onChange={setSelectedStore}
           className="h-10 min-w-[160px]"
           options={[
-            { value: 'all', label: 'Tous les magasins' },
+            { value: 'all', label: t('s.tous_les_magasins') },
             ...stores.map(s => ({ value: s.id.toString(), label: s.name }))
           ]}
         />
@@ -264,9 +267,9 @@ const TransfersTab = () => {
           onChange={setStatusFilter}
           className="h-10 min-w-[140px]"
           options={[
-            { value: 'all', label: 'Tous statuts' },
+            { value: 'all', label: t('s.tous_statuts') },
             { value: 'in_transit', label: 'En Transit' },
-            { value: 'received', label: 'Reçus' },
+            { value: 'received', label: t('s.recus') },
           ]}
         />
       </div>
@@ -274,26 +277,26 @@ const TransfersTab = () => {
       {/* Stats */}
       <div className="grid grid-cols-2 gap-4">
         <div className="p-4 bg-primary/5 border border-primary/20 rounded-xl">
-          <div className="text-[0.65rem] font-black text-text-muted uppercase tracking-widest mb-1">Total Transferts</div>
-          <div className="text-2xl font-black text-primary">{filtered.length}</div>
+          <div className="text-[0.65rem] font-semibold text-text-muted uppercase tracking-widest mb-1">{t('s.total_transferts')}</div>
+          <div className="text-lg font-bold text-primary">{filtered.length}</div>
         </div>
         <div className="p-4 bg-purple-500/5 border border-purple-500/20 rounded-xl">
-          <div className="text-[0.65rem] font-black text-text-muted uppercase tracking-widest mb-1">Valeur Totale (PA)</div>
-          <div className="text-2xl font-black text-purple-500">{formatPrice(totalValue)}</div>
+          <div className="text-[0.65rem] font-semibold text-text-muted uppercase tracking-widest mb-1">{t('s.valeur_totale_pa')}</div>
+          <div className="text-lg font-bold text-purple-500">{formatPrice(totalValue)}</div>
         </div>
       </div>
 
       {/* Table */}
-      <div className="bg-bg-card border border-black/5 dark:border-white/5 rounded-2xl overflow-hidden shadow-xl">
+      <div className="glass-panel rounded-xl p-4 overflow-hidden shadow-sm">
         <div className="px-6 py-4 border-b border-black/5 dark:border-white/5 bg-black/[0.01] dark:bg-white/[0.01]">
-          <h3 className="text-base font-black text-text-heading">Transferts Inter-Magasins</h3>
-          <p className="text-[0.65rem] text-text-muted font-bold uppercase tracking-widest mt-0.5">Mouvements de marchandise entre points de vente avec valeur d'achat</p>
+          <h3 className="text-base font-black text-text-heading">{t('s.transferts_inter_magasins')}</h3>
+          <p className="text-[0.65rem] text-text-muted font-bold uppercase tracking-widest mt-0.5">{t('s.mouvements_de_marchandise_entre_points_de_ve')}</p>
         </div>
 
         {filtered.length === 0 ? (
           <div className="flex flex-col items-center gap-3 py-16 opacity-30">
-            <ArrowRightLeft size={48} />
-            <span className="text-sm font-bold italic">Aucun transfert trouvé</span>
+            <SwapOutlined style={{ fontSize: 48 }} />
+            <span className="text-sm font-bold italic">{t('s.aucun_transfert_trouve')}</span>
           </div>
         ) : (
           <div className="divide-y divide-black/5 dark:divide-white/5">
@@ -312,30 +315,30 @@ const TransfersTab = () => {
                     onClick={() => setExpandedId(expandedId === transfer.id ? null : transfer.id)}
                   >
                     <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center flex-shrink-0">
-                      <ArrowRightLeft size={18} className="text-purple-500" />
+                      <SwapOutlined style={{ fontSize: 18 }} className="text-purple-500" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-black text-text-heading">{transfer.reference}</span>
-                        <Tag color={transfer.status === 'received' ? 'green' : 'orange'} className="text-[0.65rem] font-black uppercase tracking-wider">
+                        <Tag color={transfer.status === 'received' ? 'green' : 'orange'} className="text-[0.65rem] font-semibold uppercase tracking-wider">
                           {transfer.status === 'received' ? 'Reçu' : 'En Transit'}
                         </Tag>
                       </div>
                       <div className="flex items-center gap-3 mt-1 text-[0.72rem] text-text-muted flex-wrap">
                         <span className="font-bold text-text-primary">{fromStore?.name || '?'}</span>
-                        <ArrowRightLeft size={10} className="text-primary" />
+                        <SwapOutlined style={{ fontSize: 10 }} className="text-primary" />
                         <span className="font-bold text-text-primary">{toStore?.name || '?'}</span>
-                        <span className="flex items-center gap-1"><User size={11} /> {transfer.initiatedBy}</span>
-                        <span className="flex items-center gap-1"><Calendar size={11} /> {new Date(transfer.date).toLocaleDateString('fr-FR', { dateStyle: 'short' })}</span>
-                        <span className="flex items-center gap-1"><Package size={11} /> {transfer.items?.length} article(s)</span>
+                        <span className="flex items-center gap-1"><UserOutlined style={{ fontSize: 11 }} /> {transfer.initiatedBy}</span>
+                        <span className="flex items-center gap-1"><CalendarOutlined style={{ fontSize: 11 }} /> {new Date(transfer.date).toLocaleDateString('fr-FR', { dateStyle: 'short' })}</span>
+                        <span className="flex items-center gap-1"><InboxOutlined style={{ fontSize: 11 }} /> {transfer.items?.length} article(s)</span>
                       </div>
                     </div>
                     <div className="text-right flex-shrink-0">
                       <div className="font-black text-text-heading text-base">{formatPrice(itemsValue)}</div>
-                      <div className="text-[0.65rem] text-text-muted mt-0.5">Valeur PA</div>
+                      <div className="text-[0.65rem] text-text-muted mt-0.5">{t('s.valeur_pa')}</div>
                     </div>
                     <div className="text-text-muted ml-2">
-                      {expandedId === transfer.id ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                      {expandedId === transfer.id ? <UpOutlined style={{ fontSize: 16 }} /> : <DownOutlined style={{ fontSize: 16 }} />}
                     </div>
                   </button>
 
@@ -343,17 +346,17 @@ const TransfersTab = () => {
                     <div className="px-6 pb-5 bg-black/[0.015] dark:bg-white/[0.015]">
                       {transfer.notes && (
                         <div className="mb-3 p-3 bg-amber-500/5 border border-amber-500/20 rounded-xl text-[0.8rem] text-amber-700 dark:text-amber-400">
-                          <strong>Note :</strong> {transfer.notes}
+                          <strong>{t('s.note')}</strong> {transfer.notes}
                         </div>
                       )}
                       <div className="border border-black/5 dark:border-white/5 rounded-xl overflow-hidden">
                         <table className="w-full text-sm">
                           <thead className="bg-black/5 dark:bg-white/5">
                             <tr>
-                              <th className="px-4 py-3 text-left text-[0.65rem] font-black text-text-muted uppercase tracking-widest">Article</th>
-                              <th className="px-4 py-3 text-center text-[0.65rem] font-black text-text-muted uppercase tracking-widest">Qté</th>
-                              <th className="px-4 py-3 text-right text-[0.65rem] font-black text-text-muted uppercase tracking-widest">Prix d'Achat Unit.</th>
-                              <th className="px-4 py-3 text-right text-[0.65rem] font-black text-text-muted uppercase tracking-widest">Valeur Totale</th>
+                              <th className="px-4 py-3 text-left text-[0.65rem] font-semibold text-text-muted uppercase tracking-widest">{t('s.article')}</th>
+                              <th className="px-4 py-3 text-center text-[0.65rem] font-semibold text-text-muted uppercase tracking-widest">{t('s.qte')}</th>
+                              <th className="px-4 py-3 text-right text-[0.65rem] font-semibold text-text-muted uppercase tracking-widest">{t('s.prix_d_achat_unit')}</th>
+                              <th className="px-4 py-3 text-right text-[0.65rem] font-semibold text-text-muted uppercase tracking-widest">{t('s.valeur_totale')}</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-black/5 dark:divide-white/5">
@@ -372,7 +375,7 @@ const TransfersTab = () => {
                           </tbody>
                           <tfoot className="bg-purple-500/5">
                             <tr>
-                              <td colSpan="3" className="px-4 py-3 text-right text-[0.7rem] font-black text-text-muted uppercase tracking-widest">Valeur Totale (PA) :</td>
+                              <td colSpan="3" className="px-4 py-3 text-right text-[0.7rem] font-semibold text-text-muted uppercase tracking-widest">{t('s.valeur_totale_pa_2')}</td>
                               <td className="px-4 py-3 text-right font-black text-purple-500 text-base">{formatPrice(itemsValue)}</td>
                             </tr>
                           </tfoot>
@@ -398,6 +401,7 @@ const TransfersTab = () => {
 
 // ─── MAIN PANEL ───────────────────────────────────────────────────────────────
 const StockMovementsPanel = () => {
+  const t = useT();
   const [tab, setTab] = useState('entries');
 
   return (
@@ -406,15 +410,15 @@ const StockMovementsPanel = () => {
       <div className="flex gap-1 p-1.5 bg-black/5 dark:bg-white/5 rounded-2xl w-fit border border-black/5 dark:border-white/5">
         <button
           onClick={() => setTab('entries')}
-          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-black uppercase tracking-widest transition-all ${tab === 'entries' ? 'bg-primary text-black shadow-lg shadow-primary/20' : 'text-text-muted hover:text-text-primary'}`}
+          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold uppercase tracking-widest transition-all ${tab === 'entries' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-text-muted hover:text-text-primary'}`}
         >
-          <Truck size={16} /> Entrées de Stock
+          <CarOutlined style={{ fontSize: 16 }} /> {t('s.entrees_de_stock')}
         </button>
         <button
           onClick={() => setTab('transfers')}
-          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-black uppercase tracking-widest transition-all ${tab === 'transfers' ? 'bg-primary text-black shadow-lg shadow-primary/20' : 'text-text-muted hover:text-text-primary'}`}
+          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold uppercase tracking-widest transition-all ${tab === 'transfers' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-text-muted hover:text-text-primary'}`}
         >
-          <ArrowRightLeft size={16} /> Transferts Inter-Magasins
+          <SwapOutlined style={{ fontSize: 16 }} /> {t('s.transferts_inter_magasins')}
         </button>
       </div>
 

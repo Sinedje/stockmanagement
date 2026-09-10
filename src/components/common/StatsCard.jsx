@@ -1,30 +1,40 @@
 import React from 'react';
 
-const StatsCard = ({ icon: Icon, label, value, change, changeDir, color = 'green', accentColor }) => {
+/**
+ * Indicateur de tableau de bord — volontairement sobre : une pastille d'icône
+ * discrète, un libellé, une valeur dominante. L'accent colore l'icône plutôt
+ * qu'une bordure épaisse, pour que la valeur reste l'élément le plus lisible.
+ */
+const StatsCard = ({ icon: Icon, label, value, change, changeDir, accentColor }) => {
+  const tint = accentColor || 'var(--color-primary)';
+
   return (
-    <div
-      className="glass-panel rounded-2xl p-6 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-2xl group"
-      style={accentColor ? { borderTop: `4px solid ${accentColor}` } : undefined}
-    >
-      <div className="flex items-center justify-between mb-5">
-        <div 
-          className="w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-300 group-hover:scale-110"
-          style={{ 
-            backgroundColor: accentColor ? `${accentColor}10` : 'rgba(16, 185, 129, 0.08)',
-            color: accentColor || '#10b981',
-          }}
+    <div className="glass-panel rounded-xl p-3.5 flex items-start gap-3 transition-colors duration-200 hover:border-black/10 dark:hover:border-white/15">
+      {Icon && (
+        <span
+          className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5"
+          style={{ background: `color-mix(in srgb, ${tint} 12%, transparent)`, color: tint }}
         >
-          <Icon size={24} strokeWidth={2} />
+          <Icon style={{ fontSize: 16 }} />
+        </span>
+      )}
+
+      <div className="min-w-0 flex-1">
+        <div className="text-[0.68rem] font-medium text-text-muted uppercase tracking-wide leading-snug truncate" title={label}>
+          {label}
+        </div>
+        <div className="text-[1.15rem] font-bold text-text-heading tracking-tight tabular-nums leading-tight mt-1 truncate">
+          {value}
         </div>
         {change !== undefined && (
-          <span className={`text-[0.7rem] font-bold px-2 py-1 rounded-lg ${changeDir === 'down' ? 'bg-red-500/10 text-red-500' : 'bg-primary-bg text-primary'}`}>
-            {changeDir === 'down' ? '↓' : '↑'} {change}
-          </span>
+          <div
+            className={`text-[0.68rem] font-medium mt-1 truncate ${
+              changeDir === 'down' ? 'text-red-500' : 'text-text-muted'
+            }`}
+          >
+            {change}
+          </div>
         )}
-      </div>
-      <div className="space-y-1">
-        <div className="text-[0.7rem] font-black text-text-secondary dark:text-text-muted uppercase tracking-widest">{label}</div>
-        <div className="text-2xl font-black text-text-heading tracking-tight">{value}</div>
       </div>
     </div>
   );

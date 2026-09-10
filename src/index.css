@@ -3,13 +3,17 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --sidebar-width: 280px;
+  --sidebar-width: 264px;
+  --sidebar-width-collapsed: 60px;
 
-  /* Light Theme Variables (Default) */
+  /* Couleurs de marque : valeurs de repli uniquement.
+     La source de vérité est `brand.primary` dans src/theme.js, injecté au
+     démarrage par applyBrandToCssVariables(). Ne pas modifier ici. */
   --color-primary: #10b981;
   --color-primary-light: #34d399;
   --color-primary-dark: #059669;
   --color-primary-bg: rgba(16, 185, 129, 0.1);
+  --color-on-primary: #ffffff;
 
   --bg-primary: #f1f5f9;
   --bg-secondary: rgba(255, 255, 255, 0.92);
@@ -61,6 +65,7 @@
   --color-primary-light: var(--color-primary-light);
   --color-primary-dark: var(--color-primary-dark);
   --color-primary-bg: var(--color-primary-bg);
+  --color-on-primary: var(--color-on-primary);
   
   --color-bg-primary: var(--bg-primary);
   --color-bg-secondary: var(--bg-secondary);
@@ -75,14 +80,45 @@
   --shadow-glow: var(--shadow-glow);
 }
 
-* { margin: 0; padding: 0; box-sizing: border-box; }
+/* Ce reset doit vivre dans @layer base.
+   Tailwind v4 place ses utilitaires dans la couche `utilities` ; or, en cascade CSS,
+   une règle SANS couche l'emporte sur toute règle en couche. Non layée, cette règle
+   universelle annulait donc *tous* les utilitaires p-*, px-*, m-*, space-y-* de
+   l'application — d'où des écrans entièrement collés, sans respiration. */
+@layer base {
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  /* Taille de police standard du navigateur : toutes les tailles Tailwind étant
+     exprimées en rem, l'interface suit cette référence. */
+  html { font-size: 16px; }
+}
 
 body {
   font-family: 'Inter', sans-serif;
+  /* Chiffres à chasse fixe : les colonnes de montants restent alignées d'une ligne à l'autre */
+  font-variant-numeric: tabular-nums;
   background-color: var(--bg-primary);
   color: var(--text-primary);
   transition: background-color 0.3s ease, color 0.3s ease;
   @apply min-h-screen antialiased;
+}
+
+/* Focus clavier — visible uniquement à la navigation au clavier, jamais au clic souris.
+   L'application n'avait aucun style de focus : la navigation au clavier était invisible. */
+:where(button, a, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: 0.5rem;
+}
+
+/* Respect de la préférence système « réduire les animations » */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /* Ambient blurred gradient backdrop — the light source glass panels sit on top of */
@@ -158,6 +194,15 @@ body {
   animation: fade-in 0.4s ease forwards;
 }
 
+@keyframes modal-in {
+  from { opacity: 0; transform: scale(0.96) translateY(8px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.animate-modal-in {
+  animation: modal-in 0.2s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
 @keyframes pulse-slow {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.7; }
@@ -178,7 +223,7 @@ body {
 
 .ant-table-thead > tr > th {
   background-color: var(--border-color)!important;
-  @apply border-b border-black/5! text-text-muted! uppercase tracking-wider text-[0.65rem] font-black! py-4! px-5!;
+  @apply border-b border-black/5! text-text-muted! uppercase tracking-wider text-[0.65rem] font-semibold! py-3! px-4!;
 }
 
 .dark .ant-table-thead > tr > th {
@@ -186,7 +231,7 @@ body {
 }
 
 .ant-table-tbody > tr > td {
-  @apply border-b border-black/5! text-[0.82rem]! py-3.5! px-5!;
+  @apply border-b border-black/5! text-[0.8rem]! py-2.5! px-4!;
 }
 
 .dark .ant-table-tbody > tr > td {
@@ -197,6 +242,34 @@ body {
   background-color: var(--border-color)!important;
 }
 
+/* Lignes de tableau cliquables — la classe est posée par le composant Table mais n'a
+   jamais été définie : aucun curseur ni survol ne signalait qu'on pouvait cliquer. */
+.clickable-row {
+  cursor: pointer;
+}
+
+/* Tableaux compacts des widgets : la mise en page s'adapte à la largeur
+   disponible au lieu de forcer `max-content` et de déborder. */
+.table-fit .ant-table table {
+  table-layout: fixed;
+  width: 100% !important;
+  min-width: 0 !important;
+}
+
+.table-fit .ant-table-cell {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.clickable-row:hover > td {
+  background-color: var(--color-primary-bg) !important;
+}
+
+/* Lignes de tableau : transition douce au survol */
+.ant-table-tbody > tr > td {
+  transition: background-color 0.15s ease;
+}
+
 .ant-input, .ant-input-password, .ant-select-selector {
   background-color: var(--bg-input)!important;
   border-color: var(--border-color)!important;
@@ -204,18 +277,109 @@ body {
   @apply rounded-xl!;
 }
 
+/* ── Boutons ────────────────────────────────────────────────────────────────
+   Une seule définition de taille et de forme pour toute l'application : les
+   écrans n'ont plus à imposer `h-11`, `rounded-xl` ou `uppercase` au cas par cas
+   (on en comptait quatre hauteurs différentes). */
+.ant-btn {
+  height: 2.25rem;            /* 36 px */
+  padding-inline: 0.9rem;
+  border-radius: 0.5rem;
+  font-size: 0.82rem;
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: normal;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+/* Une seule taille de bouton dans toute l'application : les variantes `lg`/`sm`
+   d'Ant Design sont ramenées à la taille standard pour éviter les écarts. */
+.ant-btn-sm,
+.ant-btn-lg {
+  height: 2.25rem;
+  padding-inline: 0.9rem;
+  font-size: 0.82rem;
+}
+
+/* Bouton d'icône : carré, pour ne pas être plus large que haut. */
+.ant-btn.ant-btn-icon-only {
+  width: 2.25rem;
+  padding-inline: 0;
+  justify-content: center;
+}
+
 .ant-btn-primary {
-  @apply shadow-glow rounded-xl font-bold uppercase tracking-wider;
+  @apply shadow-glow;
+  color: var(--color-on-primary) !important;
 }
 
 .badge {
-  @apply px-2 py-0.5 rounded text-[0.7rem] font-bold uppercase tracking-wider;
+  @apply px-2 py-0.5 rounded-md text-[0.68rem] font-semibold uppercase tracking-wide;
 }
 
 .badge-success { @apply bg-primary/10 text-primary border border-primary/20; }
 .badge-danger { @apply bg-red-500/10 text-red-500 border border-red-500/20; }
 .badge-warning { @apply bg-amber-500/10 text-amber-500 border border-amber-500/20; }
 .badge-info { @apply bg-blue-500/10 text-blue-500 border border-blue-500/20; }
+
+/* Recherche et listes déroulantes partagées (components/ui) */
+.custom-search.ant-input-affix-wrapper,
+.custom-select .ant-select-selector {
+  background-color: var(--bg-input) !important;
+  border-color: var(--border-color) !important;
+  border-radius: 0.5rem !important;
+}
+
+.custom-search.ant-input-affix-wrapper:hover,
+.custom-search.ant-input-affix-wrapper-focused,
+.custom-select:hover .ant-select-selector,
+.custom-select.ant-select-focused .ant-select-selector {
+  border-color: var(--color-primary) !important;
+}
+
+.custom-search .ant-input {
+  background: transparent !important;
+  color: var(--text-primary) !important;
+  font-size: 0.78rem;
+}
+
+/* Sélecteur de date partagé (components/common/DateField.jsx) */
+.custom-datepicker.ant-picker {
+  background-color: var(--bg-input) !important;
+  border-color: var(--border-color) !important;
+  border-radius: 0.5rem !important;
+  padding-block: 0.35rem;
+}
+
+.custom-datepicker.ant-picker:hover,
+.custom-datepicker.ant-picker-focused {
+  border-color: var(--color-primary) !important;
+}
+
+.custom-datepicker .ant-picker-input > input {
+  color: var(--text-primary) !important;
+  font-size: 0.78rem;
+}
+
+/* Pagination des tableaux : lisible dans les deux thèmes */
+.ant-pagination {
+  @apply mt-3! px-4! pb-3!;
+}
+
+.ant-pagination .ant-pagination-item a {
+  color: var(--text-secondary) !important;
+}
+
+.ant-pagination .ant-pagination-item-active {
+  background: var(--color-primary-bg) !important;
+  border-color: var(--color-primary) !important;
+}
+
+.ant-pagination .ant-pagination-item-active a {
+  color: var(--color-primary) !important;
+}
 
 /* Custom Modal Style Overrides for light/dark theme correctness */
 .custom-modal .ant-modal-content {
@@ -233,10 +397,41 @@ body {
   border-top: 1px solid var(--border-color) !important;
 }
 
+/* ── Barre latérale : largeur pleine, rail d'icônes, et bascule ──────────────
+   La largeur vit dans une seule variable, `--sidebar-width`, que le contenu
+   principal suit via `.sidebar-adjusted`. Quand la barre est repliée, on bascule
+   simplement cette variable : rien d'autre n'a besoin de connaître les tailles. */
+.sidebar-shell {
+  width: var(--sidebar-width);
+  max-width: 85vw;
+}
+
+.sidebar-shell[data-collapsed='true'] {
+  width: var(--sidebar-width-collapsed);
+}
+
+/* Les libellés disparaissent en mode rail (ils restent dans les info-bulles). */
+.sidebar-shell[data-collapsed='true'] .sidebar-label {
+  display: none;
+}
+
 @media (min-width: 768px) {
   .sidebar-adjusted {
-    margin-left: 280px !important;
+    margin-left: var(--sidebar-width) !important;
   }
+}
+
+/* Le rail d'icônes n'est jamais imposé : les libellés restent visibles par défaut
+   sur toutes les tailles d'écran. Le repli n'a lieu que si l'utilisateur le
+   demande explicitement, et le contenu suit alors cette largeur. */
+@media (min-width: 768px) {
+  body:has(.sidebar-shell[data-collapsed='true']) .sidebar-adjusted {
+    margin-left: var(--sidebar-width-collapsed) !important;
+  }
+}
+
+.sidebar-collapse-toggle {
+  display: flex;
 }
 
 

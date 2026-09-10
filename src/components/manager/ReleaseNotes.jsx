@@ -1,7 +1,10 @@
+import { useT } from '../../i18n/I18nContext';
 import React, { useState, useMemo } from 'react';
+import Pagination from '../common/Pagination';
+import { usePagination } from '../../hooks';
 import { formatPrice } from '../../context/StoreContext';
 import { useSales, useStores, useUsers } from '../../hooks';
-import { FileText, Download, Filter, Search, Calendar as CalendarIcon, Store, User, Package, Printer } from 'lucide-react';
+import { CalendarOutlined, DownloadOutlined, FileTextOutlined, FilterOutlined, InboxOutlined, PrinterOutlined, SearchOutlined, ShopOutlined, UserOutlined } from '@ant-design/icons';
 import { Button, Select, DatePicker, ConfigProvider } from 'antd';
 import frFR from 'antd/locale/fr_FR';
 import dayjs from 'dayjs';
@@ -12,6 +15,7 @@ dayjs.locale('fr');
 const { RangePicker } = DatePicker;
 
 const ReleaseNotes = () => {
+  const t = useT();
   const { allSales = [] } = useSales();
   const { stores = [] } = useStores();
   const { users = [] } = useUsers();
@@ -116,17 +120,20 @@ const ReleaseNotes = () => {
     window.print();
   };
 
+  // Pagination : le tableau n'affiche que 20 lignes à la fois.
+  const { page, setPage, pageCount, total, pageSize, pageItems } = usePagination(filteredNotes);
+
   return (
     <ConfigProvider locale={frFR}>
       <div className="space-y-6 animate-fade-in pb-10">
         {/* Filters Bar */}
-        <div className="bg-bg-card border border-black/5 dark:border-white/5 rounded-3xl p-6 shadow-xl flex flex-wrap items-center gap-4">
+        <div className="glass-panel rounded-xl p-4 flex flex-wrap items-center gap-4">
           <div className="flex-1 min-w-[250px]">
             <div className="relative group">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted group-focus-within:text-primary transition-colors" size={18} />
+              <SearchOutlined style={{ fontSize: 18 }} className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted group-focus-within:text-primary transition-colors" />
               <input 
                 className="w-full bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-2xl pl-12 pr-6 py-3 text-sm text-text-heading focus:outline-none focus:border-primary/50 font-bold"
-                placeholder="Rechercher une facture ou un article..."
+                placeholder={t('s.rechercher_une_facture_ou_un_article')}
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
               />
@@ -135,24 +142,24 @@ const ReleaseNotes = () => {
 
           <div className="flex flex-wrap items-center gap-3">
             <RangePicker 
-              className="h-11 rounded-xl border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/5 font-bold"
+              className="custom-search"
               value={dateRange}
               onChange={setDateRange}
               placeholder={['Début', 'Fin']}
               format="DD/MM/YYYY"
               presets={[
                 { label: 'Aujourd\'hui', value: [dayjs().startOf('day'), dayjs().endOf('day')] },
-                { label: 'Cette Semaine', value: [dayjs().startOf('week'), dayjs().endOf('week')] },
-                { label: 'Ce Mois', value: [dayjs().startOf('month'), dayjs().endOf('month')] },
+                { label: t('s.cette_semaine'), value: [dayjs().startOf('week'), dayjs().endOf('week')] },
+                { label: t('s.ce_mois'), value: [dayjs().startOf('month'), dayjs().endOf('month')] },
               ]}
             />
 
             <Select 
               value={releaseType}
               onChange={setReleaseType}
-              className="h-11 min-w-[160px]"
+              className="custom-select min-w-[160px]"
               options={[
-                { value: 'all', label: 'Toutes les sorties' },
+                { value: 'all', label: t('s.toutes_les_sorties') },
                 { value: 'local', label: 'Sorties Locales' },
                 { value: 'inter_store', label: 'Sorties Inter-Magasins' }
               ]}
@@ -161,54 +168,49 @@ const ReleaseNotes = () => {
             <Select 
               value={selectedStore}
               onChange={setSelectedStore}
-              className="h-11 min-w-[160px]"
+              className="custom-select min-w-[160px]"
               options={[
-                { value: 'all', label: 'Tous les magasins' },
+                { value: 'all', label: t('s.tous_les_magasins') },
                 ...stores.map(s => ({ value: s.id.toString(), label: s.name }))
               ]}
             />
             <Select 
               value={selectedCashier}
               onChange={setSelectedCashier}
-              className="h-11 min-w-[160px]"
+              className="custom-select min-w-[160px]"
               options={[
-                { value: 'all', label: 'Tous les caissiers' },
+                { value: 'all', label: t('s.tous_les_caissiers') },
                 ...users.filter(u => u.role === 'cashier').map(u => ({ value: u.name, label: u.name }))
               ]}
             />
-            <Button 
-              type="primary" 
-              icon={<Printer size={16} />} 
-              onClick={handleExportPDF}
-              className="h-11 rounded-xl font-black uppercase tracking-widest text-[0.7rem]"
-            >
-              Imprimer / PDF
+            <Button type="primary" icon={<PrinterOutlined style={{ fontSize: 16 }} />} onClick={handleExportPDF} >
+              {t('s.imprimer_pdf')}
             </Button>
           </div>
         </div>
 
         {/* Results Table */}
-        <div id="release-notes-print-area" className="bg-bg-card border border-black/5 dark:border-white/5 rounded-3xl overflow-hidden shadow-xl">
+        <div id="release-notes-print-area" className="glass-panel rounded-xl p-4 overflow-hidden shadow-sm">
         <div className="px-8 py-6 border-b border-black/5 dark:border-white/5 bg-black/[0.01] dark:bg-white/[0.01]">
-          <h3 className="text-lg font-black text-text-heading tracking-tight">Bons de Sortie Marchandises</h3>
-          <p className="text-[0.7rem] text-text-muted font-bold uppercase tracking-widest mt-1">Articles facturés et confirmés comme livrés par magasin d'origine</p>
+          <h3 className="text-lg font-black text-text-heading tracking-tight">{t('s.bons_de_sortie_marchandises')}</h3>
+          <p className="text-[0.7rem] text-text-muted font-bold uppercase tracking-widest mt-1">{t('s.articles_factures_et_confirmes_comme_livres_')}</p>
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-black/[0.02] dark:bg-white/[0.02]">
-                <th className="px-8 py-4 text-[0.65rem] font-black text-text-muted uppercase tracking-widest">Dates & Facture</th>
-                <th className="px-8 py-4 text-[0.65rem] font-black text-text-muted uppercase tracking-widest">Caissier / Origine</th>
-                <th className="px-8 py-4 text-[0.65rem] font-black text-text-muted uppercase tracking-widest">Détails des Articles (Livrés / Total)</th>
-                <th className="px-8 py-4 text-[0.65rem] font-black text-text-muted uppercase tracking-widest text-right">Total Sortie</th>
+                <th className="px-8 py-4 text-[0.65rem] font-semibold text-text-muted uppercase tracking-widest">{t('s.dates_facture')}</th>
+                <th className="px-8 py-4 text-[0.65rem] font-semibold text-text-muted uppercase tracking-widest">{t('s.caissier_origine')}</th>
+                <th className="px-8 py-4 text-[0.65rem] font-semibold text-text-muted uppercase tracking-widest">{t('s.details_des_articles_livres_total')}</th>
+                <th className="px-8 py-4 text-[0.65rem] font-semibold text-text-muted uppercase tracking-widest text-right">{t('s.total_sortie')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-black/5 dark:divide-white/5">
-              {filteredNotes.map(note => (
+              {pageItems.map(note => (
                 <tr key={note.id} className="hover:bg-black/[0.01] dark:hover:bg-white/[0.01] transition-colors group">
                   <td className="px-8 py-6 align-top">
-                    <div className="text-sm font-black text-text-heading tracking-tight mb-2">{note.invoiceNumber || 'N/A'}</div>
+                    <div className="text-sm font-semibold text-text-heading tracking-tight mb-2">{note.invoiceNumber || 'N/A'}</div>
                     <div className="space-y-1">
                       <div className="text-[0.65rem] font-bold text-text-secondary">
                         Facturé : <span className="text-text-muted opacity-80">{note.date ? new Date(note.date).toLocaleString('fr-FR', {dateStyle: 'short', timeStyle: 'short'}) : 'Date inconnue'}</span>
@@ -222,17 +224,17 @@ const ReleaseNotes = () => {
                   </td>
                   <td className="px-8 py-6 align-top">
                     <div className="flex items-center gap-2 mb-2">
-                      <User size={12} className="text-primary" />
+                      <UserOutlined style={{ fontSize: 12 }} className="text-primary" />
                       <span className="text-sm font-bold text-text-heading">{note.cashier}</span>
                     </div>
                     <div className="flex flex-col gap-1">
                       <div className="flex items-center gap-2">
-                        <span className="text-[0.55rem] font-black uppercase tracking-widest text-text-muted">Caisse :</span>
+                        <span className="text-[0.55rem] font-semibold uppercase tracking-widest text-text-muted">{t('s.caisse_2')}</span>
                         <span className="text-[0.65rem] font-bold text-text-secondary">{stores.find(s => s.id === note.storeId)?.name || 'Magasin'}</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="text-[0.55rem] font-black uppercase tracking-widest text-text-muted">Origine :</span>
-                        <span className={`text-[0.65rem] font-black uppercase tracking-wider ${note.releaseType === 'inter_store' ? 'text-orange-500' : 'text-primary'}`}>
+                        <span className="text-[0.55rem] font-semibold uppercase tracking-widest text-text-muted">{t('s.origine')}</span>
+                        <span className={`text-[0.65rem] font-semibold uppercase tracking-wider ${note.releaseType === 'inter_store' ? 'text-orange-500' : 'text-primary'}`}>
                           {stores.find(s => s.id === note.releaseStoreId)?.name || 'Magasin'}
                         </span>
                       </div>
@@ -246,16 +248,16 @@ const ReleaseNotes = () => {
                         
                         return (
                           <div key={idx} className="flex flex-wrap items-center gap-3 bg-black/5 dark:bg-white/5 px-3 py-1.5 rounded-lg">
-                            <Package size={12} className="text-text-muted" />
-                            <span className="text-[0.75rem] font-black text-text-heading flex-1">{item.name}</span>
+                            <InboxOutlined style={{ fontSize: 12 }} className="text-text-muted" />
+                            <span className="text-[0.75rem] font-semibold text-text-heading flex-1">{item.name}</span>
                             
                             <div className="flex gap-2">
                               {isFullyDelivered ? (
-                                <span className="text-[0.65rem] font-black px-2 py-0.5 bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 rounded-md whitespace-nowrap">
+                                <span className="text-[0.65rem] font-semibold px-2 py-0.5 bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 rounded-md whitespace-nowrap">
                                   {qtyDelivered} / {item.quantity} Livré
                                 </span>
                               ) : (
-                                <span className="text-[0.65rem] font-black px-2 py-0.5 bg-orange-500/20 text-orange-600 dark:text-orange-400 rounded-md whitespace-nowrap">
+                                <span className="text-[0.65rem] font-semibold px-2 py-0.5 bg-orange-500/20 text-orange-600 dark:text-orange-400 rounded-md whitespace-nowrap">
                                   {qtyDelivered} / {item.quantity} Livré
                                 </span>
                               )}
@@ -277,14 +279,15 @@ const ReleaseNotes = () => {
                 <tr>
                   <td colSpan="4" className="px-8 py-12 text-center">
                     <div className="flex flex-col items-center gap-3 opacity-30">
-                      <FileText size={48} />
-                      <span className="text-sm font-bold italic">Aucun bon de sortie livré trouvé pour ces critères</span>
+                      <FileTextOutlined style={{ fontSize: 48 }} />
+                      <span className="text-sm font-bold italic">{t('s.aucun_bon_de_sortie_livre_trouve_pour_ces_cr')}</span>
                     </div>
                   </td>
                 </tr>
               )}
             </tbody>
           </table>
+          <Pagination page={page} pageCount={pageCount} total={total} pageSize={pageSize} onChange={setPage} label="bons" />
         </div>
       </div>
 

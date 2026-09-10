@@ -1,23 +1,27 @@
+import { useT } from '../../i18n/I18nContext';
 import React from 'react';
 import { Empty, Button } from 'antd';
-import { Inbox } from 'lucide-react';
+import { InboxOutlined } from '@ant-design/icons';
 
 const EmptyState = ({
-  icon: Icon = Inbox,
-  title = 'Aucune donnée',
-  description = 'Il n\'y a rien à afficher pour le moment.',
+  icon: Icon = InboxOutlined,
+  title,
+  description,
   actionLabel,
   onAction,
   className = '',
 }) => {
+  const t = useT();
   return (
-    <div className={className} style={{ padding: '2.5rem 1.5rem' }}>
+    <div className={`py-10 px-6 ${className}`}>
       <Empty
-        image={<Icon size={48} style={{ opacity: 0.3, color: '#94a3b8' }} />}
+        image={<Icon style={{ fontSize: 40 }} className="text-text-muted opacity-40" />}
         description={
-          <div style={{ marginTop: '0.5rem' }}>
-            <div style={{ color: '#e2e8f0', fontWeight: 600, fontSize: '1rem' }}>{title}</div>
-            <div style={{ color: '#64748b', fontSize: '0.85rem', marginTop: '4px' }}>{description}</div>
+          // Ces libellés étaient figés sur les couleurs du thème sombre (#e2e8f0) :
+          // en thème clair le titre devenait quasi invisible sur fond blanc.
+          <div className="mt-2">
+            <div className="text-text-heading font-semibold text-[0.95rem]">{title ?? t('s.aucune_donnee')}</div>
+            <div className="text-text-muted text-[0.82rem] mt-1">{description ?? t('s.il_n_y_a_rien_a_afficher_pour_le_moment')}</div>
           </div>
         }
       >

@@ -1,12 +1,13 @@
+import { useT } from '../../i18n/I18nContext';
+import { Table } from '../ui';
 import React, { useState } from 'react';
 import { formatPrice } from '../../context/StoreContext';
 import { useProducts } from '../../hooks';
 import Modal from '../common/Modal';
 import Input from '../common/Input';
 import Select from '../common/Select';
-import DataTable from '../common/DataTable';
 import SearchComponent from '../common/SearchComponent';
-import { Plus, Edit3, Trash2, Package } from 'lucide-react';
+import { DeleteOutlined, EditOutlined, InboxOutlined, PlusOutlined } from '@ant-design/icons';
 import { Button, Space, Popconfirm } from 'antd';
 
 const emptyProduct = { 
@@ -22,6 +23,7 @@ const emptyProduct = {
 };
 
 const InventoryPanel = () => {
+  const t = useT();
   const { products, categories, addProduct, updateProduct, deleteProduct, addCategory } = useProducts();
   const [search, setSearch] = useState('');
   const [filterCat, setFilterCat] = useState('Tous');
@@ -86,54 +88,43 @@ const InventoryPanel = () => {
         {val ? (
           <img src={val} alt="" className="w-full h-full object-cover" />
         ) : (
-          <Package size={16} className="opacity-20" />
+          <InboxOutlined style={{ fontSize: 16 }} className="opacity-20" />
         )}
       </div>
     )},
-    { key: 'name', title: 'Produit', render: (val) => <span className="font-semibold text-text-heading">{val}</span> },
-    { key: 'category', title: 'Catégorie', render: (val) => <span className="badge badge-info">{val}</span> },
-    { key: 'price', title: 'Prix', render: (val) => <span className="font-bold text-primary">{formatPrice(val)}</span> },
-    { key: 'cost', title: 'Coût', render: (val) => formatPrice(val) },
-    { key: 'stock', title: 'Stock Vente', render: (val, row) => (
+    { key: 'name', title: t('s.produit'), render: (val) => <span className="font-semibold text-text-heading">{val}</span> },
+    { key: 'category', title: t('s.categorie'), render: (val) => <span className="badge badge-info">{val}</span> },
+    { key: 'price', title: t('s.prix'), render: (val) => <span className="font-bold text-primary">{formatPrice(val)}</span> },
+    { key: 'cost', title: t('s.cout'), render: (val) => formatPrice(val) },
+    { key: 'stock', title: t('s.stock_vente'), render: (val, row) => (
       <div className="flex flex-col">
         <span className={`font-black ${val <= row.minStock ? 'text-red-500' : 'text-text-primary'}`}>{val}</span>
-        <span className="text-[0.6rem] text-text-muted uppercase font-bold tracking-tighter">Théorique</span>
+        <span className="text-[0.6rem] text-text-muted uppercase font-bold tracking-tighter">{t('s.theorique')}</span>
       </div>
     )},
-    { key: 'physicalStock', title: 'Stock Magasin', render: (val, row) => (
+    { key: 'physicalStock', title: t('s.stock_magasin'), render: (val, row) => (
       <div className="flex flex-col">
         <span className={`font-black ${val <= row.minStock ? 'text-purple-500' : 'text-text-primary'}`}>{val}</span>
-        <span className="text-[0.6rem] text-text-muted uppercase font-bold tracking-tighter">Physique</span>
+        <span className="text-[0.6rem] text-text-muted uppercase font-bold tracking-tighter">{t('s.physique')}</span>
       </div>
     )},
     { key: 'minStock', title: 'Min' },
-    { key: 'status', title: 'État', render: (_, row) => (
+    { key: 'status', title: t('s.etat'), render: (_, row) => (
       <span className={`badge ${row.physicalStock <= 5 ? 'badge-danger' : row.physicalStock <= row.minStock ? 'badge-warning' : 'badge-success'}`}>
         {row.physicalStock <= 5 ? 'Critique' : row.physicalStock <= row.minStock ? 'Bas' : 'OK'}
       </span>
     )},
-    { key: 'actions', title: 'Actions', align: 'right', render: (_, row) => (
+    { key: 'actions', title: t('s.actions'), align: 'right', render: (_, row) => (
       <Space size="small">
-        <Button 
-          type="text" 
-          className="text-text-secondary hover:text-primary!"
-          icon={<Edit3 size={14} />} 
-          onClick={(e) => { e.stopPropagation(); openEdit(row); }} 
-        />
+        <Button type="text" className="text-text-secondary hover:text-primary!" icon={<EditOutlined style={{ fontSize: 14 }} />} onClick={(e) => { e.stopPropagation(); openEdit(row); }} />
         <Popconfirm
-          title="Supprimer le produit"
-          description="Êtes-vous sûr de vouloir supprimer ce produit ?"
+          title={t('s.supprimer_le_produit')}
+          description={t('s.etes_vous_sur_de_vouloir_supprimer_ce_produi')}
           onConfirm={() => deleteProduct(row.id)}
-          okText="Oui"
-          cancelText="Non"
+          okText={t('s.oui')}
+          cancelText={t('s.non')}
         >
-          <Button 
-            type="text" 
-            danger 
-            className="hover:bg-red-500/10!"
-            icon={<Trash2 size={14} />} 
-            onClick={(e) => e.stopPropagation()}
-          />
+          <Button type="text" danger className="hover:bg-red-500/10!" icon={<DeleteOutlined style={{ fontSize: 14 }} />} onClick={(e) => e.stopPropagation()} />
         </Popconfirm>
       </Space>
     )},
@@ -143,20 +134,14 @@ const InventoryPanel = () => {
     <div className="animate-fade-in space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-bg-card p-6 rounded-2xl border border-black/5 dark:border-white/5">
         <SearchComponent
-          placeholder="Rechercher un produit..."
+          placeholder={t('s.rechercher_un_produit')}
           value={search}
           onChange={e => setSearch(e.target.value)}
           width="100%"
           className="max-w-md"
         />
-        <Button 
-          type="primary" 
-          icon={<Plus size={16} />} 
-          onClick={openAdd} 
-          size="large"
-          className="h-11 px-6 rounded-xl font-bold uppercase tracking-wider"
-        >
-          Ajouter Produit
+        <Button type="primary" icon={<PlusOutlined style={{ fontSize: 16 }} />} onClick={openAdd} >
+          {t('s.ajouter_produit')}
         </Button>
       </div>
 
@@ -167,7 +152,7 @@ const InventoryPanel = () => {
             className={`
               px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200
               ${filterCat === cat 
-                ? 'bg-primary text-black shadow-lg shadow-primary/20' 
+                ? 'bg-primary text-white shadow-lg shadow-primary/20' 
                 : 'text-text-secondary hover:text-text-primary hover:bg-black/5 dark:hover:bg-white/5'}
             `} 
             onClick={() => setFilterCat(cat)}
@@ -178,12 +163,12 @@ const InventoryPanel = () => {
       </div>
 
       <div className="bg-bg-secondary rounded-2xl border border-black/5 dark:border-white/5 overflow-hidden shadow-2xl">
-        <DataTable
+        <Table
           columns={columns}
           data={filtered}
-          emptyIcon={Package}
-          emptyTitle="Aucun produit trouvé"
-          emptyDescription="Essayez de modifier vos filtres ou ajoutez un nouveau produit."
+          emptyIcon={InboxOutlined}
+          emptyTitle={t('s.aucun_produit_trouve')}
+          emptyDescription={t('s.essayez_de_modifier_vos_filtres_ou_ajoutez_u')}
         />
       </div>
 
@@ -192,32 +177,25 @@ const InventoryPanel = () => {
           title={editingProduct ? 'Modifier le Produit' : 'Nouveau Produit'}
           onClose={() => setShowModal(false)}
           footer={<div className="flex justify-end gap-3">
-            <Button 
-              onClick={() => setShowModal(false)} 
-              className="h-10 rounded-lg px-6 font-semibold"
-            >
-              Annuler
+            <Button onClick={() => setShowModal(false)} >
+              {t('s.annuler')}
             </Button>
-            <Button 
-              type="primary" 
-              onClick={handleSave}
-              className="h-10 rounded-lg px-6 font-bold"
-            >
-              Enregistrer
+            <Button type="primary" onClick={handleSave} >
+              {t('s.enregistrer')}
             </Button>
           </div>}
         >
           <div className="space-y-4 p-1">
             <Input
-              label="Nom du Produit"
+              label={t('s.nom_du_produit')}
               value={form.name}
               onChange={e => setForm({ ...form, name: e.target.value })}
-              placeholder="Ex: Riz Basmati 5kg"
+              placeholder={t('s.ex_riz_basmati_5kg')}
             />
             
             {!isAddingNewCategory ? (
               <Select
-                label="Catégorie"
+                label={t('s.categorie')}
                 value={form.category}
                 onChange={val => {
                   if (val === 'ADD_NEW') {
@@ -226,37 +204,37 @@ const InventoryPanel = () => {
                     setForm({ ...form, category: val });
                   }
                 }}
-                options={[...categories, { label: '+ Nouveau...', value: 'ADD_NEW' }]}
-                placeholder="Sélectionner..."
+                options={[...categories, { label: t('s.nouveau'), value: 'ADD_NEW' }]}
+                placeholder={t('s.selectionner')}
               />
             ) : (
               <div className="space-y-2">
                 <Input
-                  label="Nouvelle Catégorie"
+                  label={t('s.nouvelle_categorie')}
                   value={newCategory}
                   onChange={e => setNewCategory(e.target.value)}
-                  placeholder="Ex: Surgelés, Electronique..."
+                  placeholder={t('s.ex_surgeles_electronique')}
                   autoFocus
                 />
                 <button 
                   className="text-primary text-[0.7rem] font-bold uppercase tracking-wider hover:underline"
                   onClick={() => setIsAddingNewCategory(false)}
                 >
-                  Choisir une catégorie existante
+                  {t('s.choisir_une_categorie_existante')}
                 </button>
               </div>
             )}
 
             <div className="grid grid-cols-2 gap-4">
               <Input
-                label="Prix de Vente"
+                label={t('s.prix_de_vente')}
                 type="number"
                 value={form.price}
                 onChange={e => setForm({ ...form, price: e.target.value })}
                 placeholder="0"
               />
               <Input
-                label="Prix d'Achat"
+                label={t('s.prix_d_achat')}
                 type="number"
                 value={form.cost}
                 onChange={e => setForm({ ...form, cost: e.target.value })}
@@ -265,14 +243,14 @@ const InventoryPanel = () => {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <Input
-                label="Stock"
+                label={t('s.stock')}
                 type="number"
                 value={form.stock}
                 onChange={e => setForm({ ...form, stock: e.target.value })}
                 placeholder="0"
               />
               <Input
-                label="Stock Minimum"
+                label={t('s.stock_minimum')}
                 type="number"
                 value={form.minStock}
                 onChange={e => setForm({ ...form, minStock: e.target.value })}
@@ -282,27 +260,27 @@ const InventoryPanel = () => {
 
             <div className="grid grid-cols-2 gap-4 border-t border-black/5 dark:border-white/5 pt-4">
               <Input
-                label="Fournisseur"
+                label={t('s.fournisseur_2')}
                 value={form.supplier || ''}
                 onChange={e => setForm({ ...form, supplier: e.target.value })}
-                placeholder="Nom du fournisseur"
+                placeholder={t('s.nom_du_fournisseur')}
               />
               <Input
-                label="N° Bon (Livraison/Commande)"
+                label={t('s.n_bon_livraison_commande')}
                 value={form.deliveryNote || ''}
                 onChange={e => setForm({ ...form, deliveryNote: e.target.value })}
-                placeholder="Ex: BL-2024-001"
+                placeholder={t('s.ex_bl_2024_001')}
               />
             </div>
 
             <div className="space-y-2">
-              <label className="text-[0.65rem] font-black text-text-muted uppercase tracking-widest px-1">Image du Produit</label>
+              <label className="text-[0.65rem] font-semibold text-text-muted uppercase tracking-widest px-1">{t('s.image_du_produit')}</label>
               <div className="flex items-center gap-4 p-4 bg-black/5 dark:bg-white/5 border border-dashed border-black/20 dark:border-white/20 rounded-2xl transition-all hover:border-primary/50">
                 <div className="w-20 h-20 rounded-xl overflow-hidden bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5 flex items-center justify-center flex-shrink-0">
                   {form.image ? (
                     <img src={form.image} alt="Preview" className="w-full h-full object-cover" />
                   ) : (
-                    <Package size={24} className="opacity-20" />
+                    <InboxOutlined style={{ fontSize: 24 }} className="opacity-20" />
                   )}
                 </div>
                 <div className="flex-1 space-y-1">
@@ -324,11 +302,11 @@ const InventoryPanel = () => {
                   />
                   <label 
                     htmlFor="product-image"
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-black text-xs font-black rounded-lg cursor-pointer hover:bg-primary/90 transition-all uppercase tracking-tighter"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white text-xs font-semibold rounded-lg cursor-pointer hover:bg-primary/90 transition-all uppercase tracking-tighter"
                   >
-                    Choisir une image
+                    {t('s.choisir_une_image')}
                   </label>
-                  <p className="text-[0.6rem] text-text-muted">PNG, JPG ou GIF (Max 2MB recommandé)</p>
+                  <p className="text-[0.6rem] text-text-muted">{t('s.png_jpg_ou_gif_max_2mb_recommande')}</p>
                 </div>
                 {form.image && (
                   <button 

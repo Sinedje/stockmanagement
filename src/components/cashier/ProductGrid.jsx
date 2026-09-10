@@ -1,10 +1,12 @@
+import { useT } from '../../i18n/I18nContext';
 import React, { useState } from 'react';
 import { formatPrice } from '../../context/StoreContext';
 import { useUsers, useProducts, useSales, useStores } from '../../hooks';
 import SearchComponent from '../common/SearchComponent';
-import { Store } from 'lucide-react';
+import { ShopOutlined } from '@ant-design/icons';
 
 const ProductGrid = () => {
+  const t = useT();
   const { allCashierProducts } = useUsers();
   const { categories } = useProducts();
   const { addToCart } = useSales();
@@ -30,7 +32,7 @@ const ProductGrid = () => {
       <div className="glass-panel p-4 rounded-2xl flex flex-col gap-3">
         <div className="flex flex-col md:flex-row items-center gap-3">
           <SearchComponent
-            placeholder="Rechercher par désignation ou référence..."
+            placeholder={t('s.rechercher_par_designation_ou_reference')}
             value={search}
             onChange={e => setSearch(e.target.value)}
             width="100%"
@@ -42,8 +44,8 @@ const ProductGrid = () => {
         {stores.length > 1 && (
           <div className="flex items-center gap-2 flex-wrap">
             <div className="flex items-center gap-1.5 text-text-muted opacity-60 mr-1">
-              <Store size={12} strokeWidth={2.5} />
-              <span className="text-[0.65rem] font-black uppercase tracking-widest">Magasin</span>
+              <ShopOutlined style={{ fontSize: 12 }} />
+              <span className="text-[0.65rem] font-semibold uppercase tracking-widest">{t('s.magasin')}</span>
             </div>
             {['Tous', ...stores.map(s => s.id)].map(val => {
               const label = val === 'Tous' ? 'Tous' : stores.find(s => s.id === val)?.name;
@@ -52,7 +54,7 @@ const ProductGrid = () => {
                   key={val}
                   className={`px-3 py-1 rounded-lg text-[0.75rem] font-bold transition-all duration-200
                     ${filterStore === val
-                      ? 'bg-primary text-black shadow-lg shadow-primary/20'
+                      ? 'bg-primary text-white shadow-lg shadow-primary/20'
                       : 'text-text-secondary hover:text-text-primary hover:bg-white/5 border border-white/5'}`}
                   onClick={() => setFilterStore(val)}
                 >
@@ -70,7 +72,7 @@ const ProductGrid = () => {
               key={cat}
               className={`px-4 py-1.5 rounded-lg text-[0.8rem] font-bold transition-all duration-200
                 ${filterCat === cat
-                  ? 'bg-primary text-black shadow-lg shadow-primary/20'
+                  ? 'bg-primary text-white shadow-lg shadow-primary/20'
                   : 'text-text-secondary hover:text-text-primary hover:bg-white/5'}`}
               onClick={() => setFilterCat(cat)}
             >
@@ -85,8 +87,8 @@ const ProductGrid = () => {
         {filtered.map(product => (
           <div
             key={`${product.id}-${product.storeId}`}
-            className={`group relative p-3 glass-panel rounded-2xl cursor-pointer flex flex-col justify-between
-              transition-all duration-300 hover:border-primary/30 hover:shadow-xl hover:shadow-primary/10 hover:-translate-y-1
+            className={`group relative p-3 glass-panel rounded-xl cursor-pointer flex flex-col justify-between
+              transition-all duration-300 hover:border-primary/30 hover:shadow-sm hover:shadow-primary/10 hover:-translate-y-1
               ${product.stock <= 0 ? 'opacity-50 grayscale pointer-events-none' : ''}`}
             onClick={() => addToCart(product)}
           >
@@ -95,21 +97,21 @@ const ProductGrid = () => {
               {product.image ? (
                 <img src={product.image} alt={product.designation || product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
               ) : (
-                <div className="text-text-muted opacity-20 font-black text-xs uppercase">Pas d'image</div>
+                <div className="text-text-muted opacity-20 font-semibold text-xs uppercase">{t('s.pas_d_image')}</div>
               )}
             </div>
 
             {/* Badge magasin */}
             {stores.length > 1 && (
               <div className="flex items-center gap-1 mb-1">
-                <Store size={9} className="text-primary opacity-60" />
-                <span className="text-[0.58rem] font-black text-primary uppercase tracking-widest opacity-60 truncate">
+                <ShopOutlined style={{ fontSize: 9 }} className="text-primary opacity-60" />
+                <span className="text-[0.58rem] font-semibold text-primary uppercase tracking-widest opacity-60 truncate">
                   {product.storeName}
                 </span>
               </div>
             )}
 
-            <div className="text-[0.65rem] font-black text-primary uppercase tracking-widest mb-0.5 opacity-60 group-hover:opacity-100 transition-opacity">
+            <div className="text-[0.65rem] font-semibold text-primary uppercase tracking-widest mb-0.5 opacity-60 group-hover:opacity-100 transition-opacity">
               {product.category}
             </div>
             <div className="text-xs font-bold text-text-heading mb-2 line-clamp-2 min-h-[2rem]" title={product.designation || product.name}>
@@ -120,7 +122,7 @@ const ProductGrid = () => {
                 {formatPrice(product.price)}
               </div>
               <div className="text-[0.7rem] font-bold bg-white/5 px-2 py-0.5 rounded-md border border-white/5">
-                <span className="text-text-muted mr-1">Stock:</span>
+                <span className="text-text-muted mr-1">{t('s.stock_2')}</span>
                 <span className={product.stock <= product.minStock ? 'text-red-500' : 'text-primary'}>
                   {product.stock}
                 </span>
@@ -128,8 +130,8 @@ const ProductGrid = () => {
             </div>
             {product.stock <= 0 && (
               <div className="absolute inset-0 flex items-center justify-center bg-black/60 rounded-2xl">
-                <span className="bg-red-500 text-white text-[0.7rem] font-black px-3 py-1 rounded-full uppercase tracking-widest shadow-lg">
-                  Épuisé
+                <span className="bg-red-500 text-white text-[0.7rem] font-semibold px-3 py-1 rounded-full uppercase tracking-widest shadow-lg">
+                  {t('s.epuise')}
                 </span>
               </div>
             )}

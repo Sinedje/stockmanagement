@@ -7,3 +7,4 @@ export { default as useUsers } from './useUsers';
 export { default as useSettings } from './useSettings';
 export { default as useBreakages } from './useBreakages';
 export { default as useTheme } from './useTheme';
+export { default as usePagination, DEFAULT_PAGE_SIZE } from './usePagination';

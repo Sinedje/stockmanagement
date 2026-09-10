@@ -5,7 +5,9 @@ const companySettingsSchema = new mongoose.Schema({
   activity: { type: String, required: true, default: 'VENTE DE MATERIELS SECURITE INCENDIE ET ACCESSOIRES' },
   phones: { type: String, required: true, default: '+225 07 48 48 55 90 / +225 05 05 57 26 01' },
   ncc: { type: String, required: true, default: '1947852 B' },
-  rccm: { type: String, required: true, default: 'CI-ABJ-03-2019-B13-17654' }
+  rccm: { type: String, required: true, default: 'CI-ABJ-03-2019-B13-17654' },
+  // Langue de l'interface, choisie dans les paramètres de l'entreprise.
+  language: { type: String, enum: ['fr', 'en'], default: 'fr' }
 }, {
   timestamps: true,
   toJSON: {

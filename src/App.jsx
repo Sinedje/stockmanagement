@@ -87,11 +87,20 @@ const AppRoutes = () => {
 import { ConfigProvider, theme as antTheme } from 'antd';
 import { themeConfig } from './theme';
 import { useStore } from './context/StoreContext';
+import { I18nProvider } from './i18n/I18nContext';
 
 // Theme wrapper still uses StoreContext for the dark/light toggle
 const ThemeAppWrapper = () => {
-  const { theme } = useStore();
+  const { theme, companySettings, updateCompanySettings } = useStore();
   const isDark = theme === 'dark';
+
+  // La langue est un réglage d'entreprise : elle est lue depuis les paramètres
+  // et réenregistrée côté serveur lorsqu'elle change.
+  const language = companySettings?.language || 'fr';
+  const handleLanguageChange = React.useCallback(
+    (next) => updateCompanySettings({ ...companySettings, language: next }),
+    [companySettings, updateCompanySettings]
+  );
 
   return (
     <ConfigProvider
@@ -99,6 +108,7 @@ const ThemeAppWrapper = () => {
         algorithm: isDark ? antTheme.darkAlgorithm : antTheme.defaultAlgorithm,
         token: {
           colorPrimary: themeConfig.colors.primary,
+          colorTextLightSolid: themeConfig.colors.onPrimary, // texte sur boutons pleins
           borderRadius: themeConfig.radius,
           ...(isDark ? {
             colorBgBase: themeConfig.colors.bgDark,
@@ -123,9 +133,11 @@ const ThemeAppWrapper = () => {
         },
       }}
     >
-      <Router>
-        <AppRoutes />
-      </Router>
+      <I18nProvider language={language} onChangeLanguage={handleLanguageChange}>
+        <Router>
+          <AppRoutes />
+        </Router>
+      </I18nProvider>
     </ConfigProvider>
   );
 };

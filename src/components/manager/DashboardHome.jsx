@@ -1,88 +1,91 @@
-import React from 'react';
+import { useT } from '../../i18n/I18nContext';
+import React, { useMemo } from 'react';
 import { formatPrice } from '../../context/StoreContext';
+import { estimateProfit, ESTIMATED_MARGIN_LABEL } from '../../utils/businessRules';
 import { useProducts, useSales, useStores, useUsers } from '../../hooks';
 import StatsCard from '../common/StatsCard';
-import Card from '../common/Card';
-import DataTable from '../common/DataTable';
-import { Package, DollarSign, ShoppingCart, AlertTriangle, TrendingUp, Clock, Truck, CreditCard } from 'lucide-react';
+import Widget, { WidgetRow, makeNavigator } from '../common/Widget';
+import { CarOutlined, ClockCircleOutlined, CreditCardOutlined, DollarOutlined, HomeOutlined, InboxOutlined, RiseOutlined, ShoppingCartOutlined, WarningOutlined } from '@ant-design/icons';
 
-const DashboardHome = () => {
-  const { products, lowStockProducts, totalStockValue } = useProducts();
+const DashboardHome = ({ onNavigate, availableTabs }) => {
+  const t = useT();
+  const go = makeNavigator(onNavigate, availableTabs);
+  const { products, lowStockProducts } = useProducts();
   const { sales, allSales, totalRevenue, todaySales, todayRevenue } = useSales();
   const { stores } = useStores();
   const { allCashierProducts } = useUsers();
-  const pendingDeliveriesCount = allSales.filter(s => s.status !== 'cancelled' && s.deliveryStatus !== 'delivered').length;
+
+  const pendingDeliveries = useMemo(
+    () => allSales.filter(s => s.status !== 'cancelled' && s.deliveryStatus !== 'delivered'),
+    [allSales]
+  );
   const totalUnpaid = allSales.reduce((sum, s) => sum + (s.amountDue || 0), 0);
+  const totalProfit = sales.reduce((sum, s) => sum + estimateProfit(s.total), 0);
 
-  const recentSales = sales.slice(0, 8);
-  const totalProfit = sales.reduce((sum, s) => sum + s.total * 0.25, 0);
-
-  const salesColumns = [
-    { key: 'date', title: 'Date', render: (val) => new Date(val).toLocaleDateString('fr-FR') },
-    { key: 'items', title: 'Articles', render: (val) => <span className="text-[0.8rem] opacity-70">{val.length} articles</span> },
-    { key: 'total', title: 'Total', render: (val) => <span className="font-bold text-primary">{formatPrice(val)}</span> },
-    { key: 'paymentMethod', title: 'Paiement', render: (val) => <span className={`badge ${val === 'Espèces' ? 'badge-success' : 'badge-info'}`}>{val}</span> },
-  ];
-
-  const alertColumns = [
-    { key: 'name', title: 'Produit', render: (val) => <span className="font-semibold text-text-heading">{val}</span> },
-    { key: 'stock', title: 'Stock', render: (val) => <span className={`font-black ${val <= 5 ? 'text-red-500' : 'text-amber-500'}`}>{val}</span> },
-    { key: 'minStock', title: 'Minimum' },
-    { key: 'status', title: 'État', render: (_, row) => <span className={`badge ${row.stock <= 5 ? 'badge-danger' : 'badge-warning'}`}>{row.stock <= 5 ? 'Critique' : 'Bas'}</span> },
-  ];
+  const storeValues = useMemo(() => stores
+    .map(store => ({
+      id: store.id,
+      name: store.name,
+      value: allCashierProducts
+        .filter(p => p.storeId === store.id)
+        .reduce((sum, p) => sum + (p.cost * p.stock), 0),
+    }))
+    .sort((a, b) => b.value - a.value), [stores, allCashierProducts]);
 
   return (
-    <div className="animate-fade-in space-y-6">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatsCard icon={Package} label="Total Produits" value={products.length} color="blue" accentColor="#3b82f6" change="+3" />
-        <StatsCard icon={DollarSign} label="Revenu Total" value={formatPrice(totalRevenue)} color="green" accentColor="#10b981" change="+12%" />
-        <StatsCard icon={ShoppingCart} label="Ventes Aujourd'hui" value={todaySales.length} color="purple" accentColor="#8b5cf6" change={formatPrice(todayRevenue)} />
-        <StatsCard icon={AlertTriangle} label="Stock Faible" value={lowStockProducts.length} color="red" accentColor="#ef4444" changeDir="down" change="Alerte" />
+    <div className="animate-fade-in space-y-5">
+      {/* Quatre indicateurs clés */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <StatsCard icon={DollarOutlined} label={t('s.revenu_total')} value={formatPrice(totalRevenue)} accentColor="#10b981" />
+        <StatsCard icon={ShoppingCartOutlined} label={t('s.ventes_aujourd_hui')} value={todaySales.length} accentColor="#8b5cf6" change={formatPrice(todayRevenue)} />
+        <StatsCard icon={InboxOutlined} label={t('s.produits_au_catalogue')} value={products.length} accentColor="#3b82f6" />
+        <StatsCard icon={WarningOutlined} label={t('s.stock_faible')} value={lowStockProducts.length} accentColor="#ef4444" changeDir={lowStockProducts.length > 0 ? 'down' : 'up'} change={lowStockProducts.length > 0 ? 'À réapprovisionner' : 'Sain'} />
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <StatsCard icon={Truck} label="Livraisons en Attente" value={pendingDeliveriesCount} color="orange" accentColor="#f97316" changeDir={pendingDeliveriesCount > 0 ? 'down' : 'up'} change={pendingDeliveriesCount > 0 ? 'À traiter' : 'Tout livré ✅'} />
-        <StatsCard icon={CreditCard} label="Créances en Attente" value={formatPrice(totalUnpaid)} color="red" accentColor="#ef4444" changeDir="down" change="À recouvrer" />
-        <StatsCard icon={TrendingUp} label="Bénéfice Estimé" value={formatPrice(totalProfit)} color="green" accentColor="#10b981" />
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <StatsCard icon={CarOutlined} label={t('s.livraisons_en_attente')} value={pendingDeliveries.length} accentColor="#f97316" changeDir={pendingDeliveries.length > 0 ? 'down' : 'up'} change={pendingDeliveries.length > 0 ? 'À traiter' : 'Tout livré'} />
+        <StatsCard icon={CreditCardOutlined} label={t('s.creances_en_attente')} value={formatPrice(totalUnpaid)} accentColor="#ef4444" changeDir="down" change="À recouvrer" />
+        <StatsCard icon={RiseOutlined} label={`Bénéfice estimé (${ESTIMATED_MARGIN_LABEL})`} value={formatPrice(totalProfit)} accentColor="#10b981" />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card title="Ventes Récentes" icon={Clock} noPadding>
-          <div className="bg-bg-secondary rounded-xl overflow-hidden border border-white/5">
-            <DataTable columns={salesColumns} data={recentSales} compact emptyTitle="Aucune vente" emptyDescription="Aucune vente enregistrée." />
-          </div>
-        </Card>
-
-        <Card title="Alertes Stock" icon={AlertTriangle} noPadding>
-          <div className="bg-bg-secondary rounded-xl overflow-hidden border border-white/5">
-            <DataTable
-              columns={alertColumns}
-              data={lowStockProducts}
-              compact
-              emptyIcon={Package}
-              emptyTitle="Aucune alerte"
-              emptyDescription="Tous les produits sont bien approvisionnés."
+      {/* Aperçus courts : 5 lignes maximum chacun */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <Widget
+          title={t('s.ventes_recentes')} icon={ClockCircleOutlined} accentColor="#8b5cf6"
+          items={sales}
+          onSeeMore={go('sales')} seeMoreLabel={t('s.historique_complet')}
+          emptyText={t('s.aucune_vente_enregistree')}
+          renderItem={(s) => (
+            <WidgetRow
+              label={new Date(s.date).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })}
+              sub={`${s.items.length} article${s.items.length > 1 ? 's' : ''} · ${s.paymentMethod || '—'}`}
+              value={formatPrice(s.total)} valueClassName="text-primary"
             />
-          </div>
-        </Card>
-      </div>
+          )}
+        />
 
-      <h3 className="text-lg font-bold text-text-heading mt-8 mb-4">Valeur du Stock par Magasin</h3>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {stores.map(store => {
-          const storeProducts = allCashierProducts.filter(p => p.storeId === store.id);
-          const value = storeProducts.reduce((sum, p) => sum + (p.cost * p.stock), 0);
-          return (
-            <StatsCard 
-              key={store.id} 
-              icon={Package} 
-              label={`Stock (Prix d'achat): ${store.name}`} 
-              value={formatPrice(value)} 
-              color="blue" 
-              accentColor="#3b82f6" 
-            />
-          );
-        })}
+        <Widget
+          title={t('s.alertes_stock')} icon={WarningOutlined} accentColor="#ef4444"
+          items={lowStockProducts}
+          onSeeMore={go('inventory')} seeMoreLabel={t('s.voir_l_inventaire')}
+          emptyText={t('s.tous_les_produits_sont_approvisionnes')}
+          renderItem={(p) => (
+            <WidgetRow label={p.name} sub={`Minimum : ${p.minStock}`}
+              value={`${p.stock} restants`}
+              valueClassName={p.stock <= 5 ? 'text-red-500' : 'text-amber-500'} />
+          )}
+        />
+
+        <Widget
+          title={t('s.valeur_du_stock_par_magasin')} icon={HomeOutlined} accentColor="#3b82f6"
+          items={storeValues}
+          onSeeMore={go('stores')} seeMoreLabel={t('s.tous_les_magasins')}
+          emptyText={t('s.aucun_magasin')}
+          renderItem={(s) => (
+            <WidgetRow label={s.name} sub="Au prix d'achat"
+              value={formatPrice(s.value)} valueClassName="text-primary" />
+          )}
+        />
       </div>
     </div>
   );

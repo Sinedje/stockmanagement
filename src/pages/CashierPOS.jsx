@@ -1,3 +1,4 @@
+import { useT } from '../i18n/I18nContext';
 import React, { useState } from 'react';
 import DashboardLayout from '../components/layouts/DashboardLayout';
 import InvoiceBuilder from '../components/cashier/InvoiceBuilder';
@@ -9,21 +10,22 @@ import Cart from '../components/cashier/Cart';
 import PaymentModal from '../components/cashier/PaymentModal';
 import ClosureHistory from '../components/common/ClosureHistory';
 import StockEntryPanel from '../components/manager/StockEntryPanel';
-import { FileText, ShoppingCart, List, Users, Package, BarChart3, History, PlusSquare } from 'lucide-react';
+import { BarChartOutlined, FileTextOutlined, HistoryOutlined, InboxOutlined, PlusSquareOutlined, ShoppingCartOutlined, TeamOutlined, UnorderedListOutlined } from '@ant-design/icons';
 import { formatPrice } from '../context/StoreContext';
 import { useSales } from '../hooks';
 
 const sidebarItems = [
-  { id: 'invoice', label: 'Facturation', icon: FileText },
-  { id: 'invoices', label: 'Liste des factures', icon: List },
-  { id: 'customers', label: 'Liste des clients', icon: Users },
-  { id: 'products', label: 'Liste des articles', icon: Package },
-  { id: 'catalog', label: 'Catalogue & Entrées', icon: PlusSquare },
-  { id: 'report', label: 'Bilan financier', icon: BarChart3 },
-  { id: 'history', label: 'Liste des bilans', icon: History },
+  { id: 'invoice', label: 'Facturation', icon: FileTextOutlined },
+  { id: 'invoices', labelKey: 's.liste_des_factures_2', icon: UnorderedListOutlined },
+  { id: 'customers', labelKey: 's.liste_des_clients', icon: TeamOutlined },
+  { id: 'products', labelKey: 's.liste_des_articles', icon: InboxOutlined },
+  { id: 'catalog', labelKey: 's.catalogue_entrees', icon: PlusSquareOutlined },
+  { id: 'report', label: 'Bilan financier', icon: BarChartOutlined },
+  { id: 'history', labelKey: 's.liste_des_bilans', icon: HistoryOutlined },
 ];
 
 const CashierPOS = () => {
+  const t = useT();
   const [activeTab, setActiveTab] = useState('invoice');
   const [showPayment, setShowPayment] = useState(false);
   const { cart, cartTotal } = useSales();
@@ -44,26 +46,26 @@ const CashierPOS = () => {
 
   const titles = {
     invoice: 'Facturation',
-    invoices: 'Liste des factures',
-    customers: 'Liste des clients',
-    products: 'Liste des articles',
-    catalog: 'Catalogue & Entrées de Stock',
+    invoices: t('s.liste_des_factures_2'),
+    customers: t('s.liste_des_clients'),
+    products: t('s.liste_des_articles'),
+    catalog: t('s.catalogue_entrees_de_stock'),
     report: 'Bilan Financier',
-    history: 'Historique des Bilans',
+    history: t('s.historique_des_bilans'),
   };
   const subtitles = {
-    invoice: 'Créez et encaissez des factures multi-magasins',
-    invoices: 'Consultez et réimprimez vos factures établies',
+    invoice: t('s.creez_et_encaissez_des_factures_multi_magasi'),
+    invoices: t('s.consultez_et_reimprimez_vos_factures_etablie'),
     customers: 'Gérez vos clients et consultez leur historique d\'achats',
-    products: 'Consultez les stocks disponibles par magasin',
-    catalog: 'Gérez le catalogue et réceptionnez la marchandise pour votre magasin',
-    report: 'Arrêtez vos comptes et visualisez vos rapports de vente',
-    history: 'Consultez vos anciennes clôtures de caisse',
+    products: t('s.consultez_les_stocks_disponibles_par_magasin'),
+    catalog: t('s.gerez_le_catalogue_et_receptionnez_la_marcha'),
+    report: t('s.arretez_vos_comptes_et_visualisez_vos_rappor'),
+    history: t('s.consultez_vos_anciennes_clotures_de_caisse'),
   };
 
   return (
     <DashboardLayout
-      items={sidebarItems}
+      items={sidebarItems.map(i => ({ ...i, label: i.labelKey ? t(i.labelKey) : i.label }))}
       activeItem={activeTab}
       onItemClick={setActiveTab}
       title={titles[activeTab]}

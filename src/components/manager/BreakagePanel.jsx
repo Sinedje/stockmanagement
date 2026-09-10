@@ -1,13 +1,15 @@
+import { useT } from '../../i18n/I18nContext';
+import { Panel, Table, Button } from '../ui';
 import React, { useState } from 'react';
 import { formatPrice } from '../../context/StoreContext';
 import { useProducts, useBreakages } from '../../hooks';
-import DataTable from '../common/DataTable';
 import Select from '../common/Select';
 import Input from '../common/Input';
-import { Button, message, Tabs, Alert } from 'antd';
-import { AlertTriangle, PackageOpen, ArrowRight } from 'lucide-react';
+import { message, Tabs, Alert } from 'antd';
+import { ArrowRightOutlined, DropboxOutlined, HistoryOutlined, InboxOutlined, WarningOutlined } from '@ant-design/icons';
 
 const BreakagePanel = () => {
+  const t = useT();
   const { products } = useProducts();
   const {
     breakages,
@@ -81,57 +83,56 @@ const BreakagePanel = () => {
   };
 
   const breakageColumns = [
-    { key: 'date', title: 'Date', render: (val) => new Date(val).toLocaleDateString('fr-FR') },
-    { key: 'productName', title: 'Produit', render: (val) => <span className="font-semibold">{val}</span> },
-    { key: 'quantity', title: 'Quantité Cassée', render: (val) => <span className="text-red-500 font-bold">{val}</span> },
-    { key: 'reason', title: 'Motif', render: (val) => <span className="text-sm">{val}</span> },
-    { key: 'costValue', title: 'Perte Estimée (Coût)', render: (val) => <span className="text-text-muted">{formatPrice(val)}</span> },
-    { key: 'createdBy', title: 'Déclaré par' },
+    { key: 'date', title: t('s.date'), render: (val) => new Date(val).toLocaleDateString('fr-FR') },
+    { key: 'productName', title: t('s.produit'), render: (val) => <span className="font-semibold">{val}</span> },
+    { key: 'quantity', title: t('s.quantite_cassee'), render: (val) => <span className="text-red-500 font-bold">{val}</span> },
+    { key: 'reason', title: t('s.motif'), render: (val) => <span className="text-sm">{val}</span> },
+    { key: 'costValue', title: t('s.perte_estimee_cout'), render: (val) => <span className="text-text-muted">{formatPrice(val)}</span> },
+    { key: 'createdBy', title: t('s.declare_par') },
   ];
 
   const repackagingColumns = [
-    { key: 'date', title: 'Date', render: (val) => new Date(val).toLocaleDateString('fr-FR') },
-    { key: 'sourceProductName', title: 'Casses Utilisées', render: (val) => <span className="font-semibold text-orange-500">{val}</span> },
-    { key: 'sourceQuantity', title: 'Qté Utilisée', render: (val) => <span className="font-bold">{val}</span> },
-    { key: 'arrow', title: '', render: () => <ArrowRight size={14} className="text-text-muted mx-auto" /> },
-    { key: 'targetProductName', title: 'Nouveau Produit (Sacs)', render: (val) => <span className="font-semibold text-emerald-500">{val}</span> },
-    { key: 'targetQuantity', title: 'Qté Créée', render: (val) => <span className="font-bold text-emerald-500">{val}</span> },
-    { key: 'createdBy', title: 'Opérateur' },
+    { key: 'date', title: t('s.date'), render: (val) => new Date(val).toLocaleDateString('fr-FR') },
+    { key: 'sourceProductName', title: t('s.casses_utilisees'), render: (val) => <span className="font-semibold text-orange-500">{val}</span> },
+    { key: 'sourceQuantity', title: t('s.qte_utilisee'), render: (val) => <span className="font-bold">{val}</span> },
+    { key: 'arrow', title: '', render: () => <ArrowRightOutlined style={{ fontSize: 14 }} className="text-text-muted mx-auto" /> },
+    { key: 'targetProductName', title: t('s.nouveau_produit_sacs'), render: (val) => <span className="font-semibold text-emerald-500">{val}</span> },
+    { key: 'targetQuantity', title: t('s.qte_creee'), render: (val) => <span className="font-bold text-emerald-500">{val}</span> },
+    { key: 'createdBy', title: t('s.operateur') },
   ];
 
   const items = [
     {
       key: 'declare',
-      label: <span className="font-bold uppercase tracking-wider flex items-center gap-2"><AlertTriangle size={16} /> Déclarer Casses</span>,
+      label: <span className="flex items-center gap-1.5"><WarningOutlined /> {t('s.declarer_une_casse')}</span>,
       children: (
-        <div className="space-y-6">
+        <div className="space-y-4">
           <Alert 
-            message="Comment ça marche ?" 
-            description="La déclaration de casse retire les cartons du stock normal et crée automatiquement un produit '[Casse]' dans le catalogue. Ces cartons cassés peuvent être vendus directement ou gardés pour être reconditionnés plus tard."
+            title={t('s.comment_ca_marche')} 
+            description={t('s.la_declaration_de_casse_retire_les_cartons_d')}
             type="info" 
             showIcon 
           />
           
-          <div className="bg-bg-card border border-black/10 dark:border-white/10 rounded-2xl p-6">
-            <h3 className="text-lg font-black text-text-heading mb-4">Nouvelle Déclaration de Casse</h3>
+          <Panel title={t('s.nouvelle_declaration_de_casse')} icon={WarningOutlined}>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
               <div className="md:col-span-2">
                 <Select
-                  label="Produit Endommagé"
+                  label={t('s.produit_endommage')}
                   value={breakageProductId}
                   onChange={setBreakageProductId}
                   options={regularProducts.map(p => ({ label: `${p.name} (Stock: ${p.stock})`, value: p.id }))}
                 />
               </div>
               <Input
-                label="Quantité"
+                label={t('s.quantite')}
                 type="number"
                 min="1"
                 value={breakageQuantity}
                 onChange={e => setBreakageQuantity(e.target.value)}
               />
               <Select
-                label="Motif"
+                label={t('s.motif')}
                 value={breakageReason}
                 onChange={setBreakageReason}
                 options={[
@@ -142,47 +143,47 @@ const BreakagePanel = () => {
                 ]}
               />
             </div>
-            <div className="mt-6 flex justify-end">
-              <Button type="primary" danger icon={<AlertTriangle size={16} />} className="font-bold" onClick={handleDeclareBreakage}>
-                Déclarer la casse
+            <div className="mt-4 flex justify-end">
+              <Button type="primary" danger icon={<WarningOutlined />} onClick={handleDeclareBreakage}>
+                {t('s.declarer_la_casse')}
               </Button>
             </div>
-          </div>
+          </Panel>
 
-          <div className="bg-bg-card border border-black/10 dark:border-white/10 rounded-2xl p-6">
-            <h3 className="text-lg font-black text-text-heading mb-4">Historique des Casses</h3>
-            <DataTable columns={breakageColumns} data={breakages} />
-          </div>
+          <Panel title={t('s.historique_des_casses')} icon={HistoryOutlined} noPadding>
+            <Table columns={breakageColumns} data={breakages}
+              emptyIcon={InboxOutlined} emptyTitle={t('s.aucune_casse')}
+              emptyDescription={t('s.aucune_casse_declaree_pour_le_moment')} />
+          </Panel>
         </div>
       )
     },
     {
       key: 'repack',
-      label: <span className="font-bold uppercase tracking-wider flex items-center gap-2"><PackageOpen size={16} /> Reconditionnement</span>,
+      label: <span className="flex items-center gap-1.5"><DropboxOutlined /> {t('s.reconditionnement')}</span>,
       children: (
-        <div className="space-y-6">
+        <div className="space-y-4">
           <Alert 
-            message="Reconditionnement en Sacs" 
-            description="Utilisez les cartons précédemment déclarés en casse pour constituer des sacs de casses vendables. Cette opération déduit le stock des cartons cassés et ajoute du stock au nouveau produit."
+            title={t('s.reconditionnement_en_sacs')} 
+            description={t('s.utilisez_les_cartons_precedemment_declares_e')}
             type="info" 
             showIcon 
           />
 
-          <div className="bg-bg-card border border-black/10 dark:border-white/10 rounded-2xl p-6">
-            <h3 className="text-lg font-black text-text-heading mb-4">Nouveau Reconditionnement</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <Panel title={t('s.nouveau_reconditionnement')} icon={DropboxOutlined}>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               
               {/* SOURCE */}
-              <div className="space-y-4 p-5 bg-orange-500/5 border border-orange-500/20 rounded-xl">
-                <h4 className="font-bold text-orange-600 flex items-center gap-2"><AlertTriangle size={16}/> Source (Casses)</h4>
+              <div className="space-y-3 p-4 bg-orange-500/5 border border-orange-500/20 rounded-lg">
+                <h4 className="text-[0.8rem] font-semibold text-orange-600 flex items-center gap-2"><WarningOutlined style={{ fontSize: 16 }}/> {t('s.source_casses')}</h4>
                 <Select
-                  label="Cartons cassés à utiliser"
+                  label={t('s.cartons_casses_a_utiliser')}
                   value={repackBrokenProductId}
                   onChange={setRepackBrokenProductId}
                   options={brokenProducts.map(p => ({ label: `${p.name} (Dispo: ${p.stock})`, value: p.id }))}
                 />
                 <Input
-                  label="Quantité à utiliser"
+                  label={t('s.quantite_a_utiliser')}
                   type="number"
                   min="1"
                   value={repackBrokenQty}
@@ -191,23 +192,23 @@ const BreakagePanel = () => {
               </div>
 
               {/* DESTINATION */}
-              <div className="space-y-4 p-5 bg-emerald-500/5 border border-emerald-500/20 rounded-xl">
-                <h4 className="font-bold text-emerald-600 flex items-center gap-2"><PackageOpen size={16}/> Résultat (Sacs)</h4>
+              <div className="space-y-3 p-4 bg-emerald-500/5 border border-emerald-500/20 rounded-lg">
+                <h4 className="text-[0.8rem] font-semibold text-emerald-600 flex items-center gap-2"><DropboxOutlined style={{ fontSize: 16 }}/> {t('s.resultat_sacs')}</h4>
                 <Input
-                  label="Nom du nouveau produit (ex: Sac de casses Roma)"
+                  label={t('s.nom_du_nouveau_produit_ex_sac_de_casses_roma')}
                   value={repackNewName}
                   onChange={e => setRepackNewName(e.target.value)}
                 />
                 <div className="grid grid-cols-2 gap-4">
                   <Input
-                    label="Nb de sacs créés"
+                    label={t('s.nb_de_sacs_crees')}
                     type="number"
                     min="1"
                     value={repackNewQty}
                     onChange={e => setRepackNewQty(e.target.value)}
                   />
                   <Input
-                    label="Prix unitaire proposé"
+                    label={t('s.prix_unitaire_propose')}
                     type="number"
                     min="0"
                     value={repackNewPrice}
@@ -218,29 +219,25 @@ const BreakagePanel = () => {
 
             </div>
             
-            <div className="mt-6 flex justify-end">
-              <Button type="primary" icon={<PackageOpen size={16} />} className="font-bold bg-emerald-500 hover:bg-emerald-600" onClick={handleCreateRepackaging}>
-                Effectuer le reconditionnement
+            <div className="mt-4 flex justify-end">
+              <Button type="primary" icon={<DropboxOutlined />} onClick={handleCreateRepackaging}>
+                {t('s.effectuer_le_reconditionnement')}
               </Button>
             </div>
-          </div>
+          </Panel>
 
-          <div className="bg-bg-card border border-black/10 dark:border-white/10 rounded-2xl p-6">
-            <h3 className="text-lg font-black text-text-heading mb-4">Historique des Reconditionnements</h3>
-            <DataTable columns={repackagingColumns} data={repackagings} />
-          </div>
+          <Panel title={t('s.historique_des_reconditionnements')} icon={HistoryOutlined} noPadding>
+            <Table columns={repackagingColumns} data={repackagings}
+              emptyIcon={InboxOutlined} emptyTitle={t('s.aucun_reconditionnement')}
+              emptyDescription={t('s.aucun_reconditionnement_enregistre')} />
+          </Panel>
         </div>
       )
     }
   ];
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
-      <div className="mb-6">
-        <h1 className="text-2xl font-black text-text-heading tracking-tight">Gestion des Casses & Reconditionnements</h1>
-        <p className="text-sm text-text-muted mt-1">Déclarez les cartons endommagés et gérez leur revente sous forme de sacs de casses.</p>
-      </div>
-
+    <div className="animate-fade-in space-y-4">
       <Tabs 
         activeKey={activeTab} 
         onChange={setActiveTab} 

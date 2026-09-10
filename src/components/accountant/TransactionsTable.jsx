@@ -1,12 +1,14 @@
+import { useT } from '../../i18n/I18nContext';
+import { Table } from '../ui';
 import React, { useState } from 'react';
 import { formatPrice } from '../../context/StoreContext';
 import { useSales } from '../../hooks';
 import SearchComponent from '../common/SearchComponent';
-import DataTable from '../common/DataTable';
 import Modal from '../common/Modal';
-import { Receipt, FileText, ShoppingBag, CreditCard, Tag } from 'lucide-react';
+import { CreditCardOutlined, FileDoneOutlined, FileTextOutlined, ShoppingOutlined, TagOutlined } from '@ant-design/icons';
 
 const TransactionsTable = () => {
+  const t = useT();
   const { sales } = useSales();
   const [search, setSearch] = useState('');
   const [filterMethod, setFilterMethod] = useState('Tous');
@@ -24,18 +26,18 @@ const TransactionsTable = () => {
 
   const columns = [
     { key: 'id', title: '#', render: (val) => <span className="font-bold text-text-heading">#{val}</span>, width: '80px' },
-    { key: 'date', title: 'Date', render: (val) => new Date(val).toLocaleDateString('fr-FR') },
+    { key: 'date', title: t('s.date'), render: (val) => new Date(val).toLocaleDateString('fr-FR') },
     { key: 'time', title: 'Heure', render: (_, row) => new Date(row.date).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) },
-    { key: 'cashier', title: 'Caissier', render: (val) => <span className="font-medium">{val}</span> },
-    { key: 'items', title: 'Articles', render: (val) => (
+    { key: 'cashier', title: t('s.caissier'), render: (val) => <span className="font-medium">{val}</span> },
+    { key: 'items', title: t('s.articles'), render: (val) => (
       <span className="text-[0.8rem] opacity-80" title={val.map(i => `${i.name} x${i.quantity}`).join(', ')}>
         {val.length} article(s)
       </span>
     )},
-    { key: 'paymentMethod', title: 'Paiement', render: (val) => (
+    { key: 'paymentMethod', title: t('s.paiement'), render: (val) => (
       <span className={`badge ${val === 'Espèces' ? 'badge-success' : 'badge-info'}`}>{val}</span>
     )},
-    { key: 'total', title: 'Montant', align: 'right', render: (val) => (
+    { key: 'total', title: t('s.montant'), align: 'right', render: (val) => (
       <span className="font-black text-primary">{formatPrice(val)}</span>
     )},
   ];
@@ -44,7 +46,7 @@ const TransactionsTable = () => {
     <div className="animate-fade-in space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white/5 p-6 rounded-2xl border border-white/5">
         <SearchComponent
-          placeholder="Rechercher une transaction..."
+          placeholder={t('s.rechercher_une_transaction')}
           value={search}
           onChange={e => setSearch(e.target.value)}
           width="100%"
@@ -57,7 +59,7 @@ const TransactionsTable = () => {
               className={`
                 px-5 py-2 rounded-lg text-[0.8rem] font-bold transition-all duration-200
                 ${filterMethod === m 
-                  ? 'bg-primary text-black shadow-lg shadow-primary/20' 
+                  ? 'bg-primary text-white shadow-lg shadow-primary/20' 
                   : 'text-text-secondary hover:text-text-primary hover:bg-white/5'}
               `} 
               onClick={() => setFilterMethod(m)}
@@ -70,23 +72,23 @@ const TransactionsTable = () => {
 
       <div className="flex gap-4">
         <div className="flex-1 p-4 bg-primary/5 border border-primary/20 rounded-xl">
-          <div className="text-[0.7rem] font-bold text-text-secondary uppercase tracking-widest mb-1">Total Transactions</div>
-          <div className="text-2xl font-black text-primary tracking-tighter">{filtered.length}</div>
+          <div className="text-[0.7rem] font-bold text-text-secondary uppercase tracking-widest mb-1">{t('s.total_transactions')}</div>
+          <div className="text-lg font-bold text-primary tracking-tighter">{filtered.length}</div>
         </div>
         <div className="flex-1 p-4 bg-blue-500/5 border border-blue-500/20 rounded-xl">
-          <div className="text-[0.7rem] font-bold text-text-secondary uppercase tracking-widest mb-1">Montant Total</div>
-          <div className="text-2xl font-black text-blue-500 tracking-tighter">{formatPrice(totalFiltered)}</div>
+          <div className="text-[0.7rem] font-bold text-text-secondary uppercase tracking-widest mb-1">{t('s.montant_total')}</div>
+          <div className="text-lg font-bold text-blue-500 tracking-tighter">{formatPrice(totalFiltered)}</div>
         </div>
       </div>
 
       <div className="bg-bg-secondary rounded-2xl border border-white/5 overflow-hidden shadow-2xl cursor-pointer">
-        <DataTable
+        <Table
           columns={columns}
           data={filtered}
           onRowClick={(row) => setSelectedTransaction(row)}
-          emptyIcon={Receipt}
-          emptyTitle="Aucune transaction"
-          emptyDescription="Aucune transaction ne correspond à vos critères."
+          emptyIcon={FileDoneOutlined}
+          emptyTitle={t('s.aucune_transaction')}
+          emptyDescription={t('s.aucune_transaction_ne_correspond_a_vos_crite')}
         />
       </div>
 
@@ -98,16 +100,16 @@ const TransactionsTable = () => {
         >
           <div className="space-y-6">
             {/* Header / Info Section */}
-            <div className="bg-gradient-to-br from-primary to-emerald-700 p-6 rounded-2xl text-white shadow-xl shadow-primary/20">
+            <div className="bg-gradient-to-br from-primary to-emerald-700 p-6 rounded-xl text-white shadow-sm shadow-primary/20">
               <div className="flex justify-between items-start">
                 <div className="space-y-1">
-                  <p className="text-[0.65rem] font-black text-white/70 uppercase tracking-widest">Date d'émission</p>
+                  <p className="text-[0.65rem] font-semibold text-white/70 uppercase tracking-widest">{t('s.date_d_emission')}</p>
                   <p className="font-black text-white text-lg">
                     {new Date(selectedTransaction.date).toLocaleDateString('fr-FR')} <span className="text-white/70 font-medium text-sm">à {new Date(selectedTransaction.date).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span>
                   </p>
                   
                   <div className="mt-5">
-                    <p className="text-[0.65rem] font-black text-white/70 uppercase tracking-widest">Caissier</p>
+                    <p className="text-[0.65rem] font-semibold text-white/70 uppercase tracking-widest">{t('s.caissier')}</p>
                     <div className="font-black text-white text-lg flex items-center gap-2 mt-0.5">
                       <div className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center text-[0.65rem]">👤</div>
                       {selectedTransaction.cashier}
@@ -116,16 +118,16 @@ const TransactionsTable = () => {
                 </div>
 
                 <div className="text-right space-y-1">
-                  <p className="text-[0.65rem] font-black text-white/70 uppercase tracking-widest">Paiement</p>
+                  <p className="text-[0.65rem] font-semibold text-white/70 uppercase tracking-widest">{t('s.paiement')}</p>
                   <div className="mt-1">
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-[0.75rem] font-black uppercase tracking-widest bg-white text-emerald-700 shadow-sm">
-                      <CreditCard size={14} /> {selectedTransaction.paymentMethod}
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-[0.75rem] font-semibold uppercase tracking-widest bg-white text-emerald-700 shadow-sm">
+                      <CreditCardOutlined style={{ fontSize: 14 }} /> {selectedTransaction.paymentMethod}
                     </span>
                   </div>
                   
                   {selectedTransaction.invoiceNumber && (
                     <div className="mt-5">
-                      <p className="text-[0.65rem] font-black text-white/70 uppercase tracking-widest">Reçu N°</p>
+                      <p className="text-[0.65rem] font-semibold text-white/70 uppercase tracking-widest">{t('s.recu_n')}</p>
                       <p className="font-black text-white text-xl tracking-tight mt-0.5">{selectedTransaction.invoiceNumber}</p>
                     </div>
                   )}
@@ -134,13 +136,13 @@ const TransactionsTable = () => {
             </div>
 
             {/* Articles Section */}
-            <div className="bg-bg-card border border-black/10 dark:border-white/10 rounded-2xl shadow-sm overflow-hidden">
+            <div className="glass-panel rounded-xl p-4 overflow-hidden">
               <div className="px-5 py-4 border-b border-black/5 dark:border-white/5 bg-black/5 dark:bg-white/5 flex items-center gap-3">
                 <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
-                  <ShoppingBag size={14} className="text-primary" />
+                  <ShoppingOutlined style={{ fontSize: 14 }} className="text-primary" />
                 </div>
-                <span className="text-[0.8rem] font-black uppercase tracking-widest text-text-heading">Articles Achetés</span>
-                <span className="ml-auto bg-primary text-black px-2.5 py-0.5 rounded-md text-[0.7rem] font-black shadow-sm">{selectedTransaction.items.length}</span>
+                <span className="text-[0.8rem] font-semibold uppercase tracking-widest text-text-heading">{t('s.articles_achetes')}</span>
+                <span className="ml-auto bg-primary text-white px-2.5 py-0.5 rounded-md text-[0.7rem] font-semibold shadow-sm">{selectedTransaction.items.length}</span>
               </div>
               
               <div className="divide-y divide-black/5 dark:divide-white/5 max-h-[300px] overflow-y-auto custom-scrollbar">
@@ -149,7 +151,7 @@ const TransactionsTable = () => {
                     <div className="flex-1">
                       <p className="font-black text-text-heading text-[1.05rem] group-hover:text-primary transition-colors">{item.name}</p>
                       <div className="flex items-center gap-3 mt-1.5">
-                        <span className="text-[0.7rem] text-primary bg-primary/10 px-2 py-0.5 rounded-md font-black uppercase tracking-wider">Qté: {item.quantity}</span>
+                        <span className="text-[0.7rem] text-primary bg-primary/10 px-2 py-0.5 rounded-md font-semibold uppercase tracking-wider">Qté: {item.quantity}</span>
                         <span className="text-[0.8rem] font-bold text-text-muted">× {formatPrice(item.price)}</span>
                       </div>
                     </div>
@@ -162,9 +164,9 @@ const TransactionsTable = () => {
             </div>
 
             {/* Total Section */}
-            <div className="flex justify-between items-center p-6 bg-gradient-to-r from-gray-900 to-black rounded-2xl shadow-xl">
-              <span className="font-black uppercase tracking-widest text-white/70 text-[0.8rem]">Total Facture</span>
-              <span className="text-3xl font-black text-primary drop-shadow-[0_0_15px_rgba(16,185,129,0.3)] tracking-tighter">
+            <div className="flex justify-between items-center p-6 bg-gradient-to-r from-gray-900 to-black rounded-xl shadow-sm">
+              <span className="font-semibold uppercase tracking-widest text-white/70 text-[0.8rem]">{t('s.total_facture')}</span>
+              <span className="text-xl font-bold text-primary drop-shadow-[0_0_15px_rgba(16,185,129,0.3)] tracking-tighter">
                 {formatPrice(selectedTransaction.total)}
               </span>
             </div>
@@ -172,9 +174,9 @@ const TransactionsTable = () => {
             {/* Action */}
             <button 
               onClick={() => setSelectedTransaction(null)}
-              className="w-full py-4 rounded-xl bg-black/5 dark:bg-white/5 text-text-heading hover:bg-black/10 dark:hover:bg-white/10 transition-all font-black uppercase tracking-widest text-[0.8rem]"
+              className="w-full py-4 rounded-xl bg-black/5 dark:bg-white/5 text-text-heading hover:bg-black/10 dark:hover:bg-white/10 transition-all font-semibold uppercase tracking-widest text-[0.8rem]"
             >
-              Fermer les détails
+              {t('s.fermer_les_details')}
             </button>
           </div>
         </Modal>

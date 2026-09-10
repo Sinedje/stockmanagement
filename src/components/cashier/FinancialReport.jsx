@@ -1,12 +1,15 @@
+import { Button, Select } from '../ui';
+import { useT } from '../../i18n/I18nContext';
 import React, { useState, useMemo } from 'react';
 import { formatPrice } from '../../context/StoreContext';
 import { useAuth } from '../../context/AuthContext';
 import { useSales, useCustomers, useSettings, useStores } from '../../hooks';
 import Modal from '../common/Modal';
-import { BarChart3, Calendar, FileText, Calculator, Printer, CheckCircle2, TrendingUp, Wallet, CreditCard, MinusCircle, PlusCircle, AlertCircle, ArrowUpCircle, Lock, PackageOpen, Package } from 'lucide-react';
-import { Button } from 'antd';
+import { BarChartOutlined, CalculatorOutlined, CalendarOutlined, CheckCircleOutlined, CreditCardOutlined, DropboxOutlined, ExclamationCircleOutlined, FileTextOutlined, InboxOutlined, LockOutlined, MinusCircleOutlined, PlusCircleOutlined, PrinterOutlined, RiseOutlined, UpCircleOutlined, WalletOutlined } from '@ant-design/icons';
+
 
 const FinancialReport = () => {
+  const t = useT();
   const { currentUser } = useAuth();
   const { 
     sales, expenses, addExpense, 
@@ -291,12 +294,12 @@ const FinancialReport = () => {
   if (!isCashFundInitialized) {
     return (
       <div className="h-full flex items-center justify-center animate-fade-in">
-        <div className="bg-bg-card border border-black/5 dark:border-white/5 rounded-3xl p-10 shadow-2xl max-w-md w-full text-center space-y-8">
+        <div className="glass-panel rounded-xl p-4 max-w-md w-full text-center space-y-8">
           <div className="w-20 h-20 bg-primary/10 rounded-2xl flex items-center justify-center text-primary mx-auto">
-            <Wallet size={40} />
+            <WalletOutlined style={{ fontSize: 40 }} />
           </div>
           <div className="space-y-2">
-            <h2 className="text-2xl font-black text-text-heading tracking-tight">Ouverture de Caisse</h2>
+            <h2 className="text-[0.95rem] font-semibold text-text-heading">{t('cash.opening')}</h2>
             <p className="text-sm text-text-muted font-medium">
               {lastClosingBalance > 0 
                 ? `Solde de clôture précédent : ${formatPrice(lastClosingBalance)}. Confirmez votre fond de caisse actuel.`
@@ -306,23 +309,17 @@ const FinancialReport = () => {
           </div>
           <div className="space-y-4">
             <div className="relative">
-              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-primary font-black">FCFA</span>
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-primary font-black">{t('s.fcfa')}</span>
               <input 
                 type="number"
-                className="w-full bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-2xl pl-16 pr-6 py-4 text-2xl font-black text-text-heading focus:outline-none focus:border-primary/50"
+                className="w-full bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-2xl pl-16 pr-6 py-4 text-lg font-bold text-text-heading focus:outline-none focus:border-primary/50"
                 placeholder="0"
                 value={tempInitialFund || ''}
                 onChange={e => setTempInitialFund(parseFloat(e.target.value) || 0)}
               />
             </div>
-            <Button 
-              type="primary" 
-              size="large" 
-              block 
-              onClick={() => initializeCashFund(tempInitialFund)}
-              className="h-14 rounded-2xl font-black uppercase tracking-widest text-[0.9rem]"
-            >
-              Démarrer ma caisse
+            <Button type="primary" block onClick={() => initializeCashFund(tempInitialFund)} >
+              {t('cash.start')}
             </Button>
           </div>
         </div>
@@ -334,76 +331,68 @@ const FinancialReport = () => {
     <>
       <div className="space-y-6 animate-fade-in pb-10 print:hidden">
         {/* Configuration & Rolling Fund */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="lg:col-span-2 space-y-6">
           {/* Main Controls */}
-          <div className="bg-bg-card border border-black/5 dark:border-white/5 rounded-2xl p-6 shadow-xl">
-            <div className="flex items-center justify-between mb-8">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
-                  <Calculator size={20} />
-                </div>
+          <div className="glass-panel rounded-xl p-4">
+            <div className="flex items-center justify-between gap-3 flex-wrap mb-4">
+              <div className="flex items-center gap-2.5">
+                <span className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                  <CalculatorOutlined />
+                </span>
                 <div>
-                  <h2 className="text-lg font-black text-text-heading tracking-tight">Gestion de Caisse</h2>
-                  <p className="text-[0.7rem] text-text-muted font-bold uppercase tracking-widest">Contrôle des flux financiers</p>
+                  <h2 className="text-[0.9rem] font-semibold text-text-heading">{t('cash.management')}</h2>
+                  <p className="text-[0.7rem] text-text-muted">{t('cash.managementHint')}</p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <button 
-                  onClick={() => setShowVersementModal(true)}
-                  className="flex items-center gap-2 px-4 py-2 bg-emerald-500/10 text-emerald-500 rounded-xl text-[0.65rem] font-black uppercase tracking-widest hover:bg-emerald-500 hover:text-white transition-all shadow-lg shadow-emerald-500/5"
-                >
-                  <ArrowUpCircle size={14} /> Effectuer un versement
-                </button>
-                <button 
-                  onClick={() => setShowExpenseModal(true)}
-                  className="flex items-center gap-2 px-4 py-2 bg-red-500/10 text-red-500 rounded-xl text-[0.65rem] font-black uppercase tracking-widest hover:bg-red-500 hover:text-white transition-all shadow-lg shadow-red-500/5"
-                >
-                  <MinusCircle size={14} /> Enregistre la depense
-                </button>
+                <Button icon={<UpCircleOutlined />} onClick={() => setShowVersementModal(true)}>
+                  {t('cash.makeDeposit')}
+                </Button>
+                <Button danger icon={<MinusCircleOutlined />} onClick={() => setShowExpenseModal(true)}>
+                  {t('cash.recordExpense')}
+                </Button>
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div className="space-y-4">
-                <label className="text-[0.65rem] font-black text-text-muted uppercase tracking-widest flex items-center gap-2">
-                  <FileText size={12} className="text-primary" /> Plage de factures (Rapport)
+                <label className="text-[0.65rem] font-semibold text-text-muted uppercase tracking-widest flex items-center gap-2">
+                  <FileTextOutlined style={{ fontSize: 12 }} className="text-primary" /> {t('cash.invoiceRange')}
                 </label>
                 <div className="flex items-center gap-3">
-                  <select 
-                    className="flex-1 bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-xl px-4 py-2.5 text-[0.85rem] text-text-heading focus:outline-none focus:border-primary/50"
-                    value={startInvoice}
-                    onChange={e => setStartInvoice(e.target.value)}
-                  >
-                    <option value="">Départ...</option>
-                    {invoiceNumbers.map(n => <option key={n} value={n}>{n}</option>)}
-                  </select>
-                  <span className="text-text-muted opacity-30">à</span>
-                  <select 
-                    className="flex-1 bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-xl px-4 py-2.5 text-[0.85rem] text-text-heading focus:outline-none focus:border-primary/50"
-                    value={endInvoice}
-                    onChange={e => setEndInvoice(e.target.value)}
-                  >
-                    <option value="">Fin...</option>
-                    {invoiceNumbers.map(n => <option key={n} value={n}>{n}</option>)}
-                  </select>
+                  <Select
+                    className="flex-1" width="100%" allowClear
+                    placeholder={t('cash.invoiceFrom')}
+                    value={startInvoice || undefined}
+                    onChange={v => setStartInvoice(v || '')}
+                    options={invoiceNumbers.map(n => ({ value: n, label: n }))}
+                  />
+                  <span className="text-text-muted text-[0.75rem]">{t('common.to').toLowerCase()}</span>
+                  <Select
+                    className="flex-1" width="100%" allowClear
+                    placeholder={t('cash.invoiceTo')}
+                    value={endInvoice || undefined}
+                    onChange={v => setEndInvoice(v || '')}
+                    options={invoiceNumbers.map(n => ({ value: n, label: n }))}
+                  />
                 </div>
               </div>
 
               <div className="space-y-4">
-                <label className="text-[0.65rem] font-black text-text-muted uppercase tracking-widest flex items-center gap-2">
-                  <Calendar size={12} className="text-primary" /> Période prédéfinie
+                <label className="text-[0.65rem] font-semibold text-text-muted uppercase tracking-widest flex items-center gap-2">
+                  <CalendarOutlined style={{ fontSize: 12 }} className="text-primary" /> {t('cash.presetPeriod')}
                 </label>
                 <div className="grid grid-cols-3 gap-2">
                   {[
-                    { id: 'journalier', label: 'Aujourd\'hui' },
-                    { id: 'hebdomadaire', label: 'Semaine' },
-                    { id: 'mensuel', label: 'Mois' },
+                    { id: 'journalier', label: t('cash.today') },
+                    { id: 'hebdomadaire', label: t('cash.week') },
+                    { id: 'mensuel', label: t('cash.month') },
                   ].map(p => (
                     <button
                       key={p.id}
                       onClick={() => { setReportType(p.id); setStartInvoice(''); setEndInvoice(''); }}
-                      className={`px-2 py-2 rounded-xl text-[0.65rem] font-black uppercase tracking-widest transition-all ${reportType === p.id && !startInvoice ? 'bg-primary text-black shadow-lg shadow-primary/20' : 'bg-black/5 dark:bg-white/5 text-text-muted hover:text-text-heading'}`}
+                      className={`px-2 py-2 rounded-xl text-[0.65rem] font-semibold uppercase tracking-widest transition-all ${reportType === p.id && !startInvoice ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'bg-black/5 dark:bg-white/5 text-text-muted hover:text-text-heading'}`}
                     >
                       {p.label}
                     </button>
@@ -415,9 +404,9 @@ const FinancialReport = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Expense History List */}
-            <div className="bg-bg-card border border-black/5 dark:border-white/5 rounded-2xl p-5 shadow-lg">
-              <h4 className="text-[0.65rem] font-black text-red-500 uppercase tracking-widest mb-4 flex items-center gap-2">
-                <MinusCircle size={14} /> Dernières Dépenses
+            <div className="glass-panel rounded-xl p-4">
+              <h4 className="text-[0.65rem] font-semibold text-red-500 uppercase tracking-widest mb-4 flex items-center gap-2">
+                <MinusCircleOutlined style={{ fontSize: 14 }} /> {t('s.dernieres_depenses')}
               </h4>
               <div className="space-y-3 max-h-[150px] overflow-y-auto">
                 {filteredExpenses.slice(0, 5).map(exp => (
@@ -426,61 +415,61 @@ const FinancialReport = () => {
                     <span className="text-red-500 font-black">-{formatPrice(exp.amount)}</span>
                   </div>
                 ))}
-                {filteredExpenses.length === 0 && <p className="text-[0.7rem] text-text-muted text-center py-4">Aucune dépense enregistrée</p>}
+                {filteredExpenses.length === 0 && <p className="text-[0.7rem] text-text-muted text-center py-4">{t('s.aucune_depense_enregistree')}</p>}
               </div>
             </div>
 
             {/* Versement History List */}
-            <div className="bg-bg-card border border-black/5 dark:border-white/5 rounded-2xl p-5 shadow-lg">
-              <h4 className="text-[0.65rem] font-black text-emerald-500 uppercase tracking-widest mb-4 flex items-center gap-2">
-                <ArrowUpCircle size={14} /> Derniers Versements
+            <div className="glass-panel rounded-xl p-4">
+              <h4 className="text-[0.65rem] font-semibold text-emerald-500 uppercase tracking-widest mb-4 flex items-center gap-2">
+                <UpCircleOutlined style={{ fontSize: 14 }} /> {t('s.derniers_versements')}
               </h4>
               <div className="space-y-3 max-h-[150px] overflow-y-auto">
                 {filteredVersements.slice(0, 5).map(v => (
                   <div key={v.id} className="flex items-center justify-between bg-black/5 dark:bg-white/5 px-4 py-2.5 rounded-xl text-[0.8rem]">
-                    <span className="text-text-secondary font-bold">Versement à la direction</span>
+                    <span className="text-text-secondary font-bold">{t('s.versement_a_la_direction')}</span>
                     <span className="text-emerald-500 font-black">-{formatPrice(v.amount)}</span>
                   </div>
                 ))}
-                {filteredVersements.length === 0 && <p className="text-[0.7rem] text-text-muted text-center py-4">Aucun versement effectué</p>}
+                {filteredVersements.length === 0 && <p className="text-[0.7rem] text-text-muted text-center py-4">{t('s.aucun_versement_effectue')}</p>}
               </div>
             </div>
           </div>
         </div>
 
         {/* Rolling Fund Settlement Panel */}
-        <div className="bg-primary border border-primary/20 rounded-3xl p-8 shadow-2xl flex flex-col">
-          <div className="space-y-1 mb-8">
-            <h3 className="text-black font-black text-xl tracking-tight">État de la Caisse</h3>
-            <p className="text-black/60 text-[0.7rem] font-bold uppercase tracking-widest">Résultat selon la plage sélectionnée</p>
+        <div className="bg-primary border border-primary/20 rounded-xl p-5 shadow-2xl flex flex-col">
+          <div className="space-y-1 mb-5">
+            <h3 className="text-black font-black text-xl tracking-tight">{t('s.etat_de_la_caisse')}</h3>
+            <p className="text-black/60 text-[0.7rem] font-bold uppercase tracking-widest">{t('s.resultat_selon_la_plage_selectionnee')}</p>
           </div>
           
           <div className="flex-1 space-y-4">
             <div className="flex justify-between items-center text-[0.8rem] text-black/70 font-bold border-b border-black/10 pb-2">
-              <span>Fond Initial</span>
+              <span>{t('s.fond_initial')}</span>
               <span>{formatPrice(initialCashFund)}</span>
             </div>
-            <div className="flex justify-between items-center text-[0.8rem] text-black font-black border-b border-black/10 pb-2">
-              <span>Recettes Espèces / Mixte</span>
+            <div className="flex justify-between items-center text-[0.8rem] text-black font-semibold border-b border-black/10 pb-2">
+              <span>{t('s.recettes_especes_mixte')}</span>
               <span>+{formatPrice(stats.cashSales)}</span>
             </div>
             {stats.totalPeriodDeposits > 0 && (
-              <div className="flex justify-between items-center text-[0.8rem] text-black font-black border-b border-black/10 pb-2">
-                <span>Dépôts Clients (Espèces)</span>
+              <div className="flex justify-between items-center text-[0.8rem] text-black font-semibold border-b border-black/10 pb-2">
+                <span>{t('s.depots_clients_especes')}</span>
                 <span>+{formatPrice(stats.totalPeriodDeposits)}</span>
               </div>
             )}
             <div className="flex justify-between items-center text-[0.8rem] text-red-800 font-bold border-b border-black/10 pb-2">
-              <span>Dépenses cumulées</span>
+              <span>{t('s.depenses_cumulees')}</span>
               <span>-{formatPrice(stats.totalPeriodExpenses)}</span>
             </div>
             <div className="flex justify-between items-center text-[0.8rem] text-red-800 font-bold border-b border-black/10 pb-2">
-              <span>Versements cumulés</span>
+              <span>{t('s.versements_cumules')}</span>
               <span>-{formatPrice(stats.totalPeriodVersements)}</span>
             </div>
             {stats.totalPeriodRefunds > 0 && (
               <div className="flex justify-between items-center text-[0.8rem] text-red-800 font-bold border-b border-black/10 pb-2">
-                <span>Remboursements Clients</span>
+                <span>{t('s.remboursements_clients')}</span>
                 <span>-{formatPrice(stats.totalPeriodRefunds)}</span>
               </div>
             )}
@@ -488,8 +477,8 @@ const FinancialReport = () => {
             {/* Recouvrements reçus */}
             {stats.totalRecoveries > 0 && (
               <div className="flex flex-col border-b border-black/10 pb-2 gap-1">
-                <div className="flex justify-between items-center text-[0.8rem] text-emerald-700 font-black">
-                  <span>💰 Recouvrements Dettes Reçus</span>
+                <div className="flex justify-between items-center text-[0.8rem] text-emerald-700 font-semibold">
+                  <span>{t('s.recouvrements_dettes_recus')}</span>
                   <span>+{formatPrice(stats.totalRecoveries)}</span>
                 </div>
                 {stats.recoveryReceipts.map((r, i) => (
@@ -505,7 +494,7 @@ const FinancialReport = () => {
             {stats.totalDebts > 0 && (
               <div className="flex flex-col border-b border-black/10 pb-2 gap-1">
                 <div className="flex justify-between items-center text-[0.8rem] text-red-800 font-bold">
-                  <span>📋 Dettes Accordées (Restes à Payer)</span>
+                  <span>{t('s.dettes_accordees_restes_a_payer')}</span>
                   <span>-{formatPrice(stats.totalDebts)}</span>
                 </div>
                 {stats.debtInvoices.map((d, i) => (
@@ -518,26 +507,26 @@ const FinancialReport = () => {
             )}
 
             <div className="pt-8 text-center">
-              <div className="text-black/50 text-[0.7rem] font-black uppercase tracking-widest mb-2">SOLDE CALCULÉ (ARRÊT)</div>
+              <div className="text-black/50 text-[0.7rem] font-semibold uppercase tracking-widest mb-2">{t('s.solde_calcule_arret')}</div>
               <div className="text-5xl font-black text-black tracking-tighter leading-none mb-4">
                 {formatPrice(stats.calculatedBalance)}
               </div>
               
               <button
                 onClick={() => setShowClosureModal(true)}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-black text-white rounded-xl text-[0.7rem] font-black uppercase tracking-widest hover:bg-black/80 transition-all shadow-xl"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-black text-white rounded-xl text-[0.7rem] font-semibold uppercase tracking-widest hover:bg-black/80 transition-all shadow-sm"
               >
-                <Lock size={14} /> Clôturer la caisse
+                <LockOutlined style={{ fontSize: 14 }} /> {t('s.cloturer_la_caisse')}
               </button>
             </div>
           </div>
 
           <button 
-            className="w-full bg-black text-white rounded-2xl py-4 mt-8 font-black uppercase tracking-widest text-[0.8rem] flex items-center justify-center gap-3 hover:scale-[1.02] transition-transform active:scale-95 shadow-xl"
+            className="w-full bg-black text-white rounded-xl py-4 mt-8 font-semibold uppercase tracking-widest text-[0.8rem] flex items-center justify-center gap-3 hover:scale-[1.02] transition-transform active:scale-95 shadow-sm"
             onClick={() => window.print()}
           >
-            <Printer size={20} />
-            Imprimer le journal de caisse
+            <PrinterOutlined style={{ fontSize: 20 }} />
+            {t('s.imprimer_le_journal_de_caisse')}
           </button>
         </div>
       </div>
@@ -545,16 +534,16 @@ const FinancialReport = () => {
       {/* Résumé de la période (Cartes) */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label: 'CA Standard', value: formatPrice(stats.standardSales), icon: TrendingUp, color: 'text-primary' },
-          { label: 'CA Casses', value: formatPrice(stats.breakageSales), icon: PackageOpen, color: 'text-orange-500' },
-          { label: 'Factures / Net Total', value: `${stats.count} fact. / ${formatPrice(stats.netRevenue)}`, icon: FileText, color: 'text-blue-500' },
+          { label: 'CA Standard', value: formatPrice(stats.standardSales), icon: RiseOutlined, color: 'text-primary' },
+          { label: 'CA Casses', value: formatPrice(stats.breakageSales), icon: DropboxOutlined, color: 'text-orange-500' },
+          { label: t('s.factures_net_total'), value: `${stats.count} fact. / ${formatPrice(stats.netRevenue)}`, icon: FileTextOutlined, color: 'text-blue-500' },
         ].map((stat, i) => (
-          <div key={i} className="bg-bg-card border border-black/5 dark:border-white/5 rounded-2xl p-5 shadow-lg">
+          <div key={i} className="glass-panel rounded-xl p-4">
             <div className="flex items-center justify-between mb-3">
               <div className={`p-2 rounded-lg bg-black/5 dark:bg-white/5 ${stat.color}`}>
                 <stat.icon size={18} />
               </div>
-              <span className="text-[0.6rem] font-black text-text-heading uppercase tracking-widest">Rapport</span>
+              <span className="text-[0.6rem] font-semibold text-text-heading uppercase tracking-widest">{t('s.rapport')}</span>
             </div>
             <div className="text-xl font-black text-text-heading tracking-tight">{stat.value}</div>
             <div className="text-[0.65rem] font-bold text-text-heading uppercase tracking-widest mt-1">{stat.label}</div>
@@ -564,21 +553,21 @@ const FinancialReport = () => {
 
       {/* Expense Modal */}
       {showExpenseModal && (
-        <Modal title="Enregistre la depense" onClose={() => setShowExpenseModal(false)} footer={null}>
+        <Modal title={t('s.enregistre_la_depense')} onClose={() => setShowExpenseModal(false)} footer={null}>
           <form onSubmit={handleAddExpense} className="space-y-6">
             <div className="space-y-4">
               <div>
-                <label className="text-[0.75rem] font-black text-text-heading dark:text-text-muted uppercase tracking-widest mb-1.5 block">Motif de la dépense</label>
+                <label className="text-[0.75rem] font-semibold text-text-heading dark:text-text-muted uppercase tracking-widest mb-1.5 block">{t('s.motif_de_la_depense')}</label>
                 <input 
                   autoFocus
                   className="w-full bg-black/[0.03] dark:bg-white/5 border border-black/20 dark:border-white/10 rounded-xl px-4 py-3 text-text-heading focus:outline-none focus:border-primary/50 font-bold"
-                  placeholder="Ex: Frais de transport, Fournitures..."
+                  placeholder={t('s.ex_frais_de_transport_fournitures')}
                   value={newExpense.label}
                   onChange={e => setNewExpense(p => ({ ...p, label: e.target.value }))}
                 />
               </div>
               <div>
-                <label className="text-[0.75rem] font-black text-text-heading dark:text-text-muted uppercase tracking-widest mb-1.5 block">Montant (FCFA)</label>
+                <label className="text-[0.75rem] font-semibold text-text-heading dark:text-text-muted uppercase tracking-widest mb-1.5 block">{t('s.montant_fcfa')}</label>
                 <input 
                   type="number"
                   className="w-full bg-black/[0.03] dark:bg-white/5 border border-black/20 dark:border-white/10 rounded-xl px-4 py-3 text-red-600 dark:text-red-400 font-black focus:outline-none focus:border-red-500/50 text-2xl"
@@ -589,8 +578,8 @@ const FinancialReport = () => {
               </div>
             </div>
             <div className="flex gap-3">
-              <Button onClick={() => setShowExpenseModal(false)} className="flex-1 h-12 rounded-xl font-bold">Annuler</Button>
-              <Button type="primary" htmlType="submit" className="flex-1 h-12 rounded-xl font-bold uppercase tracking-widest">Enregistre la depense</Button>
+              <Button onClick={() => setShowExpenseModal(false)} className="flex-1">{t('s.annuler')}</Button>
+              <Button type="primary" htmlType="submit" className="flex-1">{t('s.enregistre_la_depense')}</Button>
             </div>
           </form>
         </Modal>
@@ -598,15 +587,15 @@ const FinancialReport = () => {
 
       {/* Versement Modal */}
       {showVersementModal && (
-        <Modal title="Effectuer un versement" onClose={() => setShowVersementModal(false)} footer={null}>
+        <Modal title={t('s.effectuer_un_versement')} onClose={() => setShowVersementModal(false)} footer={null}>
           <form onSubmit={handleAddVersement} className="space-y-6">
             <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-5 text-center">
-              <span className="text-[0.75rem] font-black text-emerald-700 dark:text-emerald-500 uppercase tracking-widest block mb-1">Disponible en caisse</span>
-              <span className="text-3xl font-black text-emerald-700 dark:text-emerald-500">{formatPrice(stats.calculatedBalance)}</span>
+              <span className="text-[0.75rem] font-semibold text-emerald-700 dark:text-emerald-500 uppercase tracking-widest block mb-1">{t('s.disponible_en_caisse')}</span>
+              <span className="text-xl font-bold text-emerald-700 dark:text-emerald-500">{formatPrice(stats.calculatedBalance)}</span>
             </div>
             <div className="space-y-4">
               <div>
-                <label className="text-[0.75rem] font-black text-text-heading dark:text-text-muted uppercase tracking-widest mb-1.5 block text-center">Montant du versement à la direction</label>
+                <label className="text-[0.75rem] font-semibold text-text-heading dark:text-text-muted uppercase tracking-widest mb-1.5 block text-center">{t('s.montant_du_versement_a_la_direction')}</label>
                 <input 
                   type="number"
                   autoFocus
@@ -618,8 +607,8 @@ const FinancialReport = () => {
               </div>
             </div>
             <div className="flex gap-3">
-              <Button onClick={() => setShowVersementModal(false)} className="flex-1 h-12 rounded-xl font-bold">Annuler</Button>
-              <Button type="primary" htmlType="submit" className="flex-1 h-12 rounded-xl font-bold uppercase tracking-widest bg-emerald-500 border-emerald-500 hover:bg-emerald-600">Valider le versement</Button>
+              <Button onClick={() => setShowVersementModal(false)} className="flex-1">{t('s.annuler')}</Button>
+              <Button type="primary" htmlType="submit" className="flex-1 bg-emerald-500 border-emerald-500 hover:bg-emerald-600">{t('s.valider_le_versement')}</Button>
             </div>
           </form>
         </Modal>
@@ -627,7 +616,7 @@ const FinancialReport = () => {
 
       {/* Closure Modal */}
       {showClosureModal && (
-        <Modal title="Clôture de Caisse Journalière" onClose={() => setShowClosureModal(false)} footer={null}>
+        <Modal title={t('s.cloture_de_caisse_journaliere')} onClose={() => setShowClosureModal(false)} footer={null}>
           <div className="space-y-6">
             <div className="text-center space-y-2">
               <p className="text-sm text-text-muted">Vous allez clôturer la session actuelle. Le solde suivant sera reporté comme fond de caisse initial pour la prochaine ouverture :</p>
@@ -637,31 +626,16 @@ const FinancialReport = () => {
             </div>
 
             <div className="bg-orange-500/10 border border-orange-500/20 rounded-2xl p-4 flex items-start gap-4">
-              <AlertCircle className="text-orange-500 shrink-0 mt-1" size={20} />
+              <ExclamationCircleOutlined style={{ fontSize: 20 }} className="text-orange-500 shrink-0 mt-1" />
               <p className="text-[0.7rem] text-text-muted">
                 Une fois clôturée, vous ne pourrez plus ajouter de dépenses ou de versements à cette session. Assurez-vous que le montant physique en caisse correspond bien au solde calculé.
               </p>
             </div>
 
             <div className="flex gap-3">
-              <Button onClick={() => setShowClosureModal(false)} className="flex-1 h-12 rounded-xl font-bold">Annuler</Button>
-              <Button 
-                type="primary" 
-                onClick={() => {
-                  closeCashSession(stats.calculatedBalance, {
-                    initialFund: initialCashFund,
-                    cashSales: stats.cashSales,
-                    totalExpenses: stats.totalPeriodExpenses,
-                    totalVersements: stats.totalPeriodVersements,
-                    invoiceRange: `${startInvoice || invoiceNumbers[0]} - ${endInvoice || invoiceNumbers[invoiceNumbers.length - 1]}`,
-                    invoicesList: stats.invoicesList,
-                    expensesList: stats.expensesList
-                  });
-                  setShowClosureModal(false);
-                }}
-                className="flex-1 h-12 rounded-xl font-black uppercase tracking-widest"
-              >
-                Confirmer la clôture
+              <Button onClick={() => setShowClosureModal(false)} className="flex-1">{t('s.annuler')}</Button>
+              <Button type="primary" onClick={() => { closeCashSession(stats.calculatedBalance, { initialFund: initialCashFund, cashSales: stats.cashSales, totalExpenses: stats.totalPeriodExpenses, totalVersements: stats.totalPeriodVersements, invoiceRange: `${startInvoice || invoiceNumbers[0]} - ${endInvoice || invoiceNumbers[invoiceNumbers.length - 1]}`, invoicesList: stats.invoicesList, expensesList: stats.expensesList }); setShowClosureModal(false); }} className="flex-1" >
+                {t('s.confirmer_la_cloture')}
               </Button>
             </div>
           </div>
@@ -680,23 +654,23 @@ const FinancialReport = () => {
               <div style={{fontSize:'9px',color:'#444'}}>{companySettings?.phone || 'Téléphone'}</div>
             </div>
             <div style={{textAlign:'right'}}>
-              <div style={{fontSize:'14px',fontWeight:'900',textTransform:'uppercase',letterSpacing:'1px'}}>BILAN FINANCIER</div>
-              <div style={{fontSize:'9px',color:'#666',fontWeight:'bold',marginTop:'2px'}}>Magasin : <span style={{color:'black'}}>{cashierStore.name}</span></div>
+              <div style={{fontSize:'14px',fontWeight:'900',textTransform:'uppercase',letterSpacing:'1px'}}>{t('s.bilan_financier')}</div>
+              <div style={{fontSize:'9px',color:'#666',fontWeight:'bold',marginTop:'2px'}}>{t('s.magasin_2')} <span style={{color:'black'}}>{cashierStore.name}</span></div>
             </div>
           </div>
           <div style={{display:'flex',justifyContent:'space-between',marginTop:'4px',fontSize:'10px',borderTop:'1px dotted #ccc',paddingTop:'4px'}}>
-            <span><strong>Date :</strong> {new Date().toLocaleString('fr-FR',{dateStyle:'short',timeStyle:'short'})}</span>
-            <span><strong>Caissier :</strong> {currentUser?.name?.toUpperCase()}</span>
-            <span><strong>Plage :</strong> {`${startInvoice||invoiceNumbers[0]||'N/A'} → ${endInvoice||invoiceNumbers[invoiceNumbers.length-1]||'N/A'}`}</span>
+            <span><strong>{t('s.date_2')}</strong> {new Date().toLocaleString('fr-FR',{dateStyle:'short',timeStyle:'short'})}</span>
+            <span><strong>{t('s.caissier_2')}</strong> {currentUser?.name?.toUpperCase()}</span>
+            <span><strong>{t('s.plage')}</strong> {`${startInvoice||invoiceNumbers[0]||'N/A'} → ${endInvoice||invoiceNumbers[invoiceNumbers.length-1]||'N/A'}`}</span>
           </div>
         </div>
 
         {/* État de caisse - tableau compact */}
         <div style={{marginBottom:'8px'}}>
-          <div style={{fontWeight:'900',fontSize:'11px',textTransform:'uppercase',borderBottom:'1px solid #ccc',paddingBottom:'2px',marginBottom:'4px'}}>État de la Caisse</div>
+          <div style={{fontWeight:'900',fontSize:'11px',textTransform:'uppercase',borderBottom:'1px solid #ccc',paddingBottom:'2px',marginBottom:'4px'}}>{t('s.etat_de_la_caisse')}</div>
           <table style={{width:'100%',borderCollapse:'collapse',fontSize:'10px'}}>
             <tbody>
-              <tr><td style={{padding:'1px 4px'}}>Fond Initial</td><td style={{textAlign:'right',padding:'1px 4px',fontWeight:'bold'}}>{formatPrice(initialCashFund)}</td></tr>
+              <tr><td style={{padding:'1px 4px'}}>{t('s.fond_initial')}</td><td style={{textAlign:'right',padding:'1px 4px',fontWeight:'bold'}}>{formatPrice(initialCashFund)}</td></tr>
               <tr><td style={{padding:'1px 4px',fontWeight:'bold'}}>+ Recettes Espèces / Mixte</td><td style={{textAlign:'right',padding:'1px 4px',fontWeight:'900',color:'#059669'}}>+{formatPrice(stats.cashSales)}</td></tr>
               {stats.totalPeriodDeposits > 0 && <tr><td style={{padding:'1px 4px'}}>+ Dépôts Clients (Espèces)</td><td style={{textAlign:'right',padding:'1px 4px',color:'#059669'}}>+{formatPrice(stats.totalPeriodDeposits)}</td></tr>}
               {stats.totalRecoveries > 0 && <>
@@ -706,21 +680,21 @@ const FinancialReport = () => {
                 ))}
               </>}
               {stats.expensesList && stats.expensesList.length > 0 && <>
-                <tr><td style={{padding:'1px 4px',fontWeight:'bold'}}>– Dépenses</td><td style={{textAlign:'right',padding:'1px 4px',fontWeight:'900',color:'#dc2626'}}>-{formatPrice(stats.totalPeriodExpenses)}</td></tr>
+                <tr><td style={{padding:'1px 4px',fontWeight:'bold'}}>{t('s.depenses_2')}</td><td style={{textAlign:'right',padding:'1px 4px',fontWeight:'900',color:'#dc2626'}}>-{formatPrice(stats.totalPeriodExpenses)}</td></tr>
                 {stats.expensesList.map(exp=>(
                   <tr key={exp.id} style={{background:'#fff1f2'}}><td style={{padding:'1px 4px 1px 16px',fontSize:'9px',color:'#991b1b'}}>- {exp.label}</td><td style={{textAlign:'right',padding:'1px 4px',fontSize:'9px',color:'#991b1b'}}>-{formatPrice(exp.amount)}</td></tr>
                 ))}
               </>}
-              {stats.totalPeriodExpenses === 0 && <tr><td style={{padding:'1px 4px'}}>– Dépenses</td><td style={{textAlign:'right',padding:'1px 4px',color:'#999'}}>0 FCFA</td></tr>}
-              <tr><td style={{padding:'1px 4px',fontWeight:'bold'}}>– Versements Cumulés</td><td style={{textAlign:'right',padding:'1px 4px',fontWeight:'900',color:'#dc2626'}}>-{formatPrice(stats.totalPeriodVersements)}</td></tr>
+              {stats.totalPeriodExpenses === 0 && <tr><td style={{padding:'1px 4px'}}>{t('s.depenses_2')}</td><td style={{textAlign:'right',padding:'1px 4px',color:'#999'}}>0 FCFA</td></tr>}
+              <tr><td style={{padding:'1px 4px',fontWeight:'bold'}}>{t('s.versements_cumules_2')}</td><td style={{textAlign:'right',padding:'1px 4px',fontWeight:'900',color:'#dc2626'}}>-{formatPrice(stats.totalPeriodVersements)}</td></tr>
               {stats.totalPeriodRefunds > 0 && <tr><td style={{padding:'1px 4px'}}>– Remboursements Clients</td><td style={{textAlign:'right',padding:'1px 4px',color:'#dc2626'}}>-{formatPrice(stats.totalPeriodRefunds)}</td></tr>}
               {stats.totalDebts > 0 && <>
-                <tr><td style={{padding:'1px 4px',fontWeight:'bold'}}>– Dettes Accordées (Non Encaissées)</td><td style={{textAlign:'right',padding:'1px 4px',fontWeight:'900',color:'#dc2626'}}>-{formatPrice(stats.totalDebts)}</td></tr>
+                <tr><td style={{padding:'1px 4px',fontWeight:'bold'}}>{t('s.dettes_accordees_non_encaissees')}</td><td style={{textAlign:'right',padding:'1px 4px',fontWeight:'900',color:'#dc2626'}}>-{formatPrice(stats.totalDebts)}</td></tr>
                 {stats.debtInvoices.map((d,i)=>(
                   <tr key={i} style={{background:'#fff1f2'}}><td style={{padding:'1px 4px 1px 16px',fontSize:'9px',color:'#991b1b'}}>Fact.{d.number} – {d.customerName}</td><td style={{textAlign:'right',padding:'1px 4px',fontSize:'9px',color:'#991b1b'}}>Reste: {formatPrice(d.amountDue)}</td></tr>
                 ))}
               </>}
-              <tr style={{borderTop:'2px solid black'}}><td style={{padding:'4px 4px',fontWeight:'900',fontSize:'12px'}}>SOLDE DE CLÔTURE CALCULÉ</td><td style={{textAlign:'right',padding:'4px 4px',fontWeight:'900',fontSize:'14px'}}>{formatPrice(stats.calculatedBalance)}</td></tr>
+              <tr style={{borderTop:'2px solid black'}}><td style={{padding:'4px 4px',fontWeight:'900',fontSize:'12px'}}>{t('s.solde_de_cloture_calcule')}</td><td style={{textAlign:'right',padding:'4px 4px',fontWeight:'900',fontSize:'14px'}}>{formatPrice(stats.calculatedBalance)}</td></tr>
             </tbody>
           </table>
         </div>
@@ -728,15 +702,15 @@ const FinancialReport = () => {
         {/* Détail des factures */}
         {stats.invoicesList && stats.invoicesList.length > 0 && (
           <div>
-            <div style={{fontWeight:'900',fontSize:'11px',textTransform:'uppercase',borderBottom:'1px solid #ccc',paddingBottom:'2px',marginBottom:'4px'}}>Détail des Factures Incluses</div>
+            <div style={{fontWeight:'900',fontSize:'11px',textTransform:'uppercase',borderBottom:'1px solid #ccc',paddingBottom:'2px',marginBottom:'4px'}}>{t('s.detail_des_factures_incluses')}</div>
             <table style={{width:'100%',borderCollapse:'collapse',fontSize:'9px'}}>
               <thead>
                 <tr style={{background:'#f3f4f6'}}>
-                  <th style={{border:'1px solid #d1d5db',padding:'2px 4px',textAlign:'left'}}>N° Facture</th>
-                  <th style={{border:'1px solid #d1d5db',padding:'2px 4px',textAlign:'left'}}>Client</th>
-                  <th style={{border:'1px solid #d1d5db',padding:'2px 4px',textAlign:'right'}}>Total</th>
-                  <th style={{border:'1px solid #d1d5db',padding:'2px 4px',textAlign:'right'}}>Payé</th>
-                  <th style={{border:'1px solid #d1d5db',padding:'2px 4px',textAlign:'right'}}>Reste</th>
+                  <th style={{border:'1px solid #d1d5db',padding:'2px 4px',textAlign:'left'}}>{t('s.n_facture')}</th>
+                  <th style={{border:'1px solid #d1d5db',padding:'2px 4px',textAlign:'left'}}>{t('s.client')}</th>
+                  <th style={{border:'1px solid #d1d5db',padding:'2px 4px',textAlign:'right'}}>{t('s.total')}</th>
+                  <th style={{border:'1px solid #d1d5db',padding:'2px 4px',textAlign:'right'}}>{t('s.paye_2')}</th>
+                  <th style={{border:'1px solid #d1d5db',padding:'2px 4px',textAlign:'right'}}>{t('s.reste')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -757,13 +731,13 @@ const FinancialReport = () => {
         {/* Détail des Dépôts & Remboursements */}
         {((stats.depositsList && stats.depositsList.length > 0) || (stats.refundsList && stats.refundsList.length > 0)) && (
           <div style={{marginTop:'8px'}}>
-            <div style={{fontWeight:'900',fontSize:'11px',textTransform:'uppercase',borderBottom:'1px solid #ccc',paddingBottom:'2px',marginBottom:'4px'}}>Détail des Dépôts & Remboursements Inclus</div>
+            <div style={{fontWeight:'900',fontSize:'11px',textTransform:'uppercase',borderBottom:'1px solid #ccc',paddingBottom:'2px',marginBottom:'4px'}}>{t('s.detail_des_depots_remboursements_inclus')}</div>
             <table style={{width:'100%',borderCollapse:'collapse',fontSize:'9px'}}>
               <thead>
                 <tr style={{background:'#f3f4f6'}}>
-                  <th style={{border:'1px solid #d1d5db',padding:'2px 4px',textAlign:'left'}}>Type / Référence</th>
-                  <th style={{border:'1px solid #d1d5db',padding:'2px 4px',textAlign:'left'}}>Client / Infos</th>
-                  <th style={{border:'1px solid #d1d5db',padding:'2px 4px',textAlign:'right'}}>Montant</th>
+                  <th style={{border:'1px solid #d1d5db',padding:'2px 4px',textAlign:'left'}}>{t('s.type_reference')}</th>
+                  <th style={{border:'1px solid #d1d5db',padding:'2px 4px',textAlign:'left'}}>{t('s.client_infos')}</th>
+                  <th style={{border:'1px solid #d1d5db',padding:'2px 4px',textAlign:'right'}}>{t('s.montant')}</th>
                 </tr>
               </thead>
               <tbody>

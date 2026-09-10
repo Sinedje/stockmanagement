@@ -1,16 +1,14 @@
+import { useT } from '../../i18n/I18nContext';
 import React, { useState, useMemo } from 'react';
 import { formatPrice } from '../../context/StoreContext';
 import Modal from '../common/Modal';
-import {
-  Search, Trash2, FileText, Store,
-  User, Phone, CheckCircle, Printer,
-  Banknote, CreditCard, AlertTriangle, Wallet,
-} from 'lucide-react';
+import { CheckCircleOutlined, CreditCardOutlined, DeleteOutlined, FileTextOutlined, MoneyCollectOutlined, PhoneOutlined, PrinterOutlined, SearchOutlined, ShopOutlined, UserOutlined, WalletOutlined, WarningOutlined } from '@ant-design/icons';
 import { Button, Tag, message as antMessage } from 'antd';
 import ReceiptView from './ReceiptView';
 
 /* ── Editable price cell with local state ── */
 const PriceInput = ({ value, minPrice, onChange, isFlexiblePrice }) => {
+  const t = useT();
   const [raw, setRaw] = useState(String(value));
   const belowMin = !isFlexiblePrice && parseFloat(raw) < minPrice;
 
@@ -32,14 +30,14 @@ const PriceInput = ({ value, minPrice, onChange, isFlexiblePrice }) => {
       />
       {belowMin && (
         <span className="text-[0.55rem] text-red-400 flex items-center gap-1">
-          <AlertTriangle size={8} /> min {formatPrice(minPrice)}
+          <WarningOutlined style={{ fontSize: 8 }} /> min {formatPrice(minPrice)}
         </span>
       )}
       {!belowMin && !isFlexiblePrice && (
         <span className="text-[0.55rem] text-text-muted opacity-40">min {formatPrice(minPrice)}</span>
       )}
       {isFlexiblePrice && (
-        <span className="text-[0.55rem] text-primary opacity-60">Prix libre</span>
+        <span className="text-[0.55rem] text-primary opacity-60">{t('s.prix_libre')}</span>
       )}
     </div>
   );
@@ -47,6 +45,7 @@ const PriceInput = ({ value, minPrice, onChange, isFlexiblePrice }) => {
 
 /* ── Payment Modal (with optional account balance) ── */
 const PaymentModal = ({ total, invoiceNumber, onPay, onClose, customerBalance = 0 }) => {
+  const t = useT();
   const [useAccount, setUseAccount] = useState(false);
   const [isPartial, setIsPartial] = useState(false);
   const [initialPayment, setInitialPayment] = useState('');
@@ -79,20 +78,20 @@ const PaymentModal = ({ total, invoiceNumber, onPay, onClose, customerBalance = 
 
   return (
     <Modal
-      title="Encaisser"
+      title={t('s.encaisser')}
       onClose={onClose}
       onOk={isSubmitting ? undefined : () => handlePayMethod(selectedMethod)}
     >
       <div className="mb-6">
         <div className="bg-primary/5 border border-primary/20 rounded-2xl p-6 text-center">
-          <span className="text-[0.8rem] font-bold text-text-secondary uppercase tracking-widest mb-1 block">Montant à payer</span>
+          <span className="text-[0.8rem] font-bold text-text-secondary uppercase tracking-widest mb-1 block">{t('s.montant_a_payer')}</span>
           <span className="text-4xl font-black text-primary tracking-tighter">{formatPrice(total)}</span>
         </div>
       </div>
 
       <div className="flex items-center justify-center gap-2 mb-5 px-4 py-2.5 bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-xl">
-        <FileText size={14} className="text-primary opacity-70" />
-        <span className="text-[0.75rem] text-text-secondary font-semibold">Facture N°</span>
+        <FileTextOutlined style={{ fontSize: 14 }} className="text-primary opacity-70" />
+        <span className="text-[0.75rem] text-text-secondary font-semibold">{t('s.facture_n')}</span>
         <span className="text-[1rem] font-black text-primary tracking-widest">{invoiceNumber}</span>
       </div>
 
@@ -111,10 +110,10 @@ const PaymentModal = ({ total, invoiceNumber, onPay, onClose, customerBalance = 
               <div className={`w-9 h-9 rounded-xl flex items-center justify-center transition-colors ${
                 useAccount ? 'bg-emerald-500 text-white' : 'bg-emerald-500/10 text-emerald-500'
               }`}>
-                <Wallet size={18} />
+                <WalletOutlined style={{ fontSize: 18 }} />
               </div>
               <div>
-                <div className="text-sm font-black text-text-heading">Utiliser le solde client</div>
+                <div className="text-sm font-semibold text-text-heading">{t('s.utiliser_le_solde_client')}</div>
                 <div className="text-xs text-emerald-600 font-bold">
                   {formatPrice(customerBalance)} disponible
                 </div>
@@ -130,15 +129,15 @@ const PaymentModal = ({ total, invoiceNumber, onPay, onClose, customerBalance = 
           {useAccount && (
             <div className="mt-3 pt-3 border-t border-emerald-500/20 space-y-1 text-sm">
               <div className="flex justify-between">
-                <span className="text-text-muted">Total facture</span>
+                <span className="text-text-muted">{t('s.total_facture_2')}</span>
                 <span className="font-bold text-text-heading">{formatPrice(total)}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-emerald-600">Débit compte</span>
+                <span className="text-emerald-600">{t('s.debit_compte')}</span>
                 <span className="font-bold text-emerald-600">- {formatPrice(accountUsed)}</span>
               </div>
               <div className="flex justify-between font-black">
-                <span className="text-text-heading">Reste à encaisser</span>
+                <span className="text-text-heading">{t('s.reste_a_encaisser')}</span>
                 <span className={remainingAfterAccount > 0 ? 'text-primary' : 'text-emerald-500'}>
                   {formatPrice(remainingAfterAccount)}
                 </span>
@@ -154,20 +153,20 @@ const PaymentModal = ({ total, invoiceNumber, onPay, onClose, customerBalance = 
           
           <div className="bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-2xl p-4">
             <label className="flex items-center gap-3 cursor-pointer" onClick={() => setIsPartial(!isPartial)}>
-              <div className={`w-5 h-5 rounded-md flex items-center justify-center border-2 transition-colors ${isPartial ? 'bg-primary border-primary text-black' : 'border-black/20 dark:border-white/20'}`}>
-                {isPartial && <CheckCircle size={14} strokeWidth={3} />}
+              <div className={`w-5 h-5 rounded-md flex items-center justify-center border-2 transition-colors ${isPartial ? 'bg-primary border-primary text-white' : 'border-black/20 dark:border-white/20'}`}>
+                {isPartial && <CheckCircleOutlined style={{ fontSize: 14 }} />}
               </div>
-              <span className="text-sm font-bold text-text-heading">Paiement partiel (Acompte)</span>
+              <span className="text-sm font-bold text-text-heading">{t('s.paiement_partiel_acompte')}</span>
             </label>
             
             {isPartial && (
               <div className="mt-4 pt-4 border-t border-black/10 dark:border-white/10 animate-fade-in">
-                <label className="text-[0.7rem] font-bold text-text-muted uppercase tracking-widest block mb-2">Acompte versé aujourd'hui</label>
+                <label className="text-[0.7rem] font-bold text-text-muted uppercase tracking-widest block mb-2">{t('s.acompte_verse_aujourd_hui')}</label>
                 <div className="flex items-center gap-3">
                   <input
                     type="number"
                     className="w-full bg-white dark:bg-black/30 border border-black/15 dark:border-white/10 rounded-xl px-4 py-3 text-lg font-black text-primary focus:outline-none focus:border-primary/50 transition-colors"
-                    placeholder="Montant en FCFA"
+                    placeholder={t('s.montant_en_fcfa')}
                     value={initialPayment}
                     onChange={e => setInitialPayment(e.target.value)}
                   />
@@ -176,9 +175,9 @@ const PaymentModal = ({ total, invoiceNumber, onPay, onClose, customerBalance = 
                   <div className="mt-4 space-y-3">
                     <label className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-colors border ${immediateDelivery ? 'bg-green-500/10 border-green-500/30' : 'bg-black/5 dark:bg-white/5 border-black/10 dark:border-white/10 hover:bg-black/10 dark:hover:bg-white/10'}`} onClick={() => setImmediateDelivery(!immediateDelivery)}>
                       <div className={`w-5 h-5 rounded-md flex items-center justify-center border-2 transition-colors ${immediateDelivery ? 'bg-green-500 border-green-500 text-black' : 'border-black/30 dark:border-white/30'}`}>
-                        {immediateDelivery && <CheckCircle size={14} strokeWidth={3} />}
+                        {immediateDelivery && <CheckCircleOutlined style={{ fontSize: 14 }} />}
                       </div>
-                      <span className={`text-sm font-bold ${immediateDelivery ? 'text-green-500' : 'text-text-secondary'}`}>Autoriser la livraison immédiate (Crédit)</span>
+                      <span className={`text-sm font-bold ${immediateDelivery ? 'text-green-500' : 'text-text-secondary'}`}>{t('s.autoriser_la_livraison_immediate_credit')}</span>
                     </label>
                     
                     <div className={`p-3 rounded-xl border ${immediateDelivery ? 'bg-green-500/10 border-green-500/20 text-green-500' : 'bg-red-500/10 border-red-500/20 text-red-500'}`}>
@@ -207,8 +206,8 @@ const PaymentModal = ({ total, invoiceNumber, onPay, onClose, customerBalance = 
               }`}
               onClick={() => setSelectedMethod('Espèces')}
             >
-              <Banknote size={32} className={`transition-transform ${selectedMethod === 'Espèces' ? 'scale-110' : 'group-hover:scale-110'}`} />
-              <span className="font-bold uppercase tracking-widest text-[0.8rem]">Espèces</span>
+              <MoneyCollectOutlined style={{ fontSize: 32 }} className={`transition-transform ${selectedMethod === 'Espèces' ? 'scale-110' : 'group-hover:scale-110'}`} />
+              <span className="font-bold uppercase tracking-widest text-[0.8rem]">{t('s.especes')}</span>
             </button>
             <button
               className={`flex flex-col items-center justify-center gap-3 p-6 rounded-2xl transition-all duration-300 group border-2 ${
@@ -218,15 +217,15 @@ const PaymentModal = ({ total, invoiceNumber, onPay, onClose, customerBalance = 
               }`}
               onClick={() => setSelectedMethod('Carte')}
             >
-              <CreditCard size={32} className={`transition-transform ${selectedMethod === 'Carte' ? 'scale-110' : 'group-hover:scale-110'}`} />
-              <span className="font-bold uppercase tracking-widest text-[0.8rem]">Carte</span>
+              <CreditCardOutlined style={{ fontSize: 32 }} className={`transition-transform ${selectedMethod === 'Carte' ? 'scale-110' : 'group-hover:scale-110'}`} />
+              <span className="font-bold uppercase tracking-widest text-[0.8rem]">{t('s.carte')}</span>
             </button>
           </div>
         </div>
       ) : (
         <div className="w-full flex items-center justify-center gap-3 p-5 bg-emerald-500/20 text-emerald-500 border border-emerald-500/30 rounded-2xl font-black text-lg">
-          <CheckCircle size={24} />
-          Le compte couvre l'intégralité (Validez via OK)
+          <CheckCircleOutlined style={{ fontSize: 24 }} />
+          {t('s.le_compte_couvre_l_integralite_validez_via_o')}
         </div>
       )}
     </Modal>
@@ -239,6 +238,7 @@ const PaymentModal = ({ total, invoiceNumber, onPay, onClose, customerBalance = 
 import { useUsers, useStores, useSales, useCustomers } from '../../hooks';
 
 const InvoiceBuilder = () => {
+  const t = useT();
   const { allCashierProducts } = useUsers();
   const { stores } = useStores();
   const { nextInvoiceNumber, completeInvoiceSale } = useSales();
@@ -346,8 +346,8 @@ const InvoiceBuilder = () => {
       {/* Invoice header */}
       <div className="flex flex-wrap items-center justify-between gap-2 glass-panel rounded-2xl px-4 sm:px-5 py-3">
         <div className="flex items-center gap-2">
-          <FileText size={15} className="text-primary" />
-          <span className="text-[0.7rem] font-black text-text-muted uppercase tracking-widest">Facture</span>
+          <FileTextOutlined style={{ fontSize: 15 }} className="text-primary" />
+          <span className="text-[0.7rem] font-semibold text-text-muted uppercase tracking-widest">{t('s.facture')}</span>
           <span className="text-primary font-black text-[1.1rem] ml-1">{nextInvoiceNumber}</span>
         </div>
         <span className="text-[0.72rem] text-text-muted opacity-50">
@@ -359,11 +359,11 @@ const InvoiceBuilder = () => {
       <div className="glass-panel rounded-2xl p-4 space-y-3">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {[
-            { key: 'name', label: 'Nom du client', icon: User, placeholder: 'Jean Dupont...' },
-            { key: 'phone', label: 'Téléphone', icon: Phone, placeholder: '+225 07 00 00 00...' },
+            { key: 'name', label: t('s.nom_du_client'), icon: UserOutlined, placeholder: 'Jean Dupont...' },
+            { key: 'phone', label: t('s.telephone'), icon: PhoneOutlined, placeholder: '+225 07 00 00 00...' },
           ].map(({ key, label, icon: Icon, placeholder }) => (
             <div key={key}>
-              <label className="text-[0.62rem] font-black text-text-muted uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
+              <label className="text-[0.62rem] font-semibold text-text-muted uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
                 <Icon size={10} /> {label}
               </label>
               <input
@@ -378,11 +378,11 @@ const InvoiceBuilder = () => {
         {/* Show matched customer balance */}
         {matchedCustomer && matchedCustomer.balance > 0 && (
           <div className="flex items-center gap-2 px-3 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-xl">
-            <Wallet size={14} className="text-emerald-500" />
-            <span className="text-xs font-black text-emerald-600">
+            <WalletOutlined style={{ fontSize: 14 }} className="text-emerald-500" />
+            <span className="text-xs font-semibold text-emerald-600">
               Solde disponible: {formatPrice(matchedCustomer.balance)}
             </span>
-            <span className="text-xs text-emerald-500 ml-auto">(utilisable à l'encaissement)</span>
+            <span className="text-xs text-emerald-500 ml-auto">{t('s.utilisable_a_l_encaissement')}</span>
           </div>
         )}
       </div>
@@ -396,15 +396,15 @@ const InvoiceBuilder = () => {
               value={filterStore === 'Tous' ? 'Tous' : String(filterStore)}
               onChange={e => setFilterStore(e.target.value === 'Tous' ? 'Tous' : e.target.value)}
             >
-              <option value="Tous">Tous les magasins</option>
+              <option value="Tous">{t('s.tous_les_magasins')}</option>
               {stores.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
             </select>
           )}
           <div className="flex-1 relative">
-            <Search size={15} className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted opacity-50 pointer-events-none" />
+            <SearchOutlined style={{ fontSize: 15 }} className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted opacity-50 pointer-events-none" />
             <input
               className="w-full bg-white dark:bg-black/20 border border-black/15 dark:border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-[0.88rem] text-text-heading placeholder-text-muted/40 focus:outline-none focus:border-primary/50 transition-colors"
-              placeholder="Rechercher un article à ajouter..."
+              placeholder={t('s.rechercher_un_article_a_ajouter_2')}
               value={search}
               onChange={e => setSearch(e.target.value)}
             />
@@ -431,11 +431,11 @@ const InvoiceBuilder = () => {
                 {/* Available Stock Display in the middle */}
                 <div className="flex-1 text-center hidden md:block">
                   <div className="inline-flex flex-col items-center px-4 py-1 rounded-lg bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5">
-                    <span className="text-[0.55rem] font-black text-text-muted uppercase tracking-widest leading-none mb-1">
+                    <span className="text-[0.55rem] font-semibold text-text-muted uppercase tracking-widest leading-none mb-1">
                       {p.isNonInventory ? 'Disponibilité' : 'Disponible'}
                     </span>
                     {p.isNonInventory ? (
-                      <span className="text-[0.8rem] font-black leading-none text-emerald-500">Hors-stock</span>
+                      <span className="text-[0.8rem] font-semibold leading-none text-emerald-500">{t('s.hors_stock')}</span>
                     ) : (
                       <span className={`text-[0.9rem] font-black leading-none ${p.stock <= 5 ? 'text-red-500' : 'text-primary'}`}>
                         {p.stock}
@@ -463,7 +463,7 @@ const InvoiceBuilder = () => {
             <thead>
               <tr className="border-b border-black/5 dark:border-white/5 bg-black/5 dark:bg-black/20">
                 {['Article', 'Qté', 'Prix unit.', 'Total', ''].map((h, i) => (
-                  <th key={i} className={`px-4 py-3 text-text-muted font-black uppercase tracking-widest text-[0.58rem] ${i >= 1 ? 'text-center' : 'text-left'} ${i === 3 ? 'text-right' : ''}`}>{h}</th>
+                  <th key={i} className={`px-4 py-3 text-text-muted font-semibold uppercase tracking-widest text-[0.58rem] ${i >= 1 ? 'text-center' : 'text-left'} ${i === 3 ? 'text-right' : ''}`}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -475,7 +475,7 @@ const InvoiceBuilder = () => {
                     <div className="flex items-center gap-2 mt-1">
                       {line.storeName && (
                         <div className="flex items-center gap-1">
-                          <Store size={8} className="text-primary opacity-50" />
+                          <ShopOutlined style={{ fontSize: 8 }} className="text-primary opacity-50" />
                           <span className="text-[0.58rem] text-primary opacity-50">{line.storeName}</span>
                         </div>
                       )}
@@ -508,7 +508,7 @@ const InvoiceBuilder = () => {
                       className="w-7 h-7 flex items-center justify-center mx-auto text-text-muted hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
                       onClick={() => removeLine(line.productId)}
                     >
-                      <Trash2 size={13} />
+                      <DeleteOutlined style={{ fontSize: 13 }} />
                     </button>
                   </td>
                 </tr>
@@ -518,8 +518,8 @@ const InvoiceBuilder = () => {
         </div>
       ) : (
         <div className="flex flex-col items-center justify-center py-16 opacity-30 gap-3">
-          <FileText size={40} strokeWidth={1.5} className="text-text-muted" />
-          <p className="text-text-secondary text-sm font-semibold">Recherchez un article pour commencer la facture</p>
+          <FileTextOutlined style={{ fontSize: 40 }} className="text-text-muted" />
+          <p className="text-text-secondary text-sm font-semibold">{t('s.recherchez_un_article_pour_commencer_la_fact')}</p>
         </div>
       )}
 
@@ -527,14 +527,14 @@ const InvoiceBuilder = () => {
       <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4 glass-panel-strong rounded-2xl p-4 sm:p-6 mt-2">
         <div className="flex flex-wrap items-center gap-4 sm:gap-8">
           <div>
-            <span className="text-[0.75rem] font-bold text-text-muted uppercase tracking-widest block mb-1">Total Articles</span>
+            <span className="text-[0.75rem] font-bold text-text-muted uppercase tracking-widest block mb-1">{t('s.total_articles')}</span>
             <span className="text-xl font-black text-text-heading tracking-tight">{formatPrice(itemsTotal)}</span>
           </div>
 
           <div className="hidden sm:block w-[1px] h-10 bg-black/10 dark:bg-white/10"></div>
 
           <div className="relative">
-            <span className="text-[0.75rem] font-bold text-text-muted uppercase tracking-widest block mb-1">Remise Accordée</span>
+            <span className="text-[0.75rem] font-bold text-text-muted uppercase tracking-widest block mb-1">{t('s.remise_accordee')}</span>
             <input
               type="number"
               className="w-28 sm:w-32 bg-black/10 dark:bg-white/10 border border-transparent focus:border-primary/50 rounded-lg px-3 py-1 text-primary font-black focus:outline-none"
@@ -547,19 +547,13 @@ const InvoiceBuilder = () => {
           <div className="hidden sm:block w-[1px] h-10 bg-black/10 dark:bg-white/10"></div>
 
           <div>
-            <span className="text-[0.75rem] font-bold text-primary uppercase tracking-widest block mb-1">Net à Encaisser</span>
-            <span className="text-2xl sm:text-3xl font-black text-primary tracking-tighter">{formatPrice(total)}</span>
+            <span className="text-[0.75rem] font-bold text-primary uppercase tracking-widest block mb-1">{t('s.net_a_encaisser')}</span>
+            <span className="text-2xl sm:text-xl font-bold text-primary tracking-tighter">{formatPrice(total)}</span>
           </div>
         </div>
 
-        <Button
-          type="primary"
-          size="large"
-          disabled={lines.length === 0}
-          onClick={() => setShowPayment(true)}
-          className="w-full lg:w-auto h-14 px-10 text-[0.95rem] font-black uppercase tracking-wider rounded-xl shadow-glow"
-        >
-          Encaisser
+        <Button type="primary" disabled={lines.length === 0} onClick={() => setShowPayment(true)} className="w-full lg:w-auto shadow-glow" >
+          {t('s.encaisser')}
         </Button>
       </div>
 

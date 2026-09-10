@@ -1,15 +1,14 @@
+import { useT } from '../../i18n/I18nContext';
+import { Toolbar, Panel, Table, Button, SearchInput, Select } from '../ui';
 import React, { useState, useRef } from 'react';
 import { formatPrice } from '../../context/StoreContext';
 import { useProducts } from '../../hooks';
 import Modal from '../common/Modal';
 import Input from '../common/Input';
-import Select from '../common/Select';
-import DataTable from '../common/DataTable';
-import SearchComponent from '../common/SearchComponent';
 import ImageUploader from '../common/ImageUploader';
 import { parseProductsExcel } from '../../utils/excelImport';
-import { Plus, Edit3, Trash2, Package, Copy, FileSpreadsheet, CheckCircle2 } from 'lucide-react';
-import { Button, Space, Popconfirm, message } from 'antd';
+import { CheckCircleOutlined, CopyOutlined, DeleteOutlined, EditOutlined, FileExcelOutlined, InboxOutlined, PlusOutlined } from '@ant-design/icons';
+import { Space, Popconfirm, message } from 'antd';
 
 const emptyProduct = { 
   name: '', 
@@ -26,6 +25,7 @@ const emptyProduct = {
 };
 
 const CatalogManagement = () => {
+  const t = useT();
   const { products, categories, addProduct, importProducts, updateProduct, deleteProduct, addCategory } = useProducts();
   const [search, setSearch] = useState('');
   const [filterCat, setFilterCat] = useState('Tous');
@@ -180,103 +180,78 @@ const CatalogManagement = () => {
         {val ? (
           <img src={val} alt="" className="w-full h-full object-cover" />
         ) : (
-          <Package size={16} className="opacity-20" />
+          <InboxOutlined style={{ fontSize: 16 }} className="opacity-20" />
         )}
       </div>
     )},
-    { key: 'name', title: 'Référence', render: (val) => <span className="font-semibold text-text-heading">{val}</span> },
-    { key: 'designation', title: 'Désignation', render: (val, row) => <span className="text-sm font-medium">{val || row.name}</span> },
-    { key: 'category', title: 'Catégorie', render: (val) => <span className="px-2 py-0.5 rounded-md bg-primary/10 text-primary text-[0.65rem] font-bold uppercase">{val}</span> },
-    { key: 'price', title: 'Prix', render: (val) => <span className="font-bold text-primary">{formatPrice(val)}</span> },
-    { key: 'cost', title: 'Coût', render: (val) => formatPrice(val) },
-    { key: 'stock', title: 'Stock', render: (val, row) => (
-      row.isNonInventory ? <span className="text-xs text-text-muted italic">Hors-stock</span> :
+    { key: 'name', title: t('s.reference'), render: (val) => <span className="font-semibold text-text-heading">{val}</span> },
+    { key: 'designation', title: t('s.designation'), render: (val, row) => <span className="text-sm font-medium">{val || row.name}</span> },
+    { key: 'category', title: t('s.categorie'), render: (val) => <span className="px-2 py-0.5 rounded-md bg-primary/10 text-primary text-[0.65rem] font-bold uppercase">{val}</span> },
+    { key: 'price', title: t('s.prix'), render: (val) => <span className="font-bold text-primary">{formatPrice(val)}</span> },
+    { key: 'cost', title: t('s.cout'), render: (val) => formatPrice(val) },
+    { key: 'stock', title: t('s.stock'), render: (val, row) => (
+      row.isNonInventory ? <span className="text-xs text-text-muted italic">{t('s.hors_stock')}</span> :
       <span className={`font-black ${val <= row.minStock ? 'text-red-500' : 'text-text-primary'}`}>{val}</span>
     )},
-    { key: 'actions', title: 'Actions', align: 'right', render: (_, row) => (
+    { key: 'actions', title: t('s.actions'), align: 'right', render: (_, row) => (
       <Space size="small">
-        <Button 
-          type="text" 
-          icon={<Edit3 size={14} />} 
-          title="Modifier le produit et l'image"
-          onClick={(e) => { e.stopPropagation(); openEdit(row); }} 
-        />
-        <Button
-          type="text"
-          icon={<Copy size={14} className="text-blue-500" />}
-          title="Dupliquer l'article"
-          onClick={(e) => { e.stopPropagation(); openDuplicate(row); }}
-        />
+        <Button type="text" icon={<EditOutlined style={{ fontSize: 14 }} />} title={t('s.modifier_le_produit_et_l_image')} onClick={(e) => { e.stopPropagation(); openEdit(row); }} />
+        <Button type="text" icon={<CopyOutlined style={{ fontSize: 14 }} className="text-blue-500" />} title={t('s.dupliquer_l_article')} onClick={(e) => { e.stopPropagation(); openDuplicate(row); }} />
         <Popconfirm
-          title="Supprimer le produit"
+          title={t('s.supprimer_le_produit')}
           onConfirm={() => {
               deleteProduct(row.id);
               message.success('Produit supprimé');
           }}
-          okText="Oui"
-          cancelText="Non"
+          okText={t('s.oui')}
+          cancelText={t('s.non')}
         >
-          <Button type="text" danger icon={<Trash2 size={14} />} />
+          <Button type="text" danger icon={<DeleteOutlined style={{ fontSize: 14 }} />} />
         </Popconfirm>
       </Space>
     )},
   ];
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-bg-card p-4 rounded-2xl border border-black/5 dark:border-white/5">
-        <SearchComponent
-          placeholder="Rechercher par désignation ou référence..."
+    <div className="animate-fade-in space-y-4">
+      {/* Commandes — carte distincte du tableau */}
+      <Toolbar
+        right={
+          <>
+            <Button icon={<FileExcelOutlined />} loading={importingExcel} onClick={() => excelInputRef.current?.click()}>
+              Importer Excel
+            </Button>
+            <Button type="primary" icon={<PlusOutlined />} onClick={openAdd}>{t('s.nouveau_produit')}</Button>
+          </>
+        }
+      >
+        <SearchInput
           value={search}
-          onChange={e => setSearch(e.target.value)}
-          width="100%"
-          className="max-w-md"
+          onChange={setSearch}
+          placeholder={t('s.rechercher_par_designation_ou_reference_2')}
+          width={260}
         />
-        
-        <div className="flex items-center gap-3">
-          <Button
-            icon={<FileSpreadsheet size={16} className="text-green-500" />}
-            loading={importingExcel}
-            onClick={() => excelInputRef.current?.click()}
-            className="h-10 px-4 rounded-xl font-bold border-green-500/30 text-green-600 dark:text-green-400 hover:bg-green-500/10 flex items-center gap-2"
-          >
-            Importer Excel
-          </Button>
-
-          <Button 
-            type="primary" 
-            icon={<Plus size={16} />} 
-            onClick={openAdd} 
-            className="h-10 px-6 rounded-xl font-bold uppercase tracking-wider"
-          >
-            Nouveau Produit
-          </Button>
-        </div>
-
-        <input
-          ref={excelInputRef}
-          type="file"
-          accept=".xlsx, .xls"
-          className="hidden"
-          onChange={handleExcelFileSelect}
+        <Select
+          value={filterCat}
+          onChange={setFilterCat}
+          options={['Tous', ...categories].map(c => ({ value: c, label: c }))}
+          width={170}
         />
-      </div>
+        <span className="text-[0.72rem] text-text-muted tabular-nums pl-1">{filtered.length} produits</span>
 
-      <div className="flex flex-wrap gap-2 p-1 bg-black/5 dark:bg-white/5 rounded-xl w-fit">
-        {['Tous', ...categories].map(cat => (
-          <button 
-            key={cat} 
-            className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${filterCat === cat ? 'bg-primary text-black' : 'text-text-muted hover:text-text-primary'}`} 
-            onClick={() => setFilterCat(cat)}
-          >
-            {cat}
-          </button>
-        ))}
-      </div>
+        <input ref={excelInputRef} type="file" accept=".xlsx, .xls" className="hidden" onChange={handleExcelFileSelect} />
+      </Toolbar>
 
-      <div className="bg-bg-card rounded-2xl border border-black/5 dark:border-white/5 overflow-hidden shadow-xl">
-        <DataTable columns={columns} data={filtered} />
-      </div>
+      {/* Données */}
+      <Panel noPadding>
+        <Table
+          columns={columns}
+          data={filtered}
+          emptyIcon={InboxOutlined}
+          emptyTitle={t('s.aucun_produit')}
+          emptyDescription={t('s.aucun_produit_ne_correspond_a_cette_recherch')}
+        />
+      </Panel>
 
       {/* Modal Ajout / Modification Produit */}
       {showModal && (
@@ -284,46 +259,46 @@ const CatalogManagement = () => {
           title={editingProduct ? 'Modifier le Produit & Image' : 'Ajouter au Catalogue'}
           onClose={() => setShowModal(false)}
           footer={<div className="flex justify-end gap-3">
-            <Button onClick={() => setShowModal(false)}>Annuler</Button>
-            <Button type="primary" onClick={handleSave} className="font-bold">Enregistrer</Button>
+            <Button onClick={() => setShowModal(false)}>{t('s.annuler')}</Button>
+            <Button type="primary" onClick={handleSave}>{t('s.enregistrer')}</Button>
           </div>}
         >
           <div className="space-y-4 p-1">
             <div className="grid grid-cols-2 gap-4">
               <Input
-                label="Référence / Code"
+                label={t('s.reference_code')}
                 value={form.name}
                 onChange={e => setForm({ ...form, name: e.target.value })}
-                placeholder="Ex: REF001"
+                placeholder={t('s.ex_ref001')}
               />
               <Input
-                label="Désignation (Nom complet)"
+                label={t('s.designation_nom_complet')}
                 value={form.designation}
                 onChange={e => setForm({ ...form, designation: e.target.value })}
-                placeholder="Ex: Riz Basmati 5kg"
+                placeholder={t('s.ex_riz_basmati_5kg')}
               />
             </div>
             
             {!isAddingNewCategory ? (
               <Select
-                label="Catégorie"
+                label={t('s.categorie')}
                 value={form.category}
                 onChange={val => {
                   if (val === 'ADD_NEW') setIsAddingNewCategory(true);
                   else setForm({ ...form, category: val });
                 }}
-                options={[...categories, { label: '+ Nouveau...', value: 'ADD_NEW' }]}
+                options={[...categories, { label: t('s.nouveau'), value: 'ADD_NEW' }]}
               />
             ) : (
               <div className="space-y-2">
                 <Input
-                  label="Nouvelle Catégorie"
+                  label={t('s.nouvelle_categorie')}
                   value={newCategory}
                   onChange={e => setNewCategory(e.target.value)}
                   autoFocus
                 />
                 <button className="text-primary text-[0.7rem] font-bold uppercase hover:underline" onClick={() => setIsAddingNewCategory(false)}>
-                  Annuler
+                  {t('s.annuler')}
                 </button>
               </div>
             )}
@@ -337,17 +312,17 @@ const CatalogManagement = () => {
                 className="w-4 h-4 rounded bg-black/20 border-white/10 text-primary focus:ring-primary focus:ring-offset-bg-secondary"
               />
               <label htmlFor="isNonInventory" className="text-sm text-text-heading font-semibold">
-                Article hors-stock / Échantillon (Quantité illimitée, pas de suivi)
+                {t('s.article_hors_stock_echantillon_quantite_illi')}
               </label>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <Input label="Prix de Vente" type="number" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} />
-              <Input label="Prix d'Achat" type="number" value={form.cost} onChange={e => setForm({ ...form, cost: e.target.value })} />
+              <Input label={t('s.prix_de_vente')} type="number" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} />
+              <Input label={t('s.prix_d_achat')} type="number" value={form.cost} onChange={e => setForm({ ...form, cost: e.target.value })} />
             </div>
             <div className="grid grid-cols-2 gap-4">
-              <Input label="Stock Initial" type="number" value={form.stock} onChange={e => setForm({ ...form, stock: e.target.value })} disabled={form.isNonInventory} />
-              <Input label="Stock Minimum" type="number" value={form.minStock} onChange={e => setForm({ ...form, minStock: e.target.value })} disabled={form.isNonInventory} />
+              <Input label={t('s.stock_initial')} type="number" value={form.stock} onChange={e => setForm({ ...form, stock: e.target.value })} disabled={form.isNonInventory} />
+              <Input label={t('s.stock_minimum')} type="number" value={form.minStock} onChange={e => setForm({ ...form, minStock: e.target.value })} disabled={form.isNonInventory} />
             </div>
             
             {/* ImageUploader (Glisser-Déposer & Compression Auto & URL) */}
@@ -365,21 +340,15 @@ const CatalogManagement = () => {
           title={`Prévisualisation des produits Excel (${excelPreview.length} détecté(s))`}
           onClose={() => setExcelPreview(null)}
           footer={<div className="flex justify-end gap-3">
-            <Button onClick={() => setExcelPreview(null)}>Annuler</Button>
-            <Button 
-              type="primary" 
-              loading={savingImport}
-              icon={<CheckCircle2 size={16} />}
-              onClick={handleConfirmImport} 
-              className="font-bold bg-green-600 border-green-600 hover:bg-green-500"
-            >
-              Valider et Importer tout
+            <Button onClick={() => setExcelPreview(null)}>{t('s.annuler')}</Button>
+            <Button type="primary" loading={savingImport} icon={<CheckCircleOutlined style={{ fontSize: 16 }} />} onClick={handleConfirmImport} className="bg-green-600 border-green-600 hover:bg-green-500" >
+              {t('s.valider_et_importer_tout')}
             </Button>
           </div>}
         >
           <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1">
             <p className="text-xs text-text-muted">
-              Vérifiez ci-dessous les articles extraits de votre fichier Excel avec leurs images intégrées avant validation.
+              {t('s.verifiez_ci_dessous_les_articles_extraits_de')}
             </p>
             <div className="space-y-2">
               {excelPreview.map((item, idx) => (
@@ -388,7 +357,7 @@ const CatalogManagement = () => {
                     {item.image ? (
                       <img src={item.image} alt="" className="w-full h-full object-cover" />
                     ) : (
-                      <Package size={20} className="opacity-30" />
+                      <InboxOutlined style={{ fontSize: 20 }} className="opacity-30" />
                     )}
                   </div>
                   <div className="flex-1 min-w-0">

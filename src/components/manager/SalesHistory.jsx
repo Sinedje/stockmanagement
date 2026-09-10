@@ -1,13 +1,15 @@
+import { useT } from '../../i18n/I18nContext';
+import { Table } from '../ui';
 import React, { useState } from 'react';
 import { formatPrice } from '../../context/StoreContext';
 import { useAuth } from '../../context/AuthContext';
 import { useSales } from '../../hooks';
 import SearchComponent from '../common/SearchComponent';
-import DataTable from '../common/DataTable';
-import { History, XCircle, AlertCircle } from 'lucide-react';
+import { CloseCircleOutlined, ExclamationCircleOutlined, HistoryOutlined } from '@ant-design/icons';
 import { Popconfirm, Button, Tooltip, message } from 'antd';
 
 const SalesHistory = () => {
+  const t = useT();
   const { currentUser } = useAuth();
   const { sales, cancelSale } = useSales();
   const [search, setSearch] = useState('');
@@ -26,24 +28,24 @@ const SalesHistory = () => {
   };
 
   const columns = [
-    { key: 'invoiceNumber', title: 'N° Facture', render: (val, row) => (
+    { key: 'invoiceNumber', title: t('s.n_facture'), render: (val, row) => (
       <div className="flex flex-col">
         <span className="font-bold text-text-heading">{val || `#${row.id}`}</span>
-        {row.type === 'return' && <span className="text-[0.55rem] font-black text-orange-500 uppercase tracking-tighter">Retour sur {row.originalInvoiceNumber}</span>}
+        {row.type === 'return' && <span className="text-[0.55rem] font-semibold text-orange-500 uppercase tracking-tighter">Retour sur {row.originalInvoiceNumber}</span>}
       </div>
     )},
-    { key: 'date', title: 'Date', render: (val) => new Date(val).toLocaleDateString('fr-FR') },
-    { key: 'cashier', title: 'Caissier', render: (val) => <span className="font-medium text-text-secondary">{val}</span> },
-    { key: 'customer', title: 'Client', render: (_, row) => (
+    { key: 'date', title: t('s.date'), render: (val) => new Date(val).toLocaleDateString('fr-FR') },
+    { key: 'cashier', title: t('s.caissier'), render: (val) => <span className="font-medium text-text-secondary">{val}</span> },
+    { key: 'customer', title: t('s.client'), render: (_, row) => (
       <div className="flex flex-col">
-        <span className="text-sm font-black text-text-heading">{row.customerName || 'Passager'}</span>
+        <span className="text-sm font-semibold text-text-heading">{row.customerName || 'Passager'}</span>
         {row.customerPhone && <span className="text-[0.65rem] opacity-70">{row.customerPhone}</span>}
       </div>
     )},
-    { key: 'total', title: 'Total', render: (val) => <span className="font-black text-primary">{formatPrice(val)}</span> },
-    { key: 'status', title: 'Statut', render: (_, row) => {
-      if (row.status === 'cancelled') return <span className="badge badge-danger">ANNULÉE</span>;
-      if (row.type === 'return') return <span className="badge bg-orange-500/10 text-orange-500 border border-orange-500/20">RETOUR</span>;
+    { key: 'total', title: t('s.total'), render: (val) => <span className="font-black text-primary">{formatPrice(val)}</span> },
+    { key: 'status', title: t('s.statut'), render: (_, row) => {
+      if (row.status === 'cancelled') return <span className="badge badge-danger">{t('s.annulee')}</span>;
+      if (row.type === 'return') return <span className="badge bg-orange-500/10 text-orange-500 border border-orange-500/20">{t('s.retour')}</span>;
       const val = row.deliveryStatus;
       return (
         <span className={`badge ${
@@ -57,7 +59,7 @@ const SalesHistory = () => {
     }},
     { 
       key: 'actions', 
-      title: 'Actions', 
+      title: t('s.actions'), 
       render: (_, row) => {
         const isManager = currentUser?.role === 'manager';
         const isOwnSale = row.cashier === currentUser?.name;
@@ -67,20 +69,15 @@ const SalesHistory = () => {
 
         return (
           <Popconfirm
-            title="Annuler cette facture ?"
-            description="Le stock sera restauré et la vente sera marquée comme annulée."
+            title={t('s.annuler_cette_facture')}
+            description={t('s.le_stock_sera_restaure_et_la_vente_sera_marq')}
             onConfirm={() => handleCancel(row)}
-            okText="Oui, annuler"
-            cancelText="Non"
-            icon={<AlertCircle style={{ color: 'red' }} />}
+            okText={t('s.oui_annuler')}
+            cancelText={t('s.non')}
+            icon={<ExclamationCircleOutlined style={{ color: 'red' }} />}
           >
-            <Tooltip title="Annuler la vente">
-              <Button 
-                type="text" 
-                danger 
-                icon={<XCircle size={18} />} 
-                className="hover:scale-110 transition-transform"
-              />
+            <Tooltip title={t('s.annuler_la_vente')}>
+              <Button type="text" danger icon={<CloseCircleOutlined style={{ fontSize: 18 }} />} className="hover:scale-110 transition-transform" />
             </Tooltip>
           </Popconfirm>
         );
@@ -90,12 +87,12 @@ const SalesHistory = () => {
 
   const renderExpanded = (sale) => (
     <div className="p-6 bg-black/5 dark:bg-black/20 rounded-xl mx-4 mb-4 border border-black/5 dark:border-white/5 animate-fade-in">
-      <div className="text-[0.7rem] font-bold text-text-muted uppercase tracking-widest mb-4">Détails de la transaction</div>
+      <div className="text-[0.7rem] font-bold text-text-muted uppercase tracking-widest mb-4">{t('s.details_de_la_transaction')}</div>
       <table className="w-full text-left">
         <thead>
           <tr className="border-b border-black/5 dark:border-white/5">
             {['Produit', 'Qté', 'Prix Unit.', 'Sous-total'].map(h => (
-              <th key={h} className="text-[0.65rem] font-black text-text-muted uppercase tracking-widest pb-3 px-2">{h}</th>
+              <th key={h} className="text-[0.65rem] font-semibold text-text-muted uppercase tracking-widest pb-3 px-2">{h}</th>
             ))}
           </tr>
         </thead>
@@ -112,7 +109,7 @@ const SalesHistory = () => {
               </td>
               <td className="py-3 px-2 text-[0.85rem] text-text-secondary">{item.quantity}</td>
               <td className="py-3 px-2 text-[0.85rem] text-text-secondary">{formatPrice(item.price)}</td>
-              <td className="py-3 px-2 text-[0.85rem] font-black text-primary">{formatPrice(item.price * item.quantity)}</td>
+              <td className="py-3 px-2 text-[0.85rem] font-semibold text-primary">{formatPrice(item.price * item.quantity)}</td>
             </tr>
           ))}
         </tbody>
@@ -124,7 +121,7 @@ const SalesHistory = () => {
     <div className="animate-fade-in space-y-6">
       <div className="bg-bg-card p-6 rounded-2xl border border-black/5 dark:border-white/5">
         <SearchComponent
-          placeholder="Rechercher une vente par ID, caissier ou produit..."
+          placeholder={t('s.rechercher_une_vente_par_id_caissier_ou_prod')}
           value={search}
           onChange={e => setSearch(e.target.value)}
           width="100%"
@@ -133,15 +130,15 @@ const SalesHistory = () => {
       </div>
 
       <div className="bg-bg-secondary rounded-2xl border border-black/5 dark:border-white/5 overflow-hidden shadow-2xl">
-        <DataTable
+        <Table
           columns={columns}
           data={filtered}
           onRowClick={(row) => setExpandedSale(expandedSale === row.id ? null : row.id)}
           expandedRowId={expandedSale}
           renderExpandedRow={renderExpanded}
-          emptyIcon={History}
-          emptyTitle="Aucune vente trouvée"
-          emptyDescription="Aucune vente ne correspond à votre recherche."
+          emptyIcon={HistoryOutlined}
+          emptyTitle={t('s.aucune_vente_trouvee')}
+          emptyDescription={t('s.aucune_vente_ne_correspond_a_votre_recherche')}
         />
       </div>
     </div>

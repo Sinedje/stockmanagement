@@ -1,11 +1,13 @@
+import { useT } from '../../i18n/I18nContext';
+import { Table } from '../ui';
 import React, { useState } from 'react';
 import { useUsers, useStores } from '../../hooks';
 import { useAuth } from '../../context/AuthContext';
-import DataTable from '../common/DataTable';
 import Modal from '../common/Modal';
-import { Users, UserPlus, Shield, Store, Edit2, Ban, CheckCircle, Lock, AlertCircle } from 'lucide-react';
+import { CheckCircleOutlined, EditOutlined, ExclamationCircleOutlined, LockOutlined, SafetyOutlined, ShopOutlined, StopOutlined, TeamOutlined, UserAddOutlined } from '@ant-design/icons';
 
 const UserManagement = () => {
+  const t = useT();
   const { users, addUser, updateUser, toggleUserStatus } = useUsers();
   const { stores } = useStores();
   const { currentUser } = useAuth();
@@ -23,11 +25,11 @@ const UserManagement = () => {
   });
 
   const roles = [
-    { value: 'ceo', label: 'Directeur Général (PDG)' },
-    { value: 'manager', label: 'Manager / Gérant' },
+    { value: 'ceo', label: t('s.directeur_general_pdg') },
+    { value: 'manager', label: t('s.manager_gerant') },
     { value: 'accountant', label: 'Comptable' },
     { value: 'storekeeper', label: 'Magasinier' },
-    { value: 'cashier', label: 'Caissier' }
+    { value: 'cashier', label: t('s.caissier') }
   ];
 
   const roleColors = {
@@ -80,14 +82,14 @@ const UserManagement = () => {
   const columns = [
     { 
       key: 'name', 
-      title: 'Nom / Identifiant', 
+      title: t('s.nom_identifiant'), 
       render: (_, row) => (
         <div className="flex items-center gap-3">
-          <div className={`w-10 h-10 rounded-full flex items-center justify-center font-black text-sm uppercase ${row.isActive ? 'bg-primary/10 text-primary' : 'bg-red-500/10 text-red-500'}`}>
+          <div className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold text-sm uppercase ${row.isActive ? 'bg-primary/10 text-primary' : 'bg-red-500/10 text-red-500'}`}>
             {row.name.substring(0, 2)}
           </div>
           <div>
-            <div className={`font-black text-sm text-gray-900 dark:text-text-heading ${!row.isActive && 'line-through opacity-40'}`}>{row.name}</div>
+            <div className={`font-semibold text-sm text-gray-900 dark:text-text-heading ${!row.isActive && 'line-through opacity-40'}`}>{row.name}</div>
             <div className="text-[0.7rem] text-gray-500 dark:text-text-muted font-bold">@{row.username}</div>
           </div>
         </div>
@@ -95,11 +97,11 @@ const UserManagement = () => {
     },
     { 
       key: 'role', 
-      title: 'Rôle', 
+      title: t('s.role'), 
       render: (val) => {
         const roleObj = roles.find(r => r.value === val);
         return (
-          <span className={`px-3 py-1 rounded-full text-[0.65rem] font-black uppercase tracking-widest border ${roleColors[val] || 'bg-gray-500/10 text-gray-500 border-gray-500/20'}`}>
+          <span className={`px-3 py-1 rounded-full text-[0.65rem] font-semibold uppercase tracking-widest border ${roleColors[val] || 'bg-gray-500/10 text-gray-500 border-gray-500/20'}`}>
             {roleObj ? roleObj.label : val}
           </span>
         );
@@ -107,15 +109,15 @@ const UserManagement = () => {
     },
     { 
       key: 'storeId', 
-      title: 'Magasin Assigné', 
+      title: t('s.magasin_assigne'), 
       render: (val, row) => {
         if (row.role === 'ceo' || row.role === 'manager' || row.role === 'accountant') {
-          return <span className="text-[0.75rem] font-bold text-gray-400 dark:text-text-muted italic">Tous les magasins</span>;
+          return <span className="text-[0.75rem] font-bold text-gray-400 dark:text-text-muted italic">{t('s.tous_les_magasins')}</span>;
         }
         const store = stores.find(s => s.id === val);
         return (
           <div className="flex items-center gap-1.5 text-gray-700 dark:text-text-secondary text-sm font-bold">
-            <Store size={14} className="text-gray-400" />
+            <ShopOutlined style={{ fontSize: 14 }} className="text-gray-400" />
             {store ? store.name : 'Non assigné'}
           </div>
         );
@@ -123,11 +125,11 @@ const UserManagement = () => {
     },
     { 
       key: 'status', 
-      title: 'Statut', 
+      title: t('s.statut'), 
       render: (_, row) => (
         <div className="flex items-center gap-2">
           <div className={`w-2 h-2 rounded-full ${row.isActive ? 'bg-emerald-500' : 'bg-red-500'}`}></div>
-          <span className={`text-[0.75rem] font-black uppercase tracking-widest ${row.isActive ? 'text-emerald-500' : 'text-red-500'}`}>
+          <span className={`text-[0.75rem] font-semibold uppercase tracking-widest ${row.isActive ? 'text-emerald-500' : 'text-red-500'}`}>
             {row.isActive ? 'Actif' : 'Suspendu'}
           </span>
         </div>
@@ -135,7 +137,7 @@ const UserManagement = () => {
     },
     { 
       key: 'actions', 
-      title: 'Actions', 
+      title: t('s.actions'), 
       align: 'right',
       render: (_, row) => (
         <div className="flex items-center justify-end gap-2">
@@ -144,27 +146,27 @@ const UserManagement = () => {
               <button 
                 onClick={() => handleOpenModal(row)}
                 className="p-2 bg-blue-500/10 text-blue-500 hover:bg-blue-500 hover:text-white rounded-lg transition-colors"
-                title="Modifier"
+                title={t('s.modifier')}
               >
-                <Edit2 size={16} />
+                <EditOutlined style={{ fontSize: 16 }} />
               </button>
               <button 
                 onClick={() => toggleUserStatus(row.id)}
                 className={`p-2 rounded-lg transition-colors ${row.isActive ? 'bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white' : 'bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500 hover:text-white'}`}
                 title={row.isActive ? "Suspendre l'accès" : "Réactiver l'accès"}
               >
-                {row.isActive ? <Ban size={16} /> : <CheckCircle size={16} />}
+                {row.isActive ? <StopOutlined style={{ fontSize: 16 }} /> : <CheckCircleOutlined style={{ fontSize: 16 }} />}
               </button>
             </>
           ) : (
             <div className="flex items-center justify-end gap-2">
-              <span className="text-[0.65rem] font-bold text-primary uppercase italic px-2">Vous-même</span>
+              <span className="text-[0.65rem] font-bold text-primary uppercase italic px-2">{t('s.vous_meme')}</span>
               <button 
                 onClick={() => handleOpenModal(row)}
                 className="p-2 bg-blue-500/10 text-blue-500 hover:bg-blue-500 hover:text-white rounded-lg transition-colors"
-                title="Modifier vos paramètres"
+                title={t('s.modifier_vos_parametres')}
               >
-                <Edit2 size={16} />
+                <EditOutlined style={{ fontSize: 16 }} />
               </button>
             </div>
           )}
@@ -175,25 +177,13 @@ const UserManagement = () => {
 
   return (
     <div className="space-y-6 animate-fade-in pb-10">
-      <div className="bg-white dark:bg-bg-card border border-gray-200 dark:border-white/5 rounded-3xl p-8 shadow-xl">
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 mb-8">
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shadow-lg shadow-primary/10">
-              <Users size={28} />
-            </div>
-            <div>
-              <h2 className="text-2xl font-black text-gray-900 dark:text-text-heading tracking-tight">Gestion du Personnel</h2>
-              <p className="text-[0.7rem] text-gray-500 dark:text-text-muted font-bold uppercase tracking-widest mt-1">
-                Gérez les accès, les rôles et les affectations
-              </p>
-            </div>
-          </div>
-          
+      <div className="bg-white dark:bg-bg-card border border-gray-200 dark:border-white/5 rounded-xl p-5 shadow-sm">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-5">
           <div className="flex flex-col sm:flex-row w-full md:w-auto gap-4">
             <div className="relative">
               <input 
                 type="text"
-                placeholder="Rechercher un collaborateur..."
+                placeholder={t('s.rechercher_un_collaborateur')}
                 className="w-full sm:w-64 bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 rounded-xl pl-10 pr-4 py-3 text-[0.85rem] text-gray-800 dark:text-text-heading focus:outline-none focus:border-primary/50 transition-all font-bold placeholder:text-gray-400"
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
@@ -201,19 +191,19 @@ const UserManagement = () => {
             </div>
             <button 
               onClick={() => handleOpenModal()}
-              className="flex items-center justify-center gap-2 px-6 py-3 bg-primary text-black rounded-xl font-black uppercase tracking-widest text-[0.75rem] hover:scale-105 active:scale-95 transition-all shadow-xl shadow-primary/20"
+              className="flex items-center justify-center gap-2 px-6 py-3 bg-primary text-white rounded-xl font-semibold uppercase tracking-widest text-[0.75rem] hover:scale-105 active:scale-95 transition-all shadow-sm shadow-primary/20"
             >
-              <UserPlus size={16} /> Ajouter un compte
+              <UserAddOutlined style={{ fontSize: 16 }} /> {t('s.ajouter_un_compte')}
             </button>
           </div>
         </div>
 
-        <DataTable 
+        <Table 
           columns={columns} 
           data={filteredUsers} 
-          emptyIcon={Users}
-          emptyTitle="Aucun utilisateur trouvé"
-          emptyDescription="Modifiez votre recherche ou ajoutez un nouveau collaborateur."
+          emptyIcon={TeamOutlined}
+          emptyTitle={t('s.aucun_utilisateur_trouve')}
+          emptyDescription={t('s.modifiez_votre_recherche_ou_ajoutez_un_nouve')}
         />
       </div>
 
@@ -222,14 +212,14 @@ const UserManagement = () => {
           title={
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
-              {editingUser ? <Edit2 size={20} /> : <UserPlus size={20} />}
+              {editingUser ? <EditOutlined style={{ fontSize: 20 }} /> : <UserAddOutlined style={{ fontSize: 20 }} />}
             </div>
             <div>
               <div className="font-black text-xl tracking-tight text-text-heading">
                 {editingUser ? 'Modifier le Collaborateur' : 'Nouveau Collaborateur'}
               </div>
               <div className="text-[0.65rem] text-text-muted font-bold uppercase tracking-widest">
-                Paramètres du compte
+                {t('s.parametres_du_compte')}
               </div>
             </div>
           </div>
@@ -241,21 +231,21 @@ const UserManagement = () => {
         <form onSubmit={handleSubmit} className="space-y-5 mt-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div>
-              <label className="text-[0.7rem] font-black text-gray-500 dark:text-text-muted uppercase tracking-widest mb-1.5 block">Nom complet</label>
+              <label className="text-[0.7rem] font-semibold text-gray-500 dark:text-text-muted uppercase tracking-widest mb-1.5 block">{t('s.nom_complet_2')}</label>
               <input 
                 required
                 className="w-full bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 rounded-xl px-4 py-3 text-sm text-gray-900 dark:text-text-heading font-bold focus:outline-none focus:border-primary/50 placeholder:text-gray-400"
-                placeholder="Ex: Jean Dupont"
+                placeholder={t('s.ex_jean_dupont')}
                 value={formData.name}
                 onChange={e => setFormData({...formData, name: e.target.value})}
               />
             </div>
             <div>
-              <label className="text-[0.7rem] font-black text-gray-500 dark:text-text-muted uppercase tracking-widest mb-1.5 block">Identifiant de connexion</label>
+              <label className="text-[0.7rem] font-semibold text-gray-500 dark:text-text-muted uppercase tracking-widest mb-1.5 block">{t('s.identifiant_de_connexion')}</label>
               <input 
                 required
                 className="w-full bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 rounded-xl px-4 py-3 text-sm text-gray-900 dark:text-text-heading font-bold focus:outline-none focus:border-primary/50 placeholder:text-gray-400"
-                placeholder="Ex: jdupont"
+                placeholder={t('s.ex_jdupont')}
                 value={formData.username}
                 onChange={e => setFormData({...formData, username: e.target.value.toLowerCase()})}
               />
@@ -264,8 +254,8 @@ const UserManagement = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div>
-              <label className="text-[0.7rem] font-black text-gray-500 dark:text-text-muted uppercase tracking-widest mb-1.5 flex items-center gap-2">
-                <Shield size={12} className="text-primary" /> Rôle d'accès
+              <label className="text-[0.7rem] font-semibold text-gray-500 dark:text-text-muted uppercase tracking-widest mb-1.5 flex items-center gap-2">
+                <SafetyOutlined style={{ fontSize: 12 }} className="text-primary" /> {t('s.role_d_acces')}
               </label>
               <select 
                 className="w-full bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 rounded-xl px-4 py-3 text-sm text-gray-900 dark:text-text-heading font-bold focus:outline-none focus:border-primary/50 appearance-none disabled:opacity-50 disabled:cursor-not-allowed"
@@ -279,8 +269,8 @@ const UserManagement = () => {
               </select>
             </div>
             <div>
-              <label className="text-[0.7rem] font-black text-gray-500 dark:text-text-muted uppercase tracking-widest mb-1.5 flex items-center gap-2">
-                <Store size={12} className="text-blue-500" /> Magasin assigné
+              <label className="text-[0.7rem] font-semibold text-gray-500 dark:text-text-muted uppercase tracking-widest mb-1.5 flex items-center gap-2">
+                <ShopOutlined style={{ fontSize: 12 }} className="text-blue-500" /> {t('s.magasin_assigne_2')}
               </label>
               <select 
                 className="w-full bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 rounded-xl px-4 py-3 text-sm text-gray-900 dark:text-text-heading font-bold focus:outline-none focus:border-primary/50 appearance-none disabled:opacity-50"
@@ -293,14 +283,14 @@ const UserManagement = () => {
                 ))}
               </select>
               {['ceo', 'manager', 'accountant'].includes(formData.role) && (
-                <p className="text-[0.6rem] text-gray-400 dark:text-text-muted mt-1 italic">Ce rôle a accès à tous les magasins.</p>
+                <p className="text-[0.6rem] text-gray-400 dark:text-text-muted mt-1 italic">{t('s.ce_role_a_acces_a_tous_les_magasins')}</p>
               )}
             </div>
           </div>
 
           <div>
-            <label className="text-[0.7rem] font-black text-gray-500 dark:text-text-muted uppercase tracking-widest mb-1.5 flex items-center gap-2">
-              <Lock size={12} className="text-amber-500" /> Mot de passe
+            <label className="text-[0.7rem] font-semibold text-gray-500 dark:text-text-muted uppercase tracking-widest mb-1.5 flex items-center gap-2">
+              <LockOutlined style={{ fontSize: 12 }} className="text-amber-500" /> {t('s.mot_de_passe')}
             </label>
             <input 
               required={!editingUser}
@@ -314,9 +304,9 @@ const UserManagement = () => {
 
           {!editingUser && (
             <div className="bg-primary/10 border border-primary/20 rounded-xl p-4 flex gap-3 items-start mt-6">
-              <AlertCircle size={16} className="text-primary shrink-0 mt-0.5" />
+              <ExclamationCircleOutlined style={{ fontSize: 16 }} className="text-primary shrink-0 mt-0.5" />
               <p className="text-[0.75rem] text-text-secondary leading-relaxed font-medium">
-                Le nouvel utilisateur sera immédiatement actif. Vous pourrez suspendre son accès à tout moment depuis la liste.
+                {t('s.le_nouvel_utilisateur_sera_immediatement_act')}
               </p>
             </div>
           )}
@@ -327,11 +317,11 @@ const UserManagement = () => {
               onClick={() => setIsModalOpen(false)} 
               className="flex-1 py-3.5 rounded-xl font-bold bg-gray-100 dark:bg-white/5 text-gray-700 dark:text-text-secondary hover:bg-gray-200 dark:hover:bg-white/10 transition-colors border border-gray-300 dark:border-white/10"
             >
-              Annuler
+              {t('s.annuler')}
             </button>
             <button 
               type="submit" 
-              className="flex-1 py-3.5 rounded-xl font-black uppercase tracking-widest bg-primary text-black shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all"
+              className="flex-1 py-3.5 rounded-xl font-black uppercase tracking-widest bg-primary text-white shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all"
             >
               {editingUser ? 'Enregistrer les modifications' : 'Créer le compte'}
             </button>

@@ -10,7 +10,7 @@ import { fetchCustomers } from '../services/customerService';
 import { fetchCustomerTransactions } from '../services/customerService';
 import { fetchBreakages } from '../services/breakageService';
 import { fetchRepackagings } from '../services/breakageService';
-import { fetchCompanySettings } from '../services/settingsService';
+import { fetchCompanySettings, updateCompanySettings as apiUpdateCompanySettings } from '../services/settingsService';
 import { fetchExpenses, fetchVersements, fetchCashReports } from '../services/saleService';
 
 const StoreContext = createContext();
@@ -53,11 +53,19 @@ export const StoreProvider = ({ children }) => {
     activity: 'VENTE DE MATERIELS SECURITE INCENDIE ET ACCESSOIRES',
     phones: '+225 07 48 48 55 90 / +225 05 05 57 26 01',
     ncc: '1947852 B',
-    rccm: 'CI-ABJ-03-2019-B13-17654'
+    rccm: 'CI-ABJ-03-2019-B13-17654',
+    language: 'fr'
   });
 
-  const updateCompanySettings = useCallback((newSettings) => {
+  // Mise à jour optimiste puis persistance : la langue et les informations de
+  // société sont des réglages partagés, ils doivent survivre au rechargement.
+  const updateCompanySettings = useCallback(async (newSettings) => {
     setCompanySettings(prev => ({ ...prev, ...newSettings }));
+    try {
+      await apiUpdateCompanySettings(newSettings);
+    } catch (err) {
+      console.warn('Enregistrement des paramètres échoué :', err?.message);
+    }
   }, []);
 
   const [expenses, setExpenses] = useState([]);
@@ -68,9 +76,17 @@ export const StoreProvider = ({ children }) => {
   const [lastClosingBalance, setLastClosingBalance] = useState(0);
   const [cashReports, setCashReports] = useState([]);
 
+  // Empêche un second chargement complet pour le même utilisateur : en
+  // développement, StrictMode monte les effets deux fois et déclenchait donc
+  // les 14 requêtes en double. La référence est aussi remise à zéro à la
+  // déconnexion, pour qu'un nouvel utilisateur recharge bien ses données.
+  const loadedForUserRef = React.useRef(null);
+
   // Fetch initial data from server if currentUser is set (authenticated)
   React.useEffect(() => {
-    if (!currentUser) return;
+    if (!currentUser) { loadedForUserRef.current = null; return; }
+    if (loadedForUserRef.current === currentUser.id) return;
+    loadedForUserRef.current = currentUser.id;
 
     // Normalize MongoDB _id → id and storeId so all components work transparently
     const norm = (arr) => {
@@ -82,25 +98,35 @@ export const StoreProvider = ({ children }) => {
       }));
     };
 
-    const loadData = async () => {
-      const results = await Promise.allSettled([
-        fetchStores(),
-        fetchProducts(),
-        fetchSales(),
-        fetchUsers(),
-        fetchTransfers(),
-        fetchStockEntries(),
-        fetchCustomers(),
-        fetchCustomerTransactions(),
-        fetchBreakages(),
-        fetchRepackagings(),
-        fetchCompanySettings(),
-        fetchExpenses(),
-        fetchVersements(),
-        fetchCashReports()
-      ]);
+    // Chaque entrée : [clé, requête, rôles autorisés (undefined = tous)].
+    // Les rôles qui n'exploitent pas une ressource ne la demandent pas : cela
+    // évite des appels inutiles (et lents) au chargement.
+    const ALL = undefined;
+    const BACK_OFFICE = ['ceo', 'manager', 'accountant'];
+    const sources = [
+      ['stores', fetchStores, ALL],
+      ['products', fetchProducts, ALL],
+      ['sales', fetchSales, ALL],
+      ['users', fetchUsers, BACK_OFFICE],
+      ['transfers', fetchTransfers, ALL],
+      ['stockEntries', fetchStockEntries, BACK_OFFICE],
+      ['customers', fetchCustomers, ALL],
+      ['customerTransactions', fetchCustomerTransactions, ALL],
+      ['breakages', fetchBreakages, BACK_OFFICE],
+      ['repackagings', fetchRepackagings, BACK_OFFICE],
+      ['companySettings', fetchCompanySettings, ALL],
+      ['expenses', fetchExpenses, ALL],
+      ['versements', fetchVersements, ALL],
+      ['cashReports', fetchCashReports, ALL],
+    ];
 
-      const get = (i) => results[i].status === 'fulfilled' ? results[i].value : null;
+    const loadData = async () => {
+      const needed = sources.map(([, , roles]) => !roles || roles.includes(currentUser.role));
+      const results = await Promise.allSettled(
+        sources.map(([, run], i) => (needed[i] ? run() : Promise.resolve(null)))
+      );
+
+      const get = (i) => (needed[i] && results[i].status === 'fulfilled' ? results[i].value : null);
       const storesData = get(0);
       if (storesData) {
         const stores = norm(storesData);
@@ -126,7 +152,7 @@ export const StoreProvider = ({ children }) => {
       if (get(13)) setCashReports(norm(get(13)));
 
       results.forEach((r, i) => {
-        if (r.status === 'rejected') console.warn(`⚠️ loadData[${i}] failed:`, r.reason?.message);
+        if (r.status === 'rejected') console.warn(`loadData[${sources[i][0]}] a échoué :`, r.reason?.message);
       });
     };
 

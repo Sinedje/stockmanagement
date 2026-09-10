@@ -2,26 +2,22 @@ import React from 'react';
 import { Input as AntInput } from 'antd';
 
 const Input = ({ label, icon: Icon, error, hint, containerClassName = '', ...props }) => {
+  const prefix = Icon ? <Icon size={16} className="text-text-muted mr-1" /> : undefined;
+  const shared = {
+    prefix,
+    status: error ? 'error' : '',
+    className: 'custom-antd-input',
+    'aria-invalid': error ? true : undefined,
+  };
+
   return (
-    <div className={`custom-input-group ${containerClassName}`} style={{ marginBottom: '1.25rem' }}>
+    <div className={`custom-input-group mb-5 ${containerClassName}`}>
       {label && <label className="custom-input-label">{label}</label>}
-      {props.type === 'password' ? (
-        <AntInput.Password
-          prefix={Icon && <Icon size={16} style={{ color: '#64748b', marginRight: '4px' }} />}
-          status={error ? 'error' : ''}
-          className="custom-antd-input"
-          {...props}
-        />
-      ) : (
-        <AntInput
-          prefix={Icon && <Icon size={16} style={{ color: '#64748b', marginRight: '4px' }} />}
-          status={error ? 'error' : ''}
-          className="custom-antd-input"
-          {...props}
-        />
-      )}
-      {error && <div style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: '0.25rem' }}>{error}</div>}
-      {hint && <div style={{ color: '#64748b', fontSize: '0.7rem', marginTop: '0.25rem' }}>{hint}</div>}
+      {props.type === 'password'
+        ? <AntInput.Password {...shared} {...props} />
+        : <AntInput {...shared} {...props} />}
+      {error && <div className="text-red-500 text-xs mt-1">{error}</div>}
+      {hint && <div className="text-text-muted text-[0.7rem] mt-1">{hint}</div>}
     </div>
   );
 };

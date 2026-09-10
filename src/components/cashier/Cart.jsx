@@ -1,23 +1,25 @@
+import { useT } from '../../i18n/I18nContext';
 import React from 'react';
 import { formatPrice } from '../../context/StoreContext';
 import { useSales } from '../../hooks';
 import EmptyState from '../common/EmptyState';
-import { ShoppingCart, Trash2, Minus, Plus, FileText, Store } from 'lucide-react';
+import { DeleteOutlined, FileTextOutlined, MinusOutlined, PlusOutlined, ShopOutlined, ShoppingCartOutlined } from '@ant-design/icons';
 import { Button } from 'antd';
 
 const Cart = ({ onCheckout }) => {
+  const t = useT();
   const { cart, cartTotal, updateCartQuantity, clearCart, nextInvoiceNumber } = useSales();
 
   const Header = () => (
     <div className="flex items-center justify-between p-5 border-b border-white/5 bg-black/10">
       <div className="flex items-center gap-2">
-        <ShoppingCart size={18} className="text-primary" />
-        <h3 className="text-[0.95rem] font-bold text-text-heading uppercase tracking-wide">Panier</h3>
+        <ShoppingCartOutlined style={{ fontSize: 18 }} className="text-primary" />
+        <h3 className="text-[0.95rem] font-bold text-text-heading uppercase tracking-wide">{t('s.panier')}</h3>
       </div>
       <div className="flex items-center gap-2">
         <span className="badge badge-info">{cart.reduce((s, i) => s + i.quantity, 0)}</span>
         {cart.length > 0 && (
-          <Button type="text" danger icon={<Trash2 size={14} />} onClick={clearCart} size="small" />
+          <Button type="text" danger icon={<DeleteOutlined style={{ fontSize: 14 }} />} onClick={clearCart} />
         )}
       </div>
     </div>
@@ -29,9 +31,9 @@ const Cart = ({ onCheckout }) => {
         <Header />
         <div className="flex-1 flex items-center justify-center">
           <EmptyState
-            icon={ShoppingCart}
-            title="Panier vide"
-            description="Sélectionnez des produits pour commencer."
+            icon={ShoppingCartOutlined}
+            title={t('s.panier_vide')}
+            description={t('s.selectionnez_des_produits_pour_commencer')}
           />
         </div>
       </div>
@@ -55,7 +57,7 @@ const Cart = ({ onCheckout }) => {
                   <>
                     <span className="text-white/20 text-[0.6rem]">•</span>
                     <div className="flex items-center gap-1 opacity-50">
-                      <Store size={9} className="text-primary" />
+                      <ShopOutlined style={{ fontSize: 9 }} className="text-primary" />
                       <span className="text-[0.62rem] font-bold text-primary truncate max-w-[80px]">
                         {item.storeName}
                       </span>
@@ -70,18 +72,18 @@ const Cart = ({ onCheckout }) => {
                 className="w-6 h-6 flex items-center justify-center text-text-secondary hover:text-primary transition-colors"
                 onClick={() => updateCartQuantity(item.productId, item.quantity - 1)}
               >
-                <Minus size={12} />
+                <MinusOutlined style={{ fontSize: 12 }} />
               </button>
               <span className="w-5 text-center text-[0.8rem] font-bold">{item.quantity}</span>
               <button
                 className="w-6 h-6 flex items-center justify-center text-text-secondary hover:text-primary transition-colors"
                 onClick={() => updateCartQuantity(item.productId, item.quantity + 1)}
               >
-                <Plus size={12} />
+                <PlusOutlined style={{ fontSize: 12 }} />
               </button>
             </div>
 
-            <div className="text-[0.85rem] font-black text-primary text-right min-w-[70px]">
+            <div className="text-[0.85rem] font-semibold text-primary text-right min-w-[70px]">
               {formatPrice(item.price * item.quantity)}
             </div>
           </div>
@@ -91,24 +93,18 @@ const Cart = ({ onCheckout }) => {
       <div className="p-5 bg-black/20 border-t border-white/5 space-y-4">
         {/* Prochain numéro de facture */}
         <div className="flex items-center gap-2 px-3 py-2 bg-primary/5 border border-primary/15 rounded-xl">
-          <FileText size={13} className="text-primary opacity-70" />
-          <span className="text-[0.7rem] text-text-muted font-semibold uppercase tracking-widest flex-1">Facture</span>
+          <FileTextOutlined style={{ fontSize: 13 }} className="text-primary opacity-70" />
+          <span className="text-[0.7rem] text-text-muted font-semibold uppercase tracking-widest flex-1">{t('s.facture')}</span>
           <span className="text-[0.9rem] font-black text-primary tracking-wider">{nextInvoiceNumber}</span>
         </div>
 
         <div className="flex items-center justify-between">
-          <span className="text-[0.8rem] font-bold text-text-secondary uppercase tracking-widest">Total</span>
+          <span className="text-[0.8rem] font-bold text-text-secondary uppercase tracking-widest">{t('s.total')}</span>
           <span className="text-xl font-black text-primary tracking-tight">{formatPrice(cartTotal)}</span>
         </div>
 
-        <Button
-          type="primary"
-          block
-          size="large"
-          onClick={onCheckout}
-          className="h-12 text-[0.95rem] font-black uppercase tracking-wider rounded-xl shadow-glow"
-        >
-          Valider la commande
+        <Button type="primary" block onClick={onCheckout} className="shadow-glow" >
+          {t('s.valider_la_commande')}
         </Button>
       </div>
     </div>

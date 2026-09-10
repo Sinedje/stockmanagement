@@ -13,8 +13,15 @@ export const AuthProvider = ({ children }) => {
   const [authLoading, setAuthLoading] = useState(true); // true while restoring session
   const [authError, setAuthError] = useState(null);
 
+  // StrictMode monte les effets deux fois en développement : sans garde, la
+  // session était vérifiée deux fois auprès du serveur à chaque chargement.
+  const restoredRef = React.useRef(false);
+
   // ── Restore session on mount ──────────────────────────────────
   useEffect(() => {
+    if (restoredRef.current) return;
+    restoredRef.current = true;
+
     const restore = async () => {
       try {
         const user = await fetchCurrentUser();

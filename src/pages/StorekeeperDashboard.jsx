@@ -1,34 +1,36 @@
+import { useT } from '../i18n/I18nContext';
 import React, { useState } from 'react';
 import DashboardLayout from '../components/layouts/DashboardLayout';
 import DeliveriesPanel from '../components/storekeeper/DeliveriesPanel';
 import StorekeeperInvoices from '../components/storekeeper/StorekeeperInvoices';
 import ProductList from '../components/cashier/ProductList';
-import { Truck, Package, LayoutDashboard, History, FileText } from 'lucide-react';
+import { CarOutlined, DashboardOutlined, FileTextOutlined, HistoryOutlined, InboxOutlined } from '@ant-design/icons';
 
 const sidebarItems = [
-  { id: 'deliveries', label: 'Livraisons', icon: Truck },
-  { id: 'invoices', label: 'Liste des Factures', icon: FileText },
-  { id: 'inventory', label: 'État du Stock', icon: Package },
+  { id: 'deliveries', label: 'Livraisons', icon: CarOutlined },
+  { id: 'invoices', labelKey: 's.liste_des_factures', icon: FileTextOutlined },
+  { id: 'inventory', labelKey: 's.etat_du_stock', icon: InboxOutlined },
 ];
 
 const StorekeeperDashboard = () => {
+  const t = useT();
   const [activeTab, setActiveTab] = useState('deliveries');
 
   const titles = { 
-    deliveries: 'Gestion des Livraisons', 
-    invoices: 'Journal des Factures',
-    inventory: 'Consultation du Stock'
+    deliveries: t('s.gestion_des_livraisons'), 
+    invoices: t('s.journal_des_factures'),
+    inventory: t('s.consultation_du_stock'),
   };
   
   const subtitles = { 
-    deliveries: 'Valider la sortie physique des marchandises', 
+    deliveries: t('s.valider_la_sortie_physique_des_marchandises'), 
     invoices: 'Consulter l\'historique des ventes de votre magasin',
-    inventory: 'Visualiser les quantités disponibles en magasin'
+    inventory: t('s.visualiser_les_quantites_disponibles_en_maga'),
   };
 
   return (
     <DashboardLayout
-      items={sidebarItems}
+      items={sidebarItems.map(i => ({ ...i, label: i.labelKey ? t(i.labelKey) : i.label }))}
       activeItem={activeTab}
       onItemClick={setActiveTab}
       title={titles[activeTab]}

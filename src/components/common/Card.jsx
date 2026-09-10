@@ -3,26 +3,23 @@ import { Card as AntCard } from 'antd';
 
 const Card = ({ title, subtitle, icon: Icon, headerActions, children, padding = true, noPadding = false, className = '', accentColor, ...props }) => {
   const hasPadding = padding && !noPadding;
+  // La pastille d'icône suivait l'accent : elle était figée en vert quel que soit `accentColor`.
+  const iconTint = accentColor || 'var(--color-primary)';
   const cardTitle = (title || Icon) && (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+    <div className="flex items-center gap-3 min-w-0">
       {Icon && (
-        <div style={{ 
-          width: '38px', 
-          height: '38px', 
-          borderRadius: '12px', 
-          background: 'rgba(16, 185, 129, 0.1)', 
-          color: '#10b981', 
-          display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'center',
-          border: '1px solid rgba(16, 185, 129, 0.2)'
-        }}>
-          <Icon size={20} strokeWidth={2.5} />
+        <div
+          className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+          style={{ background: `color-mix(in srgb, ${iconTint} 12%, transparent)`, color: iconTint }}
+        >
+          <Icon style={{ fontSize: 17 }} />
         </div>
       )}
-      <div>
-        <div style={{ fontSize: '1.05rem', fontWeight: 800, letterSpacing: '-0.02em', color: 'var(--text-heading)' }}>{title}</div>
-        {subtitle && <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 500, marginTop: '2px', opacity: 0.8 }}>{subtitle}</div>}
+      <div className="min-w-0">
+        <div className="text-[0.95rem] font-bold tracking-tight text-text-heading truncate">{title}</div>
+        {subtitle && (
+          <div className="text-[0.72rem] font-medium text-text-secondary opacity-80 mt-0.5 truncate">{subtitle}</div>
+        )}
       </div>
     </div>
   );
