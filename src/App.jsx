@@ -9,6 +9,7 @@ import CashierPOS from './pages/CashierPOS';
 import AccountantDashboard from './pages/AccountantDashboard';
 import StorekeeperDashboard from './pages/StorekeeperDashboard';
 import CEODashboard from './pages/CEODashboard';
+import SuperAdminDashboard from './pages/SuperAdminDashboard';
 
 // ── Protected Route — uses AuthContext ────────────────────────
 const ProtectedRoute = ({ children, allowedRoles }) => {
@@ -44,11 +45,19 @@ const AppRoutes = () => {
       {/* Default redirect by role */}
       <Route path="/" element={
         !currentUser ? <Navigate to="/login" replace /> :
+        currentUser.role === 'superadmin'  ? <Navigate to="/platform" replace /> :
         currentUser.role === 'ceo'         ? <Navigate to="/ceo" replace /> :
         currentUser.role === 'manager'     ? <Navigate to="/manager" replace /> :
         currentUser.role === 'cashier'     ? <Navigate to="/pos" replace /> :
         currentUser.role === 'storekeeper' ? <Navigate to="/storekeeper" replace /> :
         <Navigate to="/accountant" replace />
+      } />
+
+      {/* Console de l'exploitant de la plateforme — hors périmètre d'une entreprise */}
+      <Route path="/platform" element={
+        <ProtectedRoute allowedRoles={['superadmin']}>
+          <SuperAdminDashboard />
+        </ProtectedRoute>
       } />
 
       <Route path="/ceo/*" element={
