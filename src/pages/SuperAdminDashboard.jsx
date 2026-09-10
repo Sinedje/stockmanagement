@@ -1,20 +1,17 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { message, Tag, Popconfirm } from 'antd';
+import { message, Tag } from 'antd';
 import {
-  BankOutlined, PlusOutlined, StopOutlined, CheckCircleOutlined,
-  GlobalOutlined, DashboardOutlined, SettingOutlined, AppstoreOutlined,
+  BankOutlined, PlusOutlined, GlobalOutlined, DashboardOutlined, SettingOutlined, AppstoreOutlined,
 } from '@ant-design/icons';
 import DashboardLayout from '../components/layouts/DashboardLayout';
 import { Toolbar, Panel, Table, SearchInput, Button } from '../components/ui';
-import CompanyFormModal from '../components/superadmin/CompanyFormModal';
-import CompanyFeaturesModal from '../components/superadmin/CompanyFeaturesModal';
+import CompanyWizard from '../components/superadmin/CompanyWizard';
+import CompanyDetail from '../components/superadmin/CompanyDetail';
 import PlatformOverview from '../components/superadmin/PlatformOverview';
 import PlatformSettingsPanel from '../components/superadmin/PlatformSettingsPanel';
 import { useSectionRoute } from '../routes/sections';
 import { isSupabaseConfigured } from '../lib/supabase';
-import {
-  fetchCompanies, createCompany, setCompanyStatus,
-} from '../services/companyService';
+import { fetchCompanies, createCompany } from '../services/companyService';
 
 const sidebarItems = [
   { id: 'dashboard', label: 'Tableau de bord', icon: DashboardOutlined },
@@ -48,8 +45,8 @@ const SuperAdminDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState('');
-  const [showForm, setShowForm] = useState(false);
-  const [featuresFor, setFeaturesFor] = useState(null);
+  const [showWizard, setShowWizard] = useState(false);
+  const [selected, setSelected] = useState(null);
   const [activeTab, setActiveTab] = useSectionRoute(SECTIONS, 'dashboard');
   const [loadError, setLoadError] = useState('');
 
@@ -76,7 +73,7 @@ const SuperAdminDashboard = () => {
           ? `Entreprise créée. Mot de passe provisoire : ${res.tempPassword}`
           : 'Entreprise créée. Un e-mail d\'invitation a été envoyé.'
       );
-      setShowForm(false);
+      setShowWizard(false);
       await load();
     } catch (err) {
       message.error(err.message || 'Création impossible');
@@ -85,16 +82,6 @@ const SuperAdminDashboard = () => {
     }
   };
 
-  const toggleStatus = async (row) => {
-    const next = row.status === 'active' ? 'suspended' : 'active';
-    try {
-      await setCompanyStatus(row.id, next);
-      message.success(next === 'active' ? 'Entreprise réactivée.' : 'Entreprise suspendue.');
-      await load();
-    } catch (err) {
-      message.error(err.message || 'Modification impossible');
-    }
-  };
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -138,32 +125,15 @@ const SuperAdminDashboard = () => {
     },
     {
       key: 'features', title: 'Modules', align: 'right',
-      render: (v, row) => {
+      render: (v) => {
         const off = Object.values(v || {}).filter(x => x === false).length;
-        return (
-          <Button icon={<AppstoreOutlined />} onClick={() => setFeaturesFor(row)}>
-            {off ? `${off} coupé${off > 1 ? 's' : ''}` : 'Tous'}
-          </Button>
-        );
+        return <span className="text-[0.75rem] text-text-muted">{off ? `${off} coupé${off > 1 ? 's' : ''}` : 'Tous'}</span>;
       },
     },
     {
-      key: 'id', title: 'Action', align: 'right',
+      key: 'id', title: '', align: 'right',
       render: (_v, row) => (
-        <Popconfirm
-          title={row.status === 'active' ? 'Suspendre cette entreprise ?' : 'Réactiver cette entreprise ?'}
-          description={row.status === 'active'
-            ? 'Ses utilisateurs ne pourront plus se connecter. Les données sont conservées.'
-            : "L'accès sera rétabli immédiatement."}
-          onConfirm={() => toggleStatus(row)}
-        >
-          <Button
-            danger={row.status === 'active'}
-            icon={row.status === 'active' ? <StopOutlined /> : <CheckCircleOutlined />}
-          >
-            {row.status === 'active' ? 'Suspendre' : 'Réactiver'}
-          </Button>
-        </Popconfirm>
+        <Button icon={<AppstoreOutlined />} onClick={() => setSelected(row)}>Gérer</Button>
       ),
     },
   ];
@@ -192,9 +162,21 @@ const SuperAdminDashboard = () => {
         />
       ) : activeTab === 'settings' ? (
         <PlatformSettingsPanel />
+      ) : showWizard ? (
+        <CompanyWizard
+          saving={saving}
+          onCancel={() => setShowWizard(false)}
+          onSubmit={handleCreate}
+        />
+      ) : selected ? (
+        <CompanyDetail
+          company={selected}
+          onBack={() => setSelected(null)}
+          onChanged={load}
+        />
       ) : (
         <div className="animate-fade-in space-y-4">
-          <Toolbar right={<Button type="primary" icon={<PlusOutlined />} onClick={() => setShowForm(true)}>Nouvelle entreprise</Button>}>
+          <Toolbar right={<Button type="primary" icon={<PlusOutlined />} onClick={() => setShowWizard(true)}>Nouvelle entreprise</Button>}>
             <SearchInput value={search} onChange={setSearch} placeholder="Rechercher une entreprise…" width={260} />
             <span className="text-[0.72rem] text-text-muted tabular-nums pl-1">{filtered.length} entreprises</span>
           </Toolbar>
@@ -219,17 +201,6 @@ const SuperAdminDashboard = () => {
         </div>
       )}
 
-      {showForm && (
-        <CompanyFormModal onClose={() => setShowForm(false)} onSubmit={handleCreate} saving={saving} />
-      )}
-
-      {featuresFor && (
-        <CompanyFeaturesModal
-          company={featuresFor}
-          onClose={() => setFeaturesFor(null)}
-          onSaved={load}
-        />
-      )}
     </DashboardLayout>
   );
 };

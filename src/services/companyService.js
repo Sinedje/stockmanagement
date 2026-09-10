@@ -194,3 +194,47 @@ export const updateMyPassword = async (password) => {
   const { error } = await sb.auth.updateUser({ password });
   if (error) throw error;
 };
+
+/** Membres d'une entreprise — le superadmin les voit tous (politique RLS dédiée). */
+export const setMemberActive = async (profileId, isActive) => {
+  const sb = requireSupabase();
+  const { data, error } = await sb
+    .from('profiles').update({ is_active: isActive }).eq('id', profileId).select().single();
+  if (error) throw error;
+  return data;
+};
+
+export const setMemberRole = async (profileId, role) => {
+  const sb = requireSupabase();
+  const { data, error } = await sb
+    .from('profiles').update({ role }).eq('id', profileId).select().single();
+  if (error) throw error;
+  return data;
+};
+
+/**
+ * Envoie un lien de réinitialisation à un membre.
+ *
+ * Passe par le flux public de récupération : aucune clé privilégiée n'est
+ * nécessaire, et le superadmin ne voit jamais le mot de passe.
+ */
+export const sendMemberPasswordReset = async (email) => {
+  const sb = requireSupabase();
+  const { error } = await sb.auth.resetPasswordForEmail(email, {
+    redirectTo: `${window.location.origin}/reset-password`,
+  });
+  if (error) throw error;
+};
+
+/**
+ * Supprime définitivement une entreprise.
+ *
+ * Les clés étrangères sont en `on delete cascade` : magasins, produits, ventes
+ * et profils partent avec elle. Irréversible — l'appelant doit exiger une
+ * confirmation explicite.
+ */
+export const deleteCompany = async (id) => {
+  const sb = requireSupabase();
+  const { error } = await sb.from('companies').delete().eq('id', id);
+  if (error) throw error;
+};
