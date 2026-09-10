@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Vous êtes invité</title>
+</head>
+<body style="margin:0;padding:0;background:#f1f5f9;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f1f5f9;padding:32px 16px;">
+<tr><td align="center">
+<table role="presentation" width="560" cellpadding="0" cellspacing="0" style="width:560px;max-width:100%;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(15,23,42,0.08);">
+
+<!-- Bandeau : bloc coloré plutôt qu'une image, que les clients bloquent -->
+<tr><td style="background:linear-gradient(135deg,#10b981,#059669);padding:22px 28px;">
+<span style="display:inline-block;font-size:17px;font-weight:700;color:#ffffff;letter-spacing:-0.2px;">Stock&nbsp;Expert</span>
+<span style="display:block;font-size:11px;color:rgba(255,255,255,0.85);letter-spacing:1.2px;text-transform:uppercase;margin-top:3px;">Gestion de stock et de caisse</span>
+</td></tr>
+
+<tr><td style="padding:28px;">
+<h1 style="margin:0 0 14px;font-size:19px;line-height:1.35;color:#0f172a;font-weight:700;">Vous avez accès à Stock Expert</h1>
+<p style="margin:0 0 12px;font-size:14px;line-height:1.65;color:#334155;">Un administrateur vous a créé un accès à <strong>Stock&nbsp;Expert</strong>, l'outil de gestion de stock et de caisse de votre entreprise.</p>
+<table role="presentation" cellpadding="0" cellspacing="0" style="margin:22px 0;">
+<tr><td style="border-radius:8px;background:#10b981;">
+<a href="{{ .ConfirmationURL }}" style="display:inline-block;padding:12px 26px;font-size:14px;font-weight:600;color:#ffffff;text-decoration:none;border-radius:8px;">Activer mon accès</a>
+</td></tr></table>
+
+<!-- Lien en clair : certains clients dépouillent les boutons de leur style -->
+<p style="margin:0 0 4px;font-size:12px;color:#64748b;">Si le bouton ne fonctionne pas, copiez ce lien&nbsp;:</p>
+<p style="margin:0;font-size:12px;word-break:break-all;"><a href="{{ .ConfirmationURL }}" style="color:#059669;">{{ .ConfirmationURL }}</a></p>
+<p style="margin:0 0 12px;font-size:14px;line-height:1.65;color:#334155;">Vous choisirez votre mot de passe lors de cette première connexion.</p>
+</td></tr>
+
+<tr><td style="padding:18px 28px;background:#f8fafc;border-top:1px solid #e2e8f0;">
+<p style="margin:0;font-size:11px;line-height:1.6;color:#64748b;">
+Vous recevez ce message parce qu'une action a été demandée sur votre compte Stock Expert. Si vous n'êtes pas à l'origine de cette demande, ignorez cet e-mail : aucune modification ne sera faite.
+</p>
+</td></tr>
+
+</table>
+</td></tr>
+</table>
+</body>
+</html>

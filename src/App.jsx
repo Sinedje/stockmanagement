@@ -12,6 +12,9 @@ import CEODashboard from './pages/CEODashboard';
 import SuperAdminDashboard from './pages/SuperAdminDashboard';
 import PlatformSetup from './pages/PlatformSetup';
 import ResetPassword from './pages/ResetPassword';
+import MentionsLegales from './pages/legal/MentionsLegales';
+import Confidentialite from './pages/legal/Confidentialite';
+import Conditions from './pages/legal/Conditions';
 import { DEFAULT_SECTION } from './routes/sections';
 
 // ── Protected Route — uses AuthContext ────────────────────────
@@ -61,6 +64,13 @@ const AppRoutes = () => {
     <Routes>
       {/* Installation initiale — accessible sans compte, et seulement tant
           qu'aucun superadmin n'existe (la base en décide, pas le client). */}
+      {/* Documents légaux — lisibles sans compte : un visiteur doit pouvoir
+          consulter les conditions avant de s'engager, et un ancien client
+          après son départ. */}
+      <Route path="/mentions-legales" element={<MentionsLegales />} />
+      <Route path="/confidentialite" element={<Confidentialite />} />
+      <Route path="/conditions" element={<Conditions />} />
+
       {/* Récupération de compte — accessible sans être connecté. */}
       <Route path="/reset-password" element={<ResetPassword />} />
 

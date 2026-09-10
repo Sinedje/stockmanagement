@@ -132,9 +132,29 @@
 .login-footer {
   position: relative;
   z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
   font-size: 0.7rem;
   color: var(--text-muted);
-  opacity: 0.75;
+}
+
+.login-footer a {
+  color: var(--text-muted);
+  text-decoration: none;
+}
+
+.login-footer a:hover {
+  color: var(--color-primary);
+  text-decoration: underline;
+}
+
+.login-footer-copy {
+  width: 100%;
+  text-align: center;
+  opacity: 0.7;
 }
 
 @media (max-width: 480px) {

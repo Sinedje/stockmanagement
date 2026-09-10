@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { AppstoreOutlined } from '@ant-design/icons';
 import '../../pages/Login.css';
 
@@ -29,7 +30,16 @@ const AuthLayout = ({ children, title, subtitle }) => (
       <div className="login-content">{children}</div>
     </main>
 
-    <p className="login-footer">Stock Expert &copy; {new Date().getFullYear()}</p>
+    <footer className="login-footer">
+      {/* Accessibles avant toute création de compte : on ne peut pas demander
+          d'accepter des conditions qu'on ne peut pas lire. */}
+      <Link to="/conditions">Conditions d'utilisation</Link>
+      <span aria-hidden="true">·</span>
+      <Link to="/confidentialite">Confidentialité</Link>
+      <span aria-hidden="true">·</span>
+      <Link to="/mentions-legales">Mentions légales</Link>
+      <span className="login-footer-copy">Stock Expert &copy; {new Date().getFullYear()}</span>
+    </footer>
   </div>
 );
 
