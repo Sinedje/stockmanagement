@@ -1,6 +1,7 @@
 import { useT } from '../../i18n/I18nContext';
 import { Panel, Table, Button } from '../ui';
 import React, { useState } from 'react';
+import OnlineOnly from '../../offline/OnlineOnly';
 import { formatPrice } from '../../context/StoreContext';
 import { useProducts, useBreakages } from '../../hooks';
 import Select from '../common/Select';
@@ -144,9 +145,11 @@ const BreakagePanel = () => {
               />
             </div>
             <div className="mt-4 flex justify-end">
+              <OnlineOnly reason="Indisponible hors connexion : déclarer une casse retire des cartons du stock partagé.">
               <Button type="primary" danger icon={<WarningOutlined />} onClick={handleDeclareBreakage}>
                 {t('s.declarer_la_casse')}
               </Button>
+              </OnlineOnly>
             </div>
           </Panel>
 
@@ -220,9 +223,11 @@ const BreakagePanel = () => {
             </div>
             
             <div className="mt-4 flex justify-end">
+              <OnlineOnly reason="Indisponible hors connexion : le reconditionnement déduit puis crée du stock.">
               <Button type="primary" icon={<DropboxOutlined />} onClick={handleCreateRepackaging}>
                 {t('s.effectuer_le_reconditionnement')}
               </Button>
+              </OnlineOnly>
             </div>
           </Panel>
 

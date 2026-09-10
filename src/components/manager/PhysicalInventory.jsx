@@ -1,5 +1,6 @@
 import { useT } from '../../i18n/I18nContext';
 import { Toolbar, Panel, Table, Button } from '../ui';
+import { useOnlineStatus } from '../../offline/useOnlineStatus';
 import React, { useState, useMemo } from 'react';
 import { formatPrice } from '../../context/StoreContext';
 import { useAuth } from '../../context/AuthContext';
@@ -9,6 +10,10 @@ import { AuditOutlined, CheckCircleOutlined, DownloadOutlined, HistoryOutlined, 
 import { message, Popconfirm, Tag, InputNumber } from 'antd';
 
 const PhysicalInventory = () => {
+  // La validation réécrit les stocks du serveur à partir d'un état qui ne peut
+  // pas être vérifié hors connexion : on la neutralise plutôt que de produire
+  // un ajustement fondé sur des chiffres périmés.
+  const { online } = useOnlineStatus();
   const t = useT();
   const { currentUser } = useAuth();
   const { products, refreshProducts } = useProducts();
@@ -299,7 +304,7 @@ const PhysicalInventory = () => {
             description={t('s.cela_mettra_a_jour_les_stocks_du_systeme_pou')}
             onConfirm={handleValidateAudit}
           >
-            <Button type="primary" loading={isValidating} icon={!isValidating && <CheckCircleOutlined />} disabled={totalDiscrepancies === 0} >
+            <Button type="primary" loading={isValidating} icon={!isValidating && <CheckCircleOutlined />} disabled={totalDiscrepancies === 0 || !online} >
               {t('s.valider_le_comptage')}
             </Button>
           </Popconfirm>

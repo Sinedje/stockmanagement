@@ -2,6 +2,7 @@ import { useT } from '../../i18n/I18nContext';
 import { Toolbar, Panel, Table, Button } from '../ui';
 import Modal from '../common/Modal';
 import React, { useState, useMemo } from 'react';
+import OnlineOnly from '../../offline/OnlineOnly';
 import { useStores, useProducts } from '../../hooks';
 import { ArrowRightOutlined, CheckCircleOutlined, FileTextOutlined, InboxOutlined, PlusOutlined, PrinterOutlined, SearchOutlined, SwapOutlined, VerticalAlignBottomOutlined, VerticalAlignTopOutlined } from '@ant-design/icons';
 import { InputNumber, Popconfirm, Segmented, Select, Tag, message } from 'antd';
@@ -224,7 +225,11 @@ const TransferManager = () => {
   return (
     <div className="animate-fade-in space-y-4">
       {/* Commandes : onglets de sens + création — carte distincte du tableau */}
-      <Toolbar right={<Button type="primary" icon={<PlusOutlined />} onClick={() => setIsModalVisible(true)}>{t('s.nouveau_transfert')}</Button>}>
+      <Toolbar right={
+        <OnlineOnly reason="Indisponible hors connexion : un transfert engage deux magasins et doit être visible des deux côtés au même moment.">
+          <Button type="primary" icon={<PlusOutlined />} onClick={() => setIsModalVisible(true)}>{t('s.nouveau_transfert')}</Button>
+        </OnlineOnly>
+      }>
         <Segmented
           value={activeTab}
           onChange={setActiveTab}

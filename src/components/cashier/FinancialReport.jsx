@@ -1,6 +1,8 @@
 import { Button, Select } from '../ui';
 import { useT } from '../../i18n/I18nContext';
 import React, { useState, useMemo } from 'react';
+import { useOnlineStatus } from '../../offline/useOnlineStatus';
+import { useOfflineQueue } from '../../offline/useOfflineQueue';
 import { formatPrice } from '../../context/StoreContext';
 import { useAuth } from '../../context/AuthContext';
 import { useSales, useCustomers, useSettings, useStores } from '../../hooks';
@@ -10,6 +12,18 @@ import { BarChartOutlined, CalculatorOutlined, CalendarOutlined, CheckCircleOutl
 
 const FinancialReport = () => {
   const t = useT();
+
+  // Deux conditions distinctes : le serveur doit répondre, et aucune vente ne
+  // doit rester en file. Une clôture calculée sur des données partielles reste
+  // fausse même après la synchronisation.
+  const { online } = useOnlineStatus();
+  const { pending } = useOfflineQueue();
+  const canClose = online && pending === 0;
+  const blockReason = !online
+    ? "Clôture indisponible hors connexion : le bilan doit refléter les ventes de tous les postes."
+    : pending > 0
+      ? `${pending} vente${pending > 1 ? 's' : ''} en attente de transmission. Attendez leur envoi pour clôturer.`
+      : '';
   const { currentUser } = useAuth();
   const { 
     sales, expenses, addExpense, 
@@ -512,12 +526,20 @@ const FinancialReport = () => {
                 {formatPrice(stats.calculatedBalance)}
               </div>
               
+              {/* La clôture arrête les comptes du jour : la faire alors que des
+                  ventes attendent encore d'être transmises produirait un bilan
+                  incomplet, que rien ne viendrait corriger ensuite. */}
               <button
                 onClick={() => setShowClosureModal(true)}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-black text-white rounded-xl text-[0.7rem] font-semibold uppercase tracking-widest hover:bg-black/80 transition-all shadow-sm"
+                disabled={!canClose}
+                title={canClose ? undefined : blockReason}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-black text-white rounded-xl text-[0.7rem] font-semibold uppercase tracking-widest hover:bg-black/80 transition-all shadow-sm disabled:opacity-45 disabled:cursor-not-allowed disabled:hover:bg-black"
               >
                 <LockOutlined style={{ fontSize: 14 }} /> {t('s.cloturer_la_caisse')}
               </button>
+              {!canClose && (
+                <p className="mt-2 text-[0.7rem] text-black/60 max-w-xs">{blockReason}</p>
+              )}
             </div>
           </div>
 
