@@ -11,3 +11,19 @@ d'un script qui a déjà créé la moitié des tables.
 
     python3 -m venv .venv && .venv/bin/pip install pglast
     .venv/bin/python scripts/check-sql.py
+
+## migrate-to-supabase.mjs
+
+Copie les données de MongoDB vers Supabase.
+
+    node scripts/migrate-to-supabase.mjs              # simulation
+    node scripts/migrate-to-supabase.mjs --apply      # écriture
+
+MongoDB n'est ouvert qu'en lecture : la base actuelle reste intacte et sert de
+retour arrière. Le script est réexécutable — les objets sont retrouvés par leur
+identifiant naturel (nom du magasin, couple magasin + nom pour un produit) et
+mis à jour plutôt que dupliqués.
+
+Les comptes de connexion exigent `SUPABASE_SERVICE_ROLE_KEY` : `profiles.id`
+référence `auth.users`, table que seule la clé de service peut alimenter.
+Placer la clé dans `.env.local`, jamais dans un fichier suivi par git.
