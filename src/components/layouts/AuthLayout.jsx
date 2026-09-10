@@ -1,27 +1,36 @@
 import React from 'react';
+import { AppstoreOutlined } from '@ant-design/icons';
 import '../../pages/Login.css';
 
-const AuthLayout = ({ children, title, subtitle }) => {
-  return (
-    <div className="login-page">
-      <div className="login-card">
-        <div className="login-header">
-          <h1 className="login-title">{title || 'STOCK EXPERT'}</h1>
-          {subtitle && <p className="login-subtitle">{subtitle}</p>}
-        </div>
-        
-        <div className="login-content">
-          {children}
-        </div>
+/**
+ * Cadre des écrans d'authentification.
+ *
+ * Même fond ambiant et même surface vitrée que l'application, pour que la
+ * première page ne paraisse pas venir d'un autre produit.
+ */
+const AuthLayout = ({ children, title, subtitle }) => (
+  <div className="login-page">
+    <div className="app-ambient-bg" />
 
-        <div className="demo-credentials">
-          <p className="demo-title">Identifiants de démo</p>
-          <div className="demo-item"><span className="demo-role">Manager:</span> admin / 123</div>
-          <div className="demo-item"><span className="demo-role">Compta:</span> compta / 123</div>
+    <main className="login-card" role="main">
+      <header className="login-header">
+        <div className="login-brand">
+          <span className="login-logo" aria-hidden="true">
+            <AppstoreOutlined />
+          </span>
+          <span className="login-brand-text">
+            <span className="login-title">{title || 'Stock Expert'}</span>
+            <span className="login-tagline">Gestion de stock et de caisse</span>
+          </span>
         </div>
-      </div>
-    </div>
-  );
-};
+        {subtitle && <p className="login-subtitle">{subtitle}</p>}
+      </header>
+
+      <div className="login-content">{children}</div>
+    </main>
+
+    <p className="login-footer">Stock Expert &copy; {new Date().getFullYear()}</p>
+  </div>
+);
 
 export default AuthLayout;

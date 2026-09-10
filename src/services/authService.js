@@ -21,6 +21,27 @@ import { supabase, isSupabaseConfigured } from '../lib/supabase';
  */
 const looksLikeEmail = (v) => /@/.test(v || '');
 
+/**
+ * Traduit les messages d'erreur de Supabase, renvoyés en anglais.
+ *
+ * « Identifiants incorrects » couvre volontairement l'utilisateur inconnu comme
+ * le mot de passe erroné : distinguer les deux permettrait de découvrir quelles
+ * adresses sont enregistrées.
+ */
+const AUTH_ERRORS = [
+  [/invalid login credentials/i,      'Identifiants incorrects.'],
+  [/email not confirmed/i,            "Adresse non confirmée. Ouvrez le lien reçu par e-mail."],
+  [/user is banned|user not found/i,  'Identifiants incorrects.'],
+  [/too many requests|rate limit/i,   'Trop de tentatives. Réessayez dans quelques minutes.'],
+  [/network|fetch failed/i,           'Connexion au serveur impossible. Vérifiez votre réseau.'],
+  [/password.*at least|weak password/i, 'Mot de passe trop court.'],
+];
+
+export const translateAuthError = (message) => {
+  const found = AUTH_ERRORS.find(([rx]) => rx.test(message || ''));
+  return found ? found[1] : (message || 'Connexion impossible.');
+};
+
 /** Traduit un profil Supabase vers la forme attendue par l'application. */
 const toAppUser = (authUser, profile) => ({
   id: authUser.id,
@@ -36,9 +57,12 @@ const toAppUser = (authUser, profile) => ({
 /** Connexion Supabase : renvoie null si l'identifiant n'est pas un e-mail. */
 const supabaseLogin = async (email, password) => {
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error) throw Object.assign(new Error(error.message), {
-    response: { status: 401, data: { message: error.message } },
-  });
+  if (error) {
+    const message = translateAuthError(error.message);
+    throw Object.assign(new Error(message), {
+      response: { status: 401, data: { message } },
+    });
+  }
 
   const { data: profile, error: profileError } = await supabase
     .from('profiles').select('*').eq('id', data.user.id).single();

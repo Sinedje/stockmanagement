@@ -1,68 +1,110 @@
-import React, { useState } from 'react';
-import { useAuth } from '../context/AuthContext';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Lock, User } from 'lucide-react';
-import Input from '../components/common/Input';
+import { Alert, Button, Input } from 'antd';
+import { UserOutlined, LockOutlined } from '@ant-design/icons';
+import { useAuth } from '../context/AuthContext';
 import AuthLayout from '../components/layouts/AuthLayout';
 import { isSupabaseConfigured } from '../lib/supabase';
-import { Button, Alert } from 'antd';
 
+/**
+ * Écran de connexion.
+ *
+ * L'identifiant accepte deux formes : une adresse e-mail pour un compte
+ * Supabase, un pseudonyme pour un compte historique. Le champ le dit
+ * explicitement, faute de quoi la saisie part vers le mauvais système.
+ */
 const Login = () => {
-  // useAuth — this is the only component that should trigger login
   const { login, authError } = useAuth();
   const navigate = useNavigate();
-  const [username, setUsername] = useState('');
+
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [localError, setLocalError] = useState('');
+  const [error, setError] = useState('');
+  const identifierRef = useRef(null);
+
+  // Le curseur se place seul : l'écran n'a qu'un seul point d'entrée.
+  useEffect(() => { identifierRef.current?.focus(); }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLocalError('');
+    if (loading) return;
+
+    setError('');
     setLoading(true);
-
-    const result = await login(username, password);
-
-    setLoading(false);
-    if (result.success) {
-      navigate('/');
-    } else {
-      setLocalError(result.error || 'Identifiants incorrects');
+    try {
+      const result = await login(identifier.trim(), password);
+      if (result.success) {
+        navigate('/', { replace: true });
+      } else {
+        // Message volontairement identique quel que soit le champ fautif :
+        // préciser « ce compte n'existe pas » permettrait de deviner quelles
+        // adresses sont enregistrées.
+        setError(result.error || 'Identifiants incorrects.');
+        setPassword('');
+      }
+    } catch (err) {
+      setError(err?.message || 'Connexion impossible. Réessayez.');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const displayError = localError || authError;
+  const displayError = error || authError;
 
   return (
     <AuthLayout subtitle="Connexion à votre espace">
       {displayError && (
         <Alert
-          message={displayError}
+          title={displayError}
           type="error"
           showIcon
-          style={{ marginBottom: '20px' }}
+          role="alert"
+          style={{ marginBottom: 18 }}
         />
       )}
 
-      <form onSubmit={handleSubmit} className="login-form">
-        <Input
-          label="E-mail ou nom d'utilisateur"
-          icon={User}
-          placeholder="vous@exemple.com ou admin"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          required
-        />
+      <form onSubmit={handleSubmit} className="login-form" noValidate>
+        <div className="login-field">
+          <label className="custom-input-label" htmlFor="login-identifier">
+            E-mail ou nom d'utilisateur
+          </label>
+          <Input
+            id="login-identifier"
+            ref={identifierRef}
+            size="large"
+            autoComplete="username"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
+            inputMode="email"
+            prefix={<UserOutlined className="text-text-muted" />}
+            placeholder="vous@exemple.com"
+            value={identifier}
+            onChange={(e) => setIdentifier(e.target.value)}
+            disabled={loading}
+            required
+          />
+        </div>
 
-        <Input
-          label="Mot de passe"
-          icon={Lock}
-          type="password"
-          placeholder="••••••"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-        />
+        <div className="login-field">
+          <label className="custom-input-label" htmlFor="login-password">
+            Mot de passe
+          </label>
+          {/* Input.Password : l'œil permet de vérifier une saisie longue,
+              ce qui évite bien des échecs de connexion sur mobile. */}
+          <Input.Password
+            id="login-password"
+            size="large"
+            autoComplete="current-password"
+            prefix={<LockOutlined className="text-text-muted" />}
+            placeholder="Votre mot de passe"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            disabled={loading}
+            required
+          />
+        </div>
 
         <Button
           type="primary"
@@ -70,29 +112,21 @@ const Login = () => {
           size="large"
           block
           loading={loading}
-          style={{ height: '50px', fontWeight: 'bold' }}
+          disabled={!identifier.trim() || !password}
+          className="login-submit"
         >
-          Se Connecter
+          {loading ? 'Connexion…' : 'Se connecter'}
         </Button>
 
-        {/* Sans ce lien, un mot de passe perdu enfermerait dehors le seul
-            superadmin : /setup se ferme définitivement après l'installation. */}
         {isSupabaseConfigured && (
-          <div style={{ textAlign: 'center', marginTop: '4px' }}>
-            <button
-              type="button"
-              onClick={() => navigate('/reset-password')}
-              style={{ background: 'none', border: 'none', cursor: 'pointer',
-                       font: 'inherit', fontSize: '13px', color: 'var(--color-primary)' }}
-            >
-              Mot de passe oublié ?
-            </button>
-          </div>
+          <button
+            type="button"
+            className="login-link"
+            onClick={() => navigate('/reset-password')}
+          >
+            Mot de passe oublié ?
+          </button>
         )}
-
-        <div style={{ marginTop: '16px', fontSize: '12px', color: '#6b7280', textAlign: 'center' }}>
-          💡 <strong>Comptes par défaut :</strong> <code>admin</code>, <code>manager</code>, <code>caisse1</code>, <code>comptable</code> (Mot de passe: <code>1234</code>)
-        </div>
       </form>
     </AuthLayout>
   );

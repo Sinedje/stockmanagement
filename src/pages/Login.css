@@ -1,118 +1,142 @@
+/* ===========================================================================
+   Écrans d'authentification
+   Mêmes jetons de couleur que l'application : la page de connexion doit
+   paraître appartenir au même produit que le reste.
+   =========================================================================== */
+
 .login-page {
+  position: relative;
   min-height: 100vh;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 1.25rem;
+  padding: 1.5rem;
+  overflow: hidden;
   background-color: var(--bg-primary);
-  padding: 20px;
   transition: background-color 0.3s ease;
 }
 
 .login-card {
+  position: relative;
+  z-index: 1;
   width: 100%;
-  max-width: 440px;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
-  border-radius: 20px;
-  padding: 50px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
-  transition: all 0.3s ease;
+  max-width: 26rem;
+  padding: 2.25rem 2rem;
+  border-radius: 1rem;
+  background: var(--glass-bg-strong);
+  backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow), inset 0 1px 0 0 var(--glass-highlight);
 }
 
-@media (max-width: 480px) {
-  .login-page {
-    padding: 12px;
-  }
+/* ── Marque ───────────────────────────────────────────────────────────── */
 
-  .login-card {
-    padding: 28px 20px;
-    border-radius: 16px;
-  }
-}
+.login-header { margin-bottom: 1.5rem; }
 
-.dark .login-card {
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
-}
-
-.login-header {
-  text-align: center;
-  margin-bottom: 30px;
-}
-
-.login-content {
+.login-brand {
   display: flex;
-  flex-direction: column;
-  gap: 20px;
-  margin-bottom: 25px;
+  align-items: center;
+  gap: 0.7rem;
 }
+
+.login-logo {
+  width: 2.5rem;
+  height: 2.5rem;
+  flex-shrink: 0;
+  border-radius: 0.7rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  color: var(--color-on-primary);
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+.login-brand-text { display: flex; flex-direction: column; min-width: 0; }
+
+.login-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--text-heading);
+  line-height: 1.15;
+}
+
+.login-tagline {
+  font-size: 0.68rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-primary);
+  opacity: 0.85;
+  margin-top: 0.15rem;
+}
+
+.login-subtitle {
+  margin-top: 1rem;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+}
+
+/* ── Formulaire ───────────────────────────────────────────────────────── */
 
 .login-form {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 1rem;
 }
 
-.login-title {
-  font-size: 24px;
-  font-weight: 800;
-  color: var(--color-primary);
-  letter-spacing: 2px;
-  margin-bottom: 8px;
-}
-
-.login-subtitle {
-  font-size: 14px;
-  color: var(--text-secondary);
-}
-
-.demo-credentials {
-  margin-top: 30px;
-  padding-top: 20px;
-  border-top: 1px solid var(--border-color);
-  text-align: center;
-}
-
-.demo-title {
-  font-size: 12px;
-  text-transform: uppercase;
-  color: var(--text-muted);
-  margin-bottom: 12px;
-  letter-spacing: 1px;
-}
-
-.demo-item {
-  font-size: 13px;
-  color: var(--text-secondary);
-  margin-bottom: 5px;
-}
+.login-field { display: flex; flex-direction: column; gap: 0.4rem; }
 
 .custom-input-label {
-  display: block;
-  margin-bottom: 8px;
-  font-size: 13px;
+  font-size: 0.72rem;
   font-weight: 600;
-  color: var(--text-secondary);
+  letter-spacing: 0.04em;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  color: var(--text-muted);
 }
 
-.custom-antd-input {
-  height: 48px !important;
-  background-color: var(--bg-input) !important;
-  border: 1px solid var(--border-color) !important;
-  border-radius: 10px !important;
-  color: var(--text-primary) !important;
-  transition: all 0.3s ease !important;
+.login-form .ant-input-affix-wrapper {
+  background-color: var(--bg-input);
+  border-color: var(--border-color);
+  border-radius: 0.6rem;
 }
 
-.custom-antd-input:hover, 
-.custom-antd-input:focus {
-  border-color: var(--color-primary) !important;
-  background-color: var(--bg-secondary) !important;
-  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.1) !important;
+.login-form .ant-input-affix-wrapper:hover,
+.login-form .ant-input-affix-wrapper-focused {
+  border-color: var(--color-primary);
 }
 
-.custom-antd-input .ant-input {
-  background: transparent !important;
-  color: inherit !important;
+.login-form .ant-input { background: transparent; color: var(--text-primary); }
+
+.login-submit { margin-top: 0.35rem; height: 2.6rem !important; }
+
+/* Lien discret : présent pour qui le cherche, sans concurrencer le bouton. */
+.login-link {
+  align-self: center;
+  background: none;
+  border: none;
+  padding: 0.25rem;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.78rem;
+  color: var(--color-primary);
+}
+
+.login-link:hover { text-decoration: underline; }
+
+.login-footer {
+  position: relative;
+  z-index: 1;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  opacity: 0.75;
+}
+
+@media (max-width: 480px) {
+  .login-card { padding: 1.75rem 1.25rem; border-radius: 0.85rem; }
 }

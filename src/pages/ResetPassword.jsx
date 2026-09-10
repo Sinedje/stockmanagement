@@ -4,7 +4,7 @@ import { message } from 'antd';
 import { KeyOutlined, MailOutlined } from '@ant-design/icons';
 import { Panel, Input, Button } from '../components/ui';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
-import { requestPasswordReset, updatePassword } from '../services/authService';
+import { requestPasswordReset, updatePassword, translateAuthError } from '../services/authService';
 
 /**
  * Réinitialisation du mot de passe.
@@ -50,7 +50,7 @@ const ResetPassword = () => {
       await requestPasswordReset(email);
       setSent(true);
     } catch (err) {
-      setError(err.message);
+      setError(translateAuthError(err.message));
     } finally { setBusy(false); }
   };
 
@@ -63,7 +63,7 @@ const ResetPassword = () => {
       message.success('Mot de passe modifié.');
       navigate('/', { replace: true });
     } catch (err) {
-      setError(err.message);
+      setError(translateAuthError(err.message));
     } finally { setBusy(false); }
   };
 
