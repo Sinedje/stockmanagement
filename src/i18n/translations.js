@@ -52,6 +52,7 @@ export const translations = {
     'sidebar.headOffice': 'Siège',
 
     // — Rôles —
+    'role.superadmin': 'Administrateur plateforme',
     'role.ceo': 'Direction',
     'role.manager': 'Gestionnaire',
     'role.cashier': 'Caissier',
@@ -803,6 +804,7 @@ export const translations = {
     'sidebar.lightMode': 'Light mode',
     'sidebar.headOffice': 'Head office',
 
+    'role.superadmin': 'Platform administrator',
     'role.ceo': 'Management',
     'role.manager': 'Manager',
     'role.cashier': 'Cashier',

@@ -20,6 +20,13 @@ export const I18nProvider = ({ language, onChangeLanguage, children }) => {
     // Repli sur le français puis sur la clé : jamais d'écran vide si une
     // traduction manque.
     const raw = translations[lang]?.[key] ?? translations[FALLBACK]?.[key] ?? key;
+
+    // Une clé absente retombe sur elle-même et s'affiche telle quelle à
+    // l'écran — c'est ainsi que « role.superadmin » est apparu dans la barre
+    // latérale. On la signale en développement, où la corriger est immédiat.
+    if (import.meta.env.DEV && raw === key && !translations[FALLBACK]?.[key]) {
+      console.warn(`[i18n] clé sans traduction : ${key}`);
+    }
     if (!vars) return raw;
     return Object.entries(vars).reduce((out, [k, v]) => out.replaceAll(`{${k}}`, v), raw);
   }, [lang]);
