@@ -94,6 +94,9 @@ export const AuthProvider = ({ children }) => {
 
   const value = {
     currentUser,
+    // Exposé pour refléter immédiatement un changement de préférence (langue)
+    // sans imposer un rechargement de session.
+    setCurrentUser,
     authLoading,
     authError,
     login,

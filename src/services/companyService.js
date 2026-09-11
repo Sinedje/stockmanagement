@@ -342,3 +342,11 @@ export const deleteCompany = async (id) => {
   const { error } = await sb.from('companies').delete().eq('id', id);
   if (error) throw error;
 };
+
+/** Préférence de langue de l'utilisateur connecté. NULL = suivre l'entreprise. */
+export const setMyLanguage = async (language) => {
+  const sb = requireSupabase();
+  const { data: { user } } = await sb.auth.getUser();
+  const { error } = await sb.from('profiles').update({ language }).eq('id', user.id);
+  if (error) throw error;
+};

@@ -52,6 +52,7 @@ const toAppUser = (authUser, profile) => ({
   companyId: profile.company_id || null,
   isActive: profile.is_active,
   email: authUser.email,
+  language: profile.language || null,   // null = suivre l'entreprise
 });
 
 /** Connexion Supabase : renvoie null si l'identifiant n'est pas un e-mail. */

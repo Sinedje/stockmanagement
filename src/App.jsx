@@ -105,13 +105,27 @@ const ThemeAppWrapper = () => {
   const { theme, companySettings, updateCompanySettings } = useStore();
   const isDark = theme === 'dark';
 
-  // La langue est un réglage d'entreprise : elle est lue depuis les paramètres
-  // et réenregistrée côté serveur lorsqu'elle change.
-  const language = companySettings?.language || 'fr';
-  const handleLanguageChange = React.useCallback(
-    (next) => updateCompanySettings({ ...companySettings, language: next }),
-    [companySettings, updateCompanySettings]
-  );
+  // Ordre de résolution : préférence individuelle, puis langue de l'entreprise,
+  // puis français. Le superadmin n'appartenant à aucune entreprise, sans le
+  // premier niveau il resterait bloqué sur la langue par défaut.
+  const { currentUser, setCurrentUser } = useAuth();
+  const language = currentUser?.language || companySettings?.language || 'fr';
+
+  const handleLanguageChange = React.useCallback(async (next) => {
+    // Un superadmin n'a pas d'entreprise : sa préférence vit sur son profil.
+    if (currentUser?.role === 'superadmin' || currentUser?.companyId) {
+      const { setMyLanguage } = await import('./services/companyService');
+      try {
+        await setMyLanguage(next);
+        setCurrentUser((u) => (u ? { ...u, language: next } : u));
+        return;
+      } catch (err) {
+        console.warn('Préférence de langue non enregistrée :', err?.message);
+      }
+    }
+    // Comptes historiques (MongoDB) : le réglage reste celui de l'entreprise.
+    updateCompanySettings({ ...companySettings, language: next });
+  }, [currentUser, setCurrentUser, companySettings, updateCompanySettings]);
 
   return (
     <ConfigProvider

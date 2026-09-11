@@ -1,3 +1,4 @@
+import { useT } from '../../i18n/I18nContext';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Steps, Switch } from 'antd';
 import {
@@ -14,11 +15,11 @@ const toSlug = (s) =>
   s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
    .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40);
 
-const STEPS = [
-  { title: 'Entreprise',     icon: <BankOutlined /> },
-  { title: 'Modules',        icon: <AppstoreOutlined /> },
-  { title: 'Administrateur', icon: <UserOutlined /> },
-  { title: 'Récapitulatif',  icon: <CheckCircleOutlined /> },
+const buildSteps = (t) => [
+  { title: t('s.entreprise'),     icon: <BankOutlined /> },
+  { title: t('s.modules'),        icon: <AppstoreOutlined /> },
+  { title: t('s.administrateur'), icon: <UserOutlined /> },
+  { title: t('s.recapitulatif'),  icon: <CheckCircleOutlined /> },
 ];
 
 /**
@@ -30,6 +31,8 @@ const STEPS = [
  * Chaque étape est vérifiée avant de passer à la suivante.
  */
 const CompanyWizard = ({ onCancel, onSubmit, saving }) => {
+  const t = useT();
+  const STEPS = buildSteps(t);
   const [step, setStep] = useState(0);
   const [error, setError] = useState('');
   const [slugTouched, setSlugTouched] = useState(false);
@@ -105,20 +108,20 @@ const CompanyWizard = ({ onCancel, onSubmit, saving }) => {
         <Panel title="Identité de l'entreprise" icon={BankOutlined}>
           <div className="space-y-3">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <Input label="Nom" value={form.name} onChange={set('name')} placeholder="Ex : FEU FLAMENCO" />
+              <Input label={t('s.nom')} value={form.name} onChange={set('name')} placeholder={t('s.ex_feu_flamenco')} />
               <Input label="Identifiant d'URL" value={form.slug}
                      onChange={(e) => { setSlugTouched(true); setForm(f => ({ ...f, slug: toSlug(e.target.value) })); }}
-                     hint="Lettres, chiffres et tirets." />
+                     hint={t('s.lettres_chiffres_et_tirets')} />
             </div>
-            <Input label="Activité" value={form.activity} onChange={set('activity')}
-                   placeholder="Ex : Vente de matériel de sécurité incendie" />
+            <Input label={t('s.activite')} value={form.activity} onChange={set('activity')}
+                   placeholder={t('s.ex_vente_de_materiel_de_securite_incendie')} />
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <Input label="Téléphones" value={form.phones} onChange={set('phones')} />
-              <Input label="NIU" value={form.ncc} onChange={set('ncc')} hint="Numéro d'identifiant unique" />
-              <Input label="RCCM" value={form.rccm} onChange={set('rccm')} />
+              <Input label={t('s.telephones')} value={form.phones} onChange={set('phones')} />
+              <Input label={t('s.niu')} value={form.ncc} onChange={set('ncc')} hint="Numéro d'identifiant unique" />
+              <Input label={t('s.rccm')} value={form.rccm} onChange={set('rccm')} />
             </div>
             <div>
-              <label className="custom-input-label">Langue par défaut</label>
+              <label className="custom-input-label">{t('s.langue_par_defaut')}</label>
               <Select value={form.language} onChange={set('language')} options={LANGUAGES} width={200} />
             </div>
           </div>
@@ -127,14 +130,14 @@ const CompanyWizard = ({ onCancel, onSubmit, saving }) => {
 
       {step === 1 && (
         <>
-          <Panel title="Modules activés" icon={AppstoreOutlined}
-                 subtitle="Modifiables à tout moment après la création">
+          <Panel title={t('s.modules_actives')} icon={AppstoreOutlined}
+                 subtitle={t('s.modifiables_a_tout_moment_apres_la_creation')}>
             <ul className="divide-y divide-black/5 dark:divide-white/10 -my-2">
               {FEATURES.map(f => (
                 <li key={f.key} className="flex items-center justify-between gap-4 py-3">
                   <div className="min-w-0">
-                    <div className="text-[0.84rem] font-medium text-text-heading">{f.label}</div>
-                    <div className="text-[0.74rem] text-text-muted">{f.description}</div>
+                    <div className="text-[0.84rem] font-medium text-text-heading">{t(f.labelKey)}</div>
+                    <div className="text-[0.74rem] text-text-muted">{t(f.descriptionKey)}</div>
                   </div>
                   <Switch checked={isFeatureEnabled(form.features, f.key)}
                           onChange={(v) => setForm(fm => ({ ...fm, features: { ...fm.features, [f.key]: v } }))} />
@@ -143,49 +146,50 @@ const CompanyWizard = ({ onCancel, onSubmit, saving }) => {
             </ul>
           </Panel>
 
-          <Panel title="Quotas" icon={AppstoreOutlined}
-                 subtitle="Laisser vide pour ne pas limiter. Appliqués par la base de données.">
+          <Panel title={t('s.quotas')} icon={AppstoreOutlined}
+                 subtitle={t('s.laisser_vide_pour_ne_pas_limiter_appliques_p')}>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <Input label="Magasins maximum" type="number" min="1" value={form.maxStores}
-                     onChange={set('maxStores')} placeholder="Illimité" />
-              <Input label="Utilisateurs maximum" type="number" min="1" value={form.maxUsers}
-                     onChange={set('maxUsers')} placeholder="Illimité" />
+              <Input label={t('s.magasins_maximum')} type="number" min="1" value={form.maxStores}
+                     onChange={set('maxStores')} placeholder={t('s.illimite')} />
+              <Input label={t('s.utilisateurs_maximum')} type="number" min="1" value={form.maxUsers}
+                     onChange={set('maxUsers')} placeholder={t('s.illimite')} />
             </div>
           </Panel>
         </>
       )}
 
       {step === 2 && (
-        <Panel title="Compte administrateur" icon={UserOutlined}
-               subtitle="Il créera ensuite lui-même ses magasins et ses collaborateurs">
+        <Panel title={t('s.compte_administrateur')} icon={UserOutlined}
+               subtitle={t('s.il_creera_ensuite_lui_meme_ses_magasins_et_s')}>
           <div className="space-y-3">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <Input label="Nom complet" value={form.adminName} onChange={set('adminName')}
-                     placeholder="Ex : Jean Kouassi" />
-              <Input label="E-mail (identifiant de connexion)" type="email"
+              <Input label={t('s.nom_complet_2')} value={form.adminName} onChange={set('adminName')}
+                     placeholder={t('s.ex_jean_kouassi')} />
+              <Input label={t('s.e_mail_identifiant_de_connexion')} type="email"
                      value={form.adminEmail} onChange={set('adminEmail')}
-                     placeholder="admin@entreprise.com" />
+                     placeholder={t('s.admin_entreprise_com')} />
             </div>
             <Input label="Nom d'utilisateur" value={form.adminUsername} onChange={set('adminUsername')}
                    hint="Affiché dans l'application. Unique au sein de l'entreprise." />
-            <Input label="Notes internes" value={form.notes} onChange={set('notes')}
-                   hint="Visible du superadmin uniquement." />
+            <Input label={t('s.notes_internes')} value={form.notes} onChange={set('notes')}
+                   hint={t('s.visible_du_superadmin_uniquement')} />
           </div>
         </Panel>
       )}
 
       {step === 3 && (
-        <Panel title="Vérifiez avant de créer" icon={CheckCircleOutlined}>
+        <Panel title={t('s.verifiez_avant_de_creer')} icon={CheckCircleOutlined}>
           <dl className="text-[0.82rem] divide-y divide-black/5 dark:divide-white/10">
             {[
-              ['Entreprise', form.name],
-              ["Identifiant d'URL", form.slug],
-              ['Activité', form.activity || '—'],
-              ['Langue', LANGUAGES.find(l => l.value === form.language)?.label],
-              ['Modules', disabledCount ? `${FEATURES.length - disabledCount} sur ${FEATURES.length}` : 'Tous activés'],
-              ['Quotas', [form.maxStores && `${form.maxStores} magasins`, form.maxUsers && `${form.maxUsers} utilisateurs`]
-                .filter(Boolean).join(' · ') || 'Illimités'],
-              ['Administrateur', `${form.adminName} · ${form.adminEmail}`],
+              [t('s.entreprise'), form.name],
+              [t('s.identifiant_d_url'), form.slug],
+              [t('s.activite'), form.activity || '—'],
+              [t('s.langue'), LANGUAGES.find(l => l.value === form.language)?.label],
+              [t('s.modules'), disabledCount ? t('s.n_sur_total', { n: FEATURES.length - disabledCount, total: FEATURES.length }) : t('s.tous_actives')],
+              [t('s.quotas'), [form.maxStores && t('s.n_magasins', { n: form.maxStores }),
+                form.maxUsers && t('s.n_utilisateurs', { n: form.maxUsers })]
+                .filter(Boolean).join(' · ') || t('s.illimites')],
+              [t('s.administrateur'), `${form.adminName} · ${form.adminEmail}`],
             ].map(([k, v]) => (
               <div key={k} className="flex justify-between gap-4 py-2">
                 <dt className="text-text-muted">{k}</dt>
@@ -194,8 +198,7 @@ const CompanyWizard = ({ onCancel, onSubmit, saving }) => {
             ))}
           </dl>
           <p className="text-[0.76rem] text-text-muted mt-3">
-            Un mot de passe provisoire sera généré : transmettez-le à l'administrateur,
-            il le changera à sa première connexion.
+            {t('s.un_mot_de_passe_provisoire_sera_genere_trans')}
           </p>
         </Panel>
       )}
@@ -204,15 +207,15 @@ const CompanyWizard = ({ onCancel, onSubmit, saving }) => {
 
       <div className="flex items-center justify-between gap-2">
         <Button onClick={step === 0 ? onCancel : back} icon={step === 0 ? null : <ArrowLeftOutlined />}>
-          {step === 0 ? 'Annuler' : 'Précédent'}
+          {step === 0 ? t('s.annuler') : t('s.precedent')}
         </Button>
         {step < STEPS.length - 1 ? (
           <Button type="primary" onClick={next}>
-            Suivant <ArrowRightOutlined />
+            {t('s.suivant')} <ArrowRightOutlined />
           </Button>
         ) : (
           <Button type="primary" loading={saving} onClick={submit} icon={<CheckCircleOutlined />}>
-            Créer l'entreprise
+            {t('s.creer_l_entreprise')}
           </Button>
         )}
       </div>

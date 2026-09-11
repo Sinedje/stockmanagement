@@ -1,3 +1,4 @@
+import { useT } from '../i18n/I18nContext';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { message, Tag } from 'antd';
 import { AppstoreOutlined, BankOutlined, CheckCircleOutlined, DashboardOutlined, FileTextOutlined, GlobalOutlined, PlusOutlined, SettingOutlined, TeamOutlined } from '@ant-design/icons';
@@ -15,31 +16,21 @@ import { recordAudit } from '../services/operationsService';
 import { useAuth } from '../context/AuthContext';
 import { fetchCompanies, createCompany } from '../services/companyService';
 
-const sidebarItems = [
-  { id: 'dashboard', label: 'Tableau de bord', icon: DashboardOutlined },
-  { id: 'companies', label: 'Entreprises', icon: BankOutlined },
-  { id: 'users',     label: 'Utilisateurs', icon: TeamOutlined },
-  { id: 'audit',     label: 'Journal', icon: FileTextOutlined },
-  { id: 'settings',  label: 'Paramètres', icon: SettingOutlined },
+// Les identifiants restent figés (ils servent d'URL) ; seuls les libellés
+// sont résolus au rendu, donc dans la langue courante.
+const SECTION_DEFS = [
+  { id: 'dashboard', key: 's.tableau_de_bord_2', icon: DashboardOutlined },
+  { id: 'companies', key: 's.entreprises',       icon: BankOutlined },
+  { id: 'users',     key: 's.utilisateurs',      icon: TeamOutlined },
+  { id: 'audit',     key: 's.journal',           icon: FileTextOutlined },
+  { id: 'settings',  key: 's.parametres',        icon: SettingOutlined },
 ];
 
-const SECTIONS = sidebarItems.map(i => i.id);
+const SECTIONS = SECTION_DEFS.map(i => i.id);
 
-const TITLES = {
-  dashboard: 'Tableau de bord',
-  companies: 'Entreprises',
-  users: 'Utilisateurs',
-  audit: "Journal d'activité",
-  settings: 'Paramètres de la plateforme',
-};
 
-const SUBTITLES = {
-  dashboard: "Vue d'ensemble du parc",
-  companies: 'Créez et supervisez les entreprises clientes',
-  users: 'Rechercher un compte dans toutes les entreprises',
-  audit: 'Trace des actions sensibles, en ajout seul',
-  settings: 'Modules par défaut et votre compte',
-};
+
+
 
 /**
  * Console de l'exploitant de la plateforme.
@@ -49,7 +40,17 @@ const SUBTITLES = {
  * seule aux écritures des entreprises clientes.
  */
 const SuperAdminDashboard = () => {
+  const t = useT();
   const { currentUser } = useAuth();
+  const sidebarItems = SECTION_DEFS.map(({ key, ...rest }) => ({ ...rest, label: t(key) }));
+  const TITLES = Object.fromEntries(SECTION_DEFS.map(d => [d.id, t(d.key)]));
+  const SUBTITLES = {
+    dashboard: t('s.vue_d_ensemble_du_parc'),
+    companies: t('s.creez_et_supervisez_les_entreprises_clientes'),
+    users: t('s.rechercher_un_compte_dans_toutes_les_entrepr'),
+    audit: t('s.trace_des_actions_sensibles_en_ajout_seul'),
+    settings: t('s.modules_par_defaut_et_votre_compte'),
+  };
   const [companies, setCompanies] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -94,7 +95,7 @@ const SuperAdminDashboard = () => {
       setShowWizard(false);
       await load();
     } catch (err) {
-      message.error(err.message || 'Création impossible');
+      message.error(err.message || t('s.creation_impossible'));
     } finally {
       setSaving(false);
     }
@@ -112,7 +113,7 @@ const SuperAdminDashboard = () => {
 
   const columns = [
     {
-      key: 'name', title: 'Entreprise',
+      key: 'name', title: t('s.entreprise'),
       render: (v, row) => (
         <div className="min-w-0">
           <div className="text-[0.82rem] font-medium text-text-heading truncate">{v}</div>
@@ -120,21 +121,21 @@ const SuperAdminDashboard = () => {
         </div>
       ),
     },
-    { key: 'activity', title: 'Activité', render: (v) => <span className="text-[0.75rem] text-text-secondary">{v || '—'}</span> },
+    { key: 'activity', title: t('s.activite'), render: (v) => <span className="text-[0.75rem] text-text-secondary">{v || '—'}</span> },
     {
-      key: 'storeCount', title: 'Magasins', align: 'right',
+      key: 'storeCount', title: t('s.magasins'), align: 'right',
       render: (v) => <span className="tabular-nums">{v}</span>,
     },
     {
-      key: 'memberCount', title: 'Membres', align: 'right',
+      key: 'memberCount', title: t('s.membres'), align: 'right',
       render: (v) => <span className="tabular-nums">{v}</span>,
     },
     {
-      key: 'language', title: 'Langue',
+      key: 'language', title: t('s.langue'),
       render: (v) => <span className="text-[0.72rem] uppercase text-text-muted">{v}</span>,
     },
     {
-      key: 'status', title: 'Statut',
+      key: 'status', title: t('s.statut'),
       render: (v) => (
         <Tag color={v === 'active' ? 'green' : 'red'} bordered={false}>
           {v === 'active' ? 'Active' : 'Suspendue'}
@@ -142,7 +143,7 @@ const SuperAdminDashboard = () => {
       ),
     },
     {
-      key: 'features', title: 'Modules', align: 'right',
+      key: 'features', title: t('s.modules'), align: 'right',
       render: (v) => {
         const off = Object.values(v || {}).filter(x => x === false).length;
         return <span className="text-[0.75rem] text-text-muted">{off ? `${off} coupé${off > 1 ? 's' : ''}` : 'Tous'}</span>;
@@ -151,7 +152,7 @@ const SuperAdminDashboard = () => {
     {
       key: 'id', title: '', align: 'right',
       render: (_v, row) => (
-        <Button icon={<AppstoreOutlined />} onClick={() => setSelected(row)}>Gérer</Button>
+        <Button icon={<AppstoreOutlined />} onClick={() => setSelected(row)}>{t('s.gerer')}</Button>
       ),
     },
   ];
@@ -165,7 +166,7 @@ const SuperAdminDashboard = () => {
       subtitle={SUBTITLES[activeTab]}
     >
       {!isSupabaseConfigured ? (
-        <Panel title="Supabase non configuré" icon={GlobalOutlined}>
+        <Panel title={t('s.supabase_non_configure')} icon={GlobalOutlined}>
           <p className="text-[0.82rem] text-text-secondary leading-relaxed">
             Renseignez <code>VITE_SUPABASE_URL</code> et <code>VITE_SUPABASE_PUBLISHABLE_KEY</code> dans
             votre fichier <code>.env</code>, puis appliquez les migrations SQL du dossier{' '}
@@ -199,15 +200,14 @@ const SuperAdminDashboard = () => {
       ) : (
         <div className="animate-fade-in space-y-4">
           {created && (
-            <Panel title={`« ${created.name} » créée`} icon={CheckCircleOutlined}>
+            <Panel title={t('s.name_creee', { name: created.name })} icon={CheckCircleOutlined}>
               <p className="text-[0.84rem] text-text-secondary">
-                Transmettez ces identifiants à l'administrateur. Le mot de passe
-                n'est affiché qu'une seule fois.
+                {t('s.transmettez_ces_identifiants_a_l_administrat')}
               </p>
               <dl className="mt-3 text-[0.84rem] space-y-1">
-                <div className="flex gap-3"><dt className="text-text-muted w-32">E-mail</dt>
+                <div className="flex gap-3"><dt className="text-text-muted w-32">{t('s.e_mail')}</dt>
                   <dd className="font-medium text-text-heading">{created.email}</dd></div>
-                <div className="flex gap-3"><dt className="text-text-muted w-32">Mot de passe</dt>
+                <div className="flex gap-3"><dt className="text-text-muted w-32">{t('s.mot_de_passe')}</dt>
                   <dd className="font-mono font-semibold text-primary">{created.password || '—'}</dd></div>
               </dl>
               {created.viaFallback && (
@@ -217,13 +217,13 @@ const SuperAdminDashboard = () => {
                 </p>
               )}
               <div className="flex justify-end mt-3">
-                <Button onClick={() => setCreated(null)}>J'ai noté</Button>
+                <Button onClick={() => setCreated(null)}>{t('s.j_ai_note')}</Button>
               </div>
             </Panel>
           )}
 
-          <Toolbar right={<Button type="primary" icon={<PlusOutlined />} onClick={() => setShowWizard(true)}>Nouvelle entreprise</Button>}>
-            <SearchInput value={search} onChange={setSearch} placeholder="Rechercher une entreprise…" width={260} />
+          <Toolbar right={<Button type="primary" icon={<PlusOutlined />} onClick={() => setShowWizard(true)}>{t('s.nouvelle_entreprise')}</Button>}>
+            <SearchInput value={search} onChange={setSearch} placeholder={t('s.rechercher_une_entreprise')} width={260} />
             <span className="text-[0.72rem] text-text-muted tabular-nums pl-1">{filtered.length} entreprises</span>
           </Toolbar>
 
@@ -240,8 +240,8 @@ const SuperAdminDashboard = () => {
               loading={loading}
               rowKey="id"
               emptyIcon={BankOutlined}
-              emptyTitle="Aucune entreprise"
-              emptyDescription="Créez la première entreprise pour démarrer."
+              emptyTitle={t('s.aucune_entreprise')}
+              emptyDescription={t('s.creez_la_premiere_entreprise_pour_demarrer')}
             />
           </Panel>
         </div>

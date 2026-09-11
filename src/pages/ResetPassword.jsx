@@ -1,3 +1,4 @@
+import { useT } from '../i18n/I18nContext';
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { message } from 'antd';
@@ -19,6 +20,7 @@ import { requestPasswordReset, updatePassword, translateAuthError } from '../ser
  * seul superadmin, sans autre recours que la console Supabase.
  */
 const ResetPassword = () => {
+  const t = useT();
   const navigate = useNavigate();
   const [hasRecoverySession, setHasRecoverySession] = useState(false);
   const [checking, setChecking] = useState(true);
@@ -74,27 +76,27 @@ const ResetPassword = () => {
     </div>
   );
 
-  if (checking) return shell(<Panel><p className="py-6 text-center text-[0.85rem] text-text-muted">Vérification…</p></Panel>);
+  if (checking) return shell(<Panel><p className="py-6 text-center text-[0.85rem] text-text-muted">{t('s.verification')}</p></Panel>);
 
   if (hasRecoverySession) {
     return shell(
-      <Panel title="Nouveau mot de passe" icon={KeyOutlined}>
+      <Panel title={t('s.nouveau_mot_de_passe')} icon={KeyOutlined}>
         <div className="space-y-3">
-          <Input label="Nouveau mot de passe" type="password" value={pwd.a}
-                 onChange={e => setPwd(p => ({ ...p, a: e.target.value }))} hint="8 caractères minimum" />
-          <Input label="Confirmation" type="password" value={pwd.b}
+          <Input label={t('s.nouveau_mot_de_passe')} type="password" value={pwd.a}
+                 onChange={e => setPwd(p => ({ ...p, a: e.target.value }))} hint={t('s.8_caracteres_minimum')} />
+          <Input label={t('s.confirmation')} type="password" value={pwd.b}
                  onChange={e => setPwd(p => ({ ...p, b: e.target.value }))} />
         </div>
         {error && <p className="text-[0.8rem] text-red-500 mt-2">{error}</p>}
         <div className="mt-4 flex justify-end">
-          <Button type="primary" loading={busy} onClick={save}>Enregistrer</Button>
+          <Button type="primary" loading={busy} onClick={save}>{t('s.enregistrer')}</Button>
         </div>
       </Panel>
     );
   }
 
   return shell(
-    <Panel title="Mot de passe oublié" icon={MailOutlined}>
+    <Panel title={t('s.mot_de_passe_oublie')} icon={MailOutlined}>
       {sent ? (
         <>
           <p className="text-[0.85rem] text-text-secondary leading-relaxed">
@@ -102,23 +104,23 @@ const ResetPassword = () => {
             vient d'être envoyé. Ouvrez-le depuis ce navigateur.
           </p>
           <p className="text-[0.78rem] text-text-muted mt-3">
-            Pensez à vérifier les indésirables.
+            {t('s.pensez_a_verifier_les_indesirables')}
           </p>
         </>
       ) : (
         <>
           <p className="text-[0.82rem] text-text-secondary mb-3">
-            Saisissez l'adresse de votre compte : nous vous enverrons un lien.
+            {t('s.saisissez_l_adresse_de_votre_compte_nous_vou')}
           </p>
-          <Input label="E-mail" type="email" value={email}
+          <Input label={t('s.e_mail')} type="email" value={email}
                  onChange={e => setEmail(e.target.value)} placeholder="vous@exemple.com" />
           {error && <p className="text-[0.8rem] text-red-500">{error}</p>}
           <div className="mt-3 flex justify-between items-center">
             <button type="button" onClick={() => navigate('/login')}
                     className="text-[0.78rem] text-text-muted hover:text-primary">
-              Retour à la connexion
+              {t('s.retour_a_la_connexion')}
             </button>
-            <Button type="primary" loading={busy} onClick={send}>Envoyer le lien</Button>
+            <Button type="primary" loading={busy} onClick={send}>{t('s.envoyer_le_lien')}</Button>
           </div>
         </>
       )}

@@ -1,3 +1,4 @@
+import { useT } from '../../i18n/I18nContext';
 import React, { useEffect, useMemo, useState } from 'react';
 import { BankOutlined, ShopOutlined, TeamOutlined, CheckCircleOutlined, StopOutlined } from '@ant-design/icons';
 import { Panel, StatsCard, Widget, WidgetRow } from '../ui';
@@ -5,6 +6,7 @@ import { fetchCompanyActivity } from '../../services/operationsService';
 
 /** Vue d'ensemble du parc : ce que l'exploitant regarde en premier. */
 const PlatformOverview = ({ companies, loading, onGoToCompanies }) => {
+  const t = useT();
   // L'activité vient d'une fonction agrégée côté base : compter en JavaScript
   // exigerait de rapatrier toutes les ventes de toutes les entreprises.
   const [activity, setActivity] = useState({});
@@ -43,11 +45,11 @@ const PlatformOverview = ({ companies, loading, onGoToCompanies }) => {
   return (
     <div className="animate-fade-in space-y-4">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-        <StatsCard icon={BankOutlined} label="Entreprises" value={totals.companies} accentColor="#6366f1" />
-        <StatsCard icon={CheckCircleOutlined} label="Actives" value={totals.active} accentColor="#10b981" />
-        <StatsCard icon={StopOutlined} label="Suspendues" value={totals.suspended} accentColor="#ef4444" />
-        <StatsCard icon={ShopOutlined} label="Magasins" value={totals.stores} accentColor="#3b82f6" />
-        <StatsCard icon={TeamOutlined} label="Utilisateurs" value={totals.members} accentColor="#8b5cf6" />
+        <StatsCard icon={BankOutlined} label={t('s.entreprises')} value={totals.companies} accentColor="#6366f1" />
+        <StatsCard icon={CheckCircleOutlined} label={t('s.actives')} value={totals.active} accentColor="#10b981" />
+        <StatsCard icon={StopOutlined} label={t('s.suspendues')} value={totals.suspended} accentColor="#ef4444" />
+        <StatsCard icon={ShopOutlined} label={t('s.magasins')} value={totals.stores} accentColor="#3b82f6" />
+        <StatsCard icon={TeamOutlined} label={t('s.utilisateurs')} value={totals.members} accentColor="#8b5cf6" />
       </div>
 
       {dormant.length > 0 && (
@@ -61,8 +63,8 @@ const PlatformOverview = ({ companies, loading, onGoToCompanies }) => {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Widget
-          title="Dernières entreprises créées" icon={BankOutlined} accentColor="#6366f1"
-          items={recent} onSeeMore={onGoToCompanies} seeMoreLabel="Toutes les entreprises"
+          title={t('s.dernieres_entreprises_creees')} icon={BankOutlined} accentColor="#6366f1"
+          items={recent} onSeeMore={onGoToCompanies} seeMoreLabel={t('s.toutes_les_entreprises')}
           emptyText="Aucune entreprise pour le moment"
           renderItem={(c) => (
             <WidgetRow
@@ -75,8 +77,8 @@ const PlatformOverview = ({ companies, loading, onGoToCompanies }) => {
         />
 
         <Widget
-          title="Entreprises les plus actives" icon={TeamOutlined} accentColor="#8b5cf6"
-          items={biggest} onSeeMore={onGoToCompanies} seeMoreLabel="Toutes les entreprises"
+          title={t('s.entreprises_les_plus_actives')} icon={TeamOutlined} accentColor="#8b5cf6"
+          items={biggest} onSeeMore={onGoToCompanies} seeMoreLabel={t('s.toutes_les_entreprises')}
           emptyText="Aucune entreprise pour le moment"
           renderItem={(c) => (
             <WidgetRow
@@ -84,7 +86,7 @@ const PlatformOverview = ({ companies, loading, onGoToCompanies }) => {
               sub={`${c.storeCount} magasin${c.storeCount > 1 ? 's' : ''} · ${activity[c.id]?.sales_30d || 0} ventes / 30j`}
               value={activity[c.id]?.last_login_at
                 ? `Vu le ${new Date(activity[c.id].last_login_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })}`
-                : 'Jamais connecté'}
+                : t('s.jamais_connecte')}
               valueClassName={activity[c.id]?.last_login_at ? 'text-primary' : 'text-amber-500'}
             />
           )}
@@ -92,7 +94,7 @@ const PlatformOverview = ({ companies, loading, onGoToCompanies }) => {
       </div>
 
       {loading && (
-        <Panel><p className="py-4 text-center text-[0.82rem] text-text-muted">Chargement…</p></Panel>
+        <Panel><p className="py-4 text-center text-[0.82rem] text-text-muted">{t('s.chargement')}</p></Panel>
       )}
     </div>
   );

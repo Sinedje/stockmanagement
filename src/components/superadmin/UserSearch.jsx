@@ -1,3 +1,4 @@
+import { useT } from '../../i18n/I18nContext';
 import React, { useState } from 'react';
 import { Tag, message } from 'antd';
 import { TeamOutlined, MailOutlined, StopOutlined, CheckCircleOutlined } from '@ant-design/icons';
@@ -20,6 +21,7 @@ const ROLE_LABEL = {
  * identifiant, adresse ou entreprise, puis on agit directement.
  */
 const UserSearch = () => {
+  const t = useT();
   const { currentUser } = useAuth();
   const [term, setTerm] = useState('');
   const [rows, setRows] = useState([]);
@@ -37,7 +39,7 @@ const UserSearch = () => {
 
   const columns = [
     {
-      key: 'name', title: 'Utilisateur',
+      key: 'name', title: t('s.utilisateur'),
       render: (v, row) => (
         <div className="min-w-0">
           <div className="text-[0.82rem] font-medium text-text-heading truncate">{v}</div>
@@ -46,12 +48,12 @@ const UserSearch = () => {
       ),
     },
     {
-      key: 'company_name', title: 'Entreprise',
+      key: 'company_name', title: t('s.entreprise'),
       render: (v) => <span className="text-[0.78rem] text-text-secondary">{v || 'Plateforme'}</span>,
     },
-    { key: 'role', title: 'Rôle', render: (v) => <span className="text-[0.76rem]">{ROLE_LABEL[v] || v}</span> },
+    { key: 'role', title: t('s.role'), render: (v) => <span className="text-[0.76rem]">{ROLE_LABEL[v] || v}</span> },
     {
-      key: 'last_login_at', title: 'Dernière connexion',
+      key: 'last_login_at', title: t('s.derniere_connexion'),
       render: (v) => (
         <span className="text-[0.76rem] tabular-nums whitespace-nowrap text-text-secondary">
           {v ? new Date(v).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Jamais'}
@@ -59,7 +61,7 @@ const UserSearch = () => {
       ),
     },
     {
-      key: 'is_active', title: 'Statut',
+      key: 'is_active', title: t('s.statut'),
       render: (v) => <Tag color={v ? 'green' : 'red'} bordered={false}>{v ? 'Actif' : 'Suspendu'}</Tag>,
     },
     {
@@ -72,10 +74,10 @@ const UserSearch = () => {
                       await sendMemberPasswordReset(row.email);
                       await recordAudit({ actor: currentUser, companyId: row.company_id,
                         companyName: row.company_name, action: 'member.password_reset_sent', target: row.name });
-                      message.success('Lien envoyé.');
+                      message.success(t('s.lien_envoye'));
                     } catch (err) { message.error(err.message); }
                   }}>
-            Réinitialiser
+            {t('s.reinitialiser')}
           </Button>
           <Button danger={row.is_active} icon={row.is_active ? <StopOutlined /> : <CheckCircleOutlined />}
                   disabled={row.role === 'superadmin'}
@@ -88,7 +90,7 @@ const UserSearch = () => {
                       run(term);
                     } catch (err) { message.error(err.message); }
                   }}>
-            {row.is_active ? 'Suspendre' : 'Réactiver'}
+            {row.is_active ? 'Suspendre' : t('s.reactiver')}
           </Button>
         </div>
       ),
@@ -97,9 +99,9 @@ const UserSearch = () => {
 
   return (
     <div className="animate-fade-in space-y-4">
-      <Toolbar right={<Button type="primary" loading={loading} onClick={() => run(term)}>Rechercher</Button>}>
+      <Toolbar right={<Button type="primary" loading={loading} onClick={() => run(term)}>{t('s.rechercher_2')}</Button>}>
         <SearchInput value={term} onChange={setTerm} width={320}
-                     placeholder="Nom, identifiant, e-mail ou entreprise…"
+                     placeholder={t('s.nom_identifiant_e_mail_ou_entreprise')}
                      onPressEnter={() => run(term)} />
         {searched && <span className="text-[0.72rem] text-text-muted tabular-nums pl-1">{rows.length} résultats</span>}
       </Toolbar>
@@ -107,10 +109,10 @@ const UserSearch = () => {
       <Panel noPadding>
         <Table columns={columns} data={rows} loading={loading} rowKey="id"
                emptyIcon={TeamOutlined}
-               emptyTitle={searched ? 'Aucun résultat' : 'Rechercher un utilisateur'}
+               emptyTitle={searched ? t('s.aucun_resultat') : t('s.rechercher_un_utilisateur')}
                emptyDescription={searched
-                 ? 'Aucun compte ne correspond à cette recherche.'
-                 : 'Saisissez un nom, un e-mail ou une entreprise, puis lancez la recherche.'} />
+                 ? t('s.aucun_compte_ne_correspond_a_cette_recherche')
+                 : t('s.saisissez_un_nom_un_e_mail_ou_une_entreprise')} />
       </Panel>
     </div>
   );
