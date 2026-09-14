@@ -160,3 +160,12 @@
 @media (max-width: 480px) {
   .login-card { padding: 1.75rem 1.25rem; border-radius: 0.85rem; }
 }
+
+/* Même place que le lien « mot de passe oublié », mais sans action : l'employé
+   n'a personne à qui écrire, seulement quelqu'un à qui parler. */
+.login-hint {
+  margin-top: 14px;
+  text-align: center;
+  font-size: 0.78rem;
+  color: var(--color-text-muted, #6b7280);
+}

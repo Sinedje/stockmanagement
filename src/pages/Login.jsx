@@ -126,7 +126,15 @@ const Login = ({ company = null }) => {
           {loading ? 'Connexion…' : 'Se connecter'}
         </Button>
 
-        {isSupabaseConfigured && (
+        {/* Un employé se connecte avec une adresse interne .local, à laquelle
+            aucun message ne peut parvenir : lui proposer un lien par e-mail
+            l'enverrait attendre pour rien. Son administrateur lui redonne un
+            mot de passe depuis la gestion de l'équipe. */}
+        {company ? (
+          <p className="login-hint">
+            Mot de passe oublié ? Demandez-le à votre responsable.
+          </p>
+        ) : isSupabaseConfigured && (
           <button
             type="button"
             className="login-link"

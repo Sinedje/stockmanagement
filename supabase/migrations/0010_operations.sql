@@ -55,7 +55,7 @@ begin
     coalesce(p_sale->>'delivery_status', 'pending'),
     coalesce(p_sale->>'status', 'completed'),
     coalesce(p_sale->>'type', 'sale'),
-    p_sale->>'original_invoice_number'
+    coalesce(p_sale->>'original_invoice_number', '')
   )
   returning id into v_sale_id;
 
