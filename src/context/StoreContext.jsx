@@ -12,6 +12,8 @@ import { fetchBreakages } from '../services/breakageService';
 import { fetchRepackagings } from '../services/breakageService';
 import { fetchCompanySettings, updateCompanySettings as apiUpdateCompanySettings } from '../services/settingsService';
 import { putCache, getCache } from '../offline/cache';
+import { subscribeToChanges } from '../services/realtime';
+import { hasSupabaseSession } from '../services/supabaseData';
 import { fetchExpenses, fetchVersements, fetchCashReports } from '../services/saleService';
 
 const StoreContext = createContext();
@@ -26,6 +28,17 @@ export const StoreProvider = ({ children }) => {
   // This keeps full backward-compat with components that use useStore().currentUser
   const authCtx = useContext(AuthContext);
   const currentUser = authCtx?.currentUser ?? null;
+  // Mongo renvoie `_id` et parfois un `storeId` peuplé ; Supabase renvoie des
+  // uuid plats. L'application ne connaît que `id` et un `storeId` en chaîne.
+  const norm = React.useCallback((arr) => {
+    if (!Array.isArray(arr)) return arr;
+    return arr.map((item) => ({
+      ...item,
+      id: item._id ? String(item._id) : item.id,
+      storeId: item.storeId ? String(item.storeId._id || item.storeId.id || item.storeId) : item.storeId,
+    }));
+  }, []);
+
   const [stores, setStores] = useState([]);
   const [activeStoreId, setActiveStoreId] = useState(null);
   const [categories, setCategories] = useState([]);
@@ -98,16 +111,6 @@ export const StoreProvider = ({ children }) => {
 
     if (loadedForUserRef.current === currentUser.id) return;
     loadedForUserRef.current = currentUser.id;
-
-    // Normalize MongoDB _id → id and storeId so all components work transparently
-    const norm = (arr) => {
-      if (!Array.isArray(arr)) return arr;
-      return arr.map(item => ({
-        ...item,
-        id: item._id ? String(item._id) : item.id,
-        storeId: item.storeId ? String(item.storeId._id || item.storeId.id || item.storeId) : item.storeId
-      }));
-    };
 
     // Chaque entrée : [clé, requête, rôles autorisés (undefined = tous)].
     // Les rôles qui n'exploitent pas une ressource ne la demandent pas : cela
@@ -198,6 +201,83 @@ export const StoreProvider = ({ children }) => {
     };
 
     loadData();
+  }, [currentUser]);
+
+
+  /* ── Mise à jour en direct ────────────────────────────────────────────────
+   *
+   * Sans cela, l'écran restait figé sur l'état du moment de la connexion :
+   * une vente encaissée au comptoir n'apparaissait pas chez le gérant, et deux
+   * caissières pouvaient vendre le même dernier article. Les changements
+   * arrivent par WebSocket, déjà filtrés par la RLS.
+   */
+  const [liveStatus, setLiveStatus] = useState('idle');
+
+  React.useEffect(() => {
+    if (!currentUser) return undefined;
+    let stop = () => {};
+    let cancelled = false;
+
+    // Une ressource composée est rechargée entière : reconstruire une vente à
+    // partir d'événements séparés sur trois tables donnerait un état faux au
+    // premier message manqué.
+    const pending = new Set();
+    let timer = null;
+    const reloadComposed = (key) => {
+      pending.add(key);
+      clearTimeout(timer);
+      // Une vente émet plusieurs événements d'affilée (en-tête, lignes,
+      // règlements) : on attend qu'ils soient tous passés.
+      timer = setTimeout(async () => {
+        const todo = [...pending];
+        pending.clear();
+        for (const k of todo) {
+          try {
+            if (k === 'sales') setAllSales(norm(await fetchSales()));
+            else if (k === 'transfers') setTransfers(norm(await fetchTransfers()));
+            else if (k === 'stockEntries') setStockEntries(norm(await fetchStockEntries()));
+          } catch (err) { console.warn(`temps réel [${k}] :`, err?.message); }
+        }
+      }, 400);
+    };
+
+    const applyRow = ({ table, event, row, old }) => {
+      const id = row?.id ?? old?.id;
+      if (!id) return;
+      const upsert = (setter) => setter((prev) => {
+        if (event === 'DELETE') return prev.filter((x) => x.id !== id);
+        const next = { ...row, id };
+        return prev.some((x) => x.id === id)
+          ? prev.map((x) => (x.id === id ? { ...x, ...next } : x))
+          : [...prev, next];
+      });
+      switch (table) {
+        case 'stores': return upsert(setStores);
+        case 'products': return upsert(setAllProducts);
+        case 'customers': return upsert(setCustomers);
+        case 'customer_transactions': return upsert(setCustomerTransactions);
+        case 'expenses': return upsert(setExpenses);
+        case 'versements': return upsert(setVersements);
+        case 'cash_reports': return upsert(setCashReports);
+        case 'breakages': return upsert(setBreakages);
+        case 'repackagings': return upsert(setRepackagings);
+        case 'profiles': return upsert(setUsers);
+        // Les catégories sont déduites du catalogue côté écran : c'est le
+        // changement des produits qui les met à jour, pas cette table.
+        default: return undefined;
+      }
+    };
+
+    hasSupabaseSession().then((live) => {
+      if (!live || cancelled) return;
+      stop = subscribeToChanges({
+        onRow: applyRow,
+        onComposed: reloadComposed,
+        onStatus: setLiveStatus,
+      });
+    });
+
+    return () => { cancelled = true; clearTimeout(timer); stop(); };
   }, [currentUser]);
 
   // Hydrate per-cashier cash fund state whenever the logged-in user changes
@@ -1288,6 +1368,7 @@ export const StoreProvider = ({ children }) => {
     repackagings, createRepackaging,
     // Company Settings
     companySettings, updateCompanySettings,
+    liveStatus,
     usingCachedData,
     // Theme Settings
     theme, toggleTheme
