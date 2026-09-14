@@ -7,6 +7,9 @@ import dotenv from 'dotenv';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+// `.env.local` d'abord : dotenv ne réécrit jamais une variable déjà posée,
+// donc le fichier local (ignoré par git) l'emporte sur le `.env` du dépôt.
+dotenv.config({ path: path.resolve(__dirname, '../.env.local') });
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
 import express from 'express';
