@@ -3,11 +3,13 @@
  * Stores, transfers, stock entries, and inventory API calls.
  */
 import api from './api';
+import { hasSupabaseSession, fetchStores as sbStores, fetchTransfers as sbTransfers, fetchStockEntries as sbStockEntries } from './supabaseData';
 
 const simulateDelay = (ms = 200) => new Promise((r) => setTimeout(r, ms));
 
 // ── Stores ────────────────────────────────────────────────────
 export const fetchStores = async () => {
+  if (await hasSupabaseSession()) return sbStores();
   if (import.meta.env.VITE_API_URL) {
     const response = await api.get('/stores');
     return response.data;
@@ -44,6 +46,7 @@ export const deleteStore = async (id) => {
 
 // ── Transfers ─────────────────────────────────────────────────
 export const fetchTransfers = async () => {
+  if (await hasSupabaseSession()) return sbTransfers();
   if (import.meta.env.VITE_API_URL) {
     const response = await api.get('/transfers');
     return response.data;
@@ -72,6 +75,7 @@ export const receiveTransfer = async (transferId, receivedBy) => {
 
 // ── Stock entries ─────────────────────────────────────────────
 export const fetchStockEntries = async (storeId) => {
+  if (await hasSupabaseSession()) return sbStockEntries();
   if (import.meta.env.VITE_API_URL) {
     const response = await api.get('/stock-entries', { params: { storeId } });
     return response.data;

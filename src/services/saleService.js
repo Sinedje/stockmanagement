@@ -3,10 +3,12 @@
  * All sales, invoices, expenses, versements and returns API calls.
  */
 import api from './api';
+import { hasSupabaseSession, fetchSales as sbSales, fetchExpenses as sbExpenses, fetchVersements as sbVersements, fetchCashReports as sbCashReports } from './supabaseData';
 
 const simulateDelay = (ms = 200) => new Promise((r) => setTimeout(r, ms));
 
 export const fetchSales = async (filters = {}) => {
+  if (await hasSupabaseSession()) return sbSales();
   if (import.meta.env.VITE_API_URL) {
     const response = await api.get('/sales', { params: filters });
     return response.data;
@@ -89,6 +91,7 @@ export const unlockDelivery = async (saleId) => {
 
 // ── Expenses ──────────────────────────────────────────────────
 export const fetchExpenses = async () => {
+  if (await hasSupabaseSession()) return sbExpenses();
   if (import.meta.env.VITE_API_URL) {
     const response = await api.get('/expenses');
     return response.data;
@@ -108,6 +111,7 @@ export const createExpense = async (expenseData) => {
 
 // ── Versements (cash handover) ────────────────────────────────
 export const fetchVersements = async () => {
+  if (await hasSupabaseSession()) return sbVersements();
   if (import.meta.env.VITE_API_URL) {
     const response = await api.get('/versements');
     return response.data;
@@ -127,6 +131,7 @@ export const createVersement = async (versementData) => {
 
 // ── Cash session ──────────────────────────────────────────────
 export const fetchCashReports = async () => {
+  if (await hasSupabaseSession()) return sbCashReports();
   if (import.meta.env.VITE_API_URL) {
     const response = await api.get('/cash/reports');
     return response.data;

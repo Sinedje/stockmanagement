@@ -6,10 +6,12 @@
  * Otherwise, operations are simulated in-memory (local state is managed by the hook).
  */
 import api from './api';
+import { hasSupabaseSession, fetchProducts as sbProducts, fetchCategories as sbCategories } from './supabaseData';
 
 const simulateDelay = (ms = 200) => new Promise((r) => setTimeout(r, ms));
 
 export const fetchProducts = async (storeId) => {
+  if (await hasSupabaseSession()) return sbProducts(storeId);
   if (import.meta.env.VITE_API_URL) {
     const response = await api.get('/products', { params: { storeId } });
     return response.data;
@@ -65,6 +67,7 @@ export const bulkUpdateStock = async (items, entryMeta) => {
 };
 
 export const fetchCategories = async () => {
+  if (await hasSupabaseSession()) return sbCategories();
   if (import.meta.env.VITE_API_URL) {
     const response = await api.get('/categories');
     return response.data;

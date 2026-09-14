@@ -3,10 +3,12 @@
  * API calls for Casses (breakages) and Reconditionnements (repackagings).
  */
 import api from './api';
+import { hasSupabaseSession, fetchBreakages as sbBreakages, fetchRepackagings as sbRepackagings } from './supabaseData';
 
 const simulateDelay = (ms = 200) => new Promise((r) => setTimeout(r, ms));
 
 export const fetchBreakages = async () => {
+  if (await hasSupabaseSession()) return sbBreakages();
   if (import.meta.env.VITE_API_URL) {
     const response = await api.get('/breakages');
     return response.data;
@@ -25,6 +27,7 @@ export const createBreakage = async (breakageData) => {
 };
 
 export const fetchRepackagings = async () => {
+  if (await hasSupabaseSession()) return sbRepackagings();
   if (import.meta.env.VITE_API_URL) {
     const response = await api.get('/repackagings');
     return response.data;

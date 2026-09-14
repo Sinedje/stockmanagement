@@ -3,10 +3,12 @@
  * User management API calls.
  */
 import api from './api';
+import { hasSupabaseSession, fetchUsers as sbUsers } from './supabaseData';
 
 const simulateDelay = (ms = 200) => new Promise((r) => setTimeout(r, ms));
 
 export const fetchUsers = async () => {
+  if (await hasSupabaseSession()) return sbUsers();
   if (import.meta.env.VITE_API_URL) {
     const response = await api.get('/users');
     return response.data;
