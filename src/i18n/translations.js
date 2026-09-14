@@ -122,6 +122,7 @@ export const translations = {
 
 
 
+
     // — Chaînes des écrans (extraites automatiquement) —
     's.2_articles_a_transferer': '2. Articles à transférer',
     's.8_caracteres_minimum': '8 caractères minimum',
@@ -603,6 +604,7 @@ export const translations = {
     's.nom_complet': 'Nom Complet',
     's.nom_complet_2': 'Nom complet',
     's.nom_complet_3': 'Nom complet *',
+    's.nom_d_utilisateur': 'Nom d\'utilisateur',
     's.nom_de_l_entreprise': 'Nom de l\'entreprise',
     's.nom_du_client': 'Nom du client',
     's.nom_du_fournisseur': 'Nom du fournisseur',
@@ -687,6 +689,7 @@ export const translations = {
     's.produit': 'Produit',
     's.produit_endommage': 'Produit Endommagé',
     's.produits_au_catalogue': 'Produits au catalogue',
+    's.profil_mis_a_jour': 'Profil mis à jour.',
     's.profil_mis_a_jour_rechargez_pour_voir_le_cha': 'Profil mis à jour. Rechargez pour voir le changement partout.',
     's.qte': 'Qté',
     's.qte_creee': 'Qté Créée',
@@ -1039,6 +1042,7 @@ export const translations = {
     'cash.month': 'Month',
     'cash.opening': 'Cash drawer opening',
     'cash.start': 'Open my drawer',
+
 
 
 
@@ -1528,6 +1532,7 @@ export const translations = {
     's.nom_complet': 'Full name',
     's.nom_complet_2': 'Full name',
     's.nom_complet_3': 'Full name *',
+    's.nom_d_utilisateur': 'Username',
     's.nom_de_l_entreprise': 'Company name',
     's.nom_du_client': 'Customer name',
     's.nom_du_fournisseur': 'Supplier name',
@@ -1612,6 +1617,7 @@ export const translations = {
     's.produit': 'Product',
     's.produit_endommage': 'Damaged product',
     's.produits_au_catalogue': 'Products in catalogue',
+    's.profil_mis_a_jour': 'Profile updated.',
     's.profil_mis_a_jour_rechargez_pour_voir_le_cha': 'Profile updated. Reload to see the change everywhere.',
     's.qte': 'Qty',
     's.qte_creee': 'Qty created',

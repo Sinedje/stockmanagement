@@ -3,6 +3,7 @@ import { useSettings } from '../../hooks';
 import { useI18n } from '../../i18n/I18nContext';
 import { LANGUAGES } from '../../i18n/translations';
 import { Panel, Select } from '../ui';
+import MyAccountPanel from '../account/MyAccountPanel';
 import { CheckCircleOutlined, FileTextOutlined, GlobalOutlined, NumberOutlined, PhoneOutlined, SettingOutlined, ShopOutlined } from '@ant-design/icons';
 import { message } from 'antd';
 
@@ -32,6 +33,8 @@ const CompanySettings = () => {
 
   return (
     <div className="space-y-4 animate-fade-in pb-10">
+      <MyAccountPanel />
+
       <Panel icon={GlobalOutlined} title={t('common.language')} subtitle={t('common.languageHint')}>
         <Select
           value={language}
