@@ -11,6 +11,10 @@ import StorekeeperDashboard from './pages/StorekeeperDashboard';
 import CEODashboard from './pages/CEODashboard';
 import SuperAdminDashboard from './pages/SuperAdminDashboard';
 import { fetchCompanyBySlug } from './services/memberService';
+import { NotificationsProvider } from './notifications/NotificationsContext';
+import DashboardLayout from './components/layouts/DashboardLayout';
+import { useT } from './i18n/I18nContext';
+import NotificationsPanel from './notifications/NotificationsPanel';
 import PlatformSetup from './pages/PlatformSetup';
 import ResetPassword from './pages/ResetPassword';
 import MentionsLegales from './pages/legal/MentionsLegales';
@@ -33,6 +37,22 @@ const ProtectedRoute = ({ children }) => {
   if (!currentUser) return <Navigate to="/login" replace />;
 
   return children;
+};
+
+/**
+ * Les notifications dans l'habillage du rôle courant.
+ *
+ * Elles ne sont pas une section de tableau de bord — chaque rôle a son propre
+ * menu — mais elles doivent garder la barre latérale et l'en-tête, sans quoi on
+ * y arrive comme dans une impasse.
+ */
+const NotificationsShell = () => {
+  const t = useT();
+  return (
+    <DashboardLayout title={t('s.notifications')} subtitle={t('s.tout_ce_qui_vous_concerne')} showSidebar={false}>
+      <NotificationsPanel />
+    </DashboardLayout>
+  );
 };
 
 /**
@@ -115,6 +135,11 @@ const AppRoutes = () => {
       {/* « / » renvoie vers la section d'accueil du rôle. */}
       <Route path="/" element={<Navigate to={home} replace />} />
 
+      {/* Historique des notifications du compte, commun à tous les rôles. */}
+      <Route path="/notifications" element={
+        <ProtectedRoute><NotificationsShell /></ProtectedRoute>
+      } />
+
       {/* Une seule route pour toutes les pages : /articles, /inventory, /stock-entry…
           Déconnecté, le même segment peut désigner une entreprise : /feu-flamenco
           ouvre alors sa page de connexion. */}
@@ -192,8 +217,10 @@ const ThemeAppWrapper = () => {
     >
       <I18nProvider language={language} onChangeLanguage={handleLanguageChange}>
         <Router>
-          <AppRoutes />
-          <UpdatePrompt />
+          <NotificationsProvider>
+            <AppRoutes />
+            <UpdatePrompt />
+          </NotificationsProvider>
         </Router>
       </I18nProvider>
     </ConfigProvider>

@@ -7,6 +7,7 @@ import { disabledSections } from '../../config/features';
 import { useAuth } from '../../context/AuthContext';
 import { LogoutOutlined, MenuOutlined, UserOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
+import NotificationBell from '../../notifications/NotificationBell';
 
 const DashboardLayout = ({
   children,
@@ -90,6 +91,10 @@ const DashboardLayout = ({
             </div>
 
             <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+              {/* La cloche est au même endroit pour tout le monde : chacun y
+                  trouve ce qui le concerne, personne n'a à l'apprendre deux fois. */}
+              <div className="print:hidden"><NotificationBell /></div>
+
               {headerActions && (
                 <div className="flex items-center gap-2 animate-fade-in print:hidden">
                   {headerActions}

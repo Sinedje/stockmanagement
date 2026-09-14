@@ -8,7 +8,6 @@ import CompanyWizard from '../components/superadmin/CompanyWizard';
 import CompanyDetail from '../components/superadmin/CompanyDetail';
 import PlatformOverview from '../components/superadmin/PlatformOverview';
 import PlatformSettingsPanel from '../components/superadmin/PlatformSettingsPanel';
-import NotificationCenter from '../components/superadmin/NotificationCenter';
 import UserSearch from '../components/superadmin/UserSearch';
 import AuditTable from '../components/superadmin/AuditTable';
 import { useSectionRoute } from '../routes/sections';
@@ -165,7 +164,6 @@ const SuperAdminDashboard = () => {
       onItemClick={setActiveTab}
       title={TITLES[activeTab]}
       subtitle={SUBTITLES[activeTab]}
-      headerActions={<NotificationCenter />}
     >
       {!isSupabaseConfigured ? (
         <Panel title={t('s.supabase_non_configure')} icon={GlobalOutlined}>
