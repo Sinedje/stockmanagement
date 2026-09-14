@@ -44,8 +44,13 @@ Deno.serve(async (req) => {
     const asCaller = createClient(url, Deno.env.get('SUPABASE_ANON_KEY')!, {
       global: { headers: { Authorization: authHeader } },
     });
+    // Le profil doit être cherché par l'identifiant du porteur du jeton : la
+    // RLS laisse un PDG voir toute son équipe, si bien qu'un .single() sans
+    // filtre échouait dès la deuxième personne inscrite.
+    const { data: { user: caller } } = await asCaller.auth.getUser();
+    if (!caller) return json({ error: 'Session invalide' }, 401);
     const { data: me } = await asCaller
-      .from('profiles').select('id, role, company_id').single();
+      .from('profiles').select('id, role, company_id').eq('id', caller.id).single();
     if (!me) return json({ error: 'Profil introuvable' }, 403);
 
     const isSuperadmin = me.role === 'superadmin';

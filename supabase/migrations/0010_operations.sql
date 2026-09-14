@@ -51,7 +51,7 @@ begin
     coalesce(p_sale->>'customer_phone', ''),
     coalesce((p_sale->>'amount_paid')::numeric, 0),
     coalesce((p_sale->>'amount_due')::numeric, 0),
-    coalesce(p_sale->>'payment_status', 'paid'),
+    coalesce(p_sale->>'payment_status', 'fully_paid'),
     coalesce(p_sale->>'delivery_status', 'pending'),
     coalesce(p_sale->>'status', 'completed'),
     coalesce(p_sale->>'type', 'sale'),
@@ -165,7 +165,10 @@ begin
      set amount_paid = v_paid,
          amount_due = greatest(v_total - v_paid, 0),
          payment_status = case
-           when v_paid >= v_total then 'paid'
+           -- Les valeurs admises par la contrainte de `sales` : fully_paid,
+           -- partial, unpaid. « paid » la violait et faisait échouer le
+           -- règlement qui soldait la facture, jamais les précédents.
+           when v_paid >= v_total then 'fully_paid'
            when v_paid > 0 then 'partial'
            else 'unpaid' end,
          updated_at = now()

@@ -35,7 +35,12 @@ Deno.serve(async (req) => {
     const asCaller = createClient(url, Deno.env.get('SUPABASE_ANON_KEY')!, {
       global: { headers: { Authorization: authHeader } },
     });
-    const { data: me } = await asCaller.from('profiles').select('role').single();
+    const { data: { user: caller } } = await asCaller.auth.getUser();
+    if (!caller) return json({ error: 'Session invalide' }, 401);
+    // Filtré sur l'appelant : la RLS du superadmin lui montre tous les profils,
+    // et un .single() sans filtre échoue dès qu'il y en a plus d'un.
+    const { data: me } = await asCaller
+      .from('profiles').select('role').eq('id', caller.id).single();
     if (me?.role !== 'superadmin') return json({ error: 'Réservé au superadmin' }, 403);
 
     const { company, admin } = await req.json();
