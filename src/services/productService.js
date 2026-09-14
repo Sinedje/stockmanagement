@@ -6,7 +6,7 @@
  * Otherwise, operations are simulated in-memory (local state is managed by the hook).
  */
 import api from './api';
-import { hasSupabaseSession, fetchProducts as sbProducts, fetchCategories as sbCategories } from './supabaseData';
+import { hasSupabaseSession, fetchProducts as sbProducts, fetchCategories as sbCategories , createProduct as sbCreateProduct, importProducts as sbImportProducts, updateProduct as sbUpdateProduct, deleteProduct as sbDeleteProduct, createCategory as sbCreateCategory } from './supabaseData';
 
 const simulateDelay = (ms = 200) => new Promise((r) => setTimeout(r, ms));
 
@@ -21,6 +21,7 @@ export const fetchProducts = async (storeId) => {
 };
 
 export const createProduct = async (productData) => {
+  if (await hasSupabaseSession()) return sbCreateProduct(productData);
   if (import.meta.env.VITE_API_URL) {
     const response = await api.post('/products', productData);
     return response.data;
@@ -30,6 +31,7 @@ export const createProduct = async (productData) => {
 };
 
 export const importProducts = async (productsData) => {
+  if (await hasSupabaseSession()) return sbImportProducts(productsData);
   if (import.meta.env.VITE_API_URL) {
     const response = await api.post('/products/import', { products: productsData });
     return response.data;
@@ -39,6 +41,7 @@ export const importProducts = async (productsData) => {
 };
 
 export const updateProduct = async (id, updates) => {
+  if (await hasSupabaseSession()) return sbUpdateProduct(id, updates);
   if (import.meta.env.VITE_API_URL) {
     const response = await api.put(`/products/${id}`, updates);
     return response.data;
@@ -48,6 +51,7 @@ export const updateProduct = async (id, updates) => {
 };
 
 export const deleteProduct = async (id) => {
+  if (await hasSupabaseSession()) return sbDeleteProduct(id);
   if (import.meta.env.VITE_API_URL) {
     await api.delete(`/products/${id}`);
   }
@@ -77,6 +81,7 @@ export const fetchCategories = async () => {
 };
 
 export const createCategory = async (name) => {
+  if (await hasSupabaseSession()) return sbCreateCategory(name);
   if (import.meta.env.VITE_API_URL) {
     const response = await api.post('/categories', { name });
     return response.data;

@@ -128,3 +128,170 @@ export const fetchCompanySettings = async () => {
   if (error) throw new Error(`companies : ${error.message}`);
   return data ? camelize(data) : null;
 };
+
+/* ═══ Écritures ══════════════════════════════════════════════════════════════
+ *
+ * Les tables métier exigent `company_id` : la RLS vérifie qu'il correspond à
+ * celui de l'appelant, mais ne le renseigne pas. Il est résolu une fois puis
+ * conservé — il ne change pas au cours d'une session.
+ */
+
+let cachedCompanyId;
+
+export const currentCompanyId = async () => {
+  if (cachedCompanyId !== undefined) return cachedCompanyId;
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return (cachedCompanyId = null);
+  const { data } = await supabase.from('profiles').select('company_id').eq('id', user.id).single();
+  return (cachedCompanyId = data?.company_id ?? null);
+};
+
+/** À la déconnexion : l'entreprise du suivant n'est pas celle du précédent. */
+export const forgetCompany = () => { cachedCompanyId = undefined; };
+
+const toSnake = (s) => s.replace(/[A-Z]/g, (c) => '_' + c.toLowerCase());
+
+/**
+ * `physicalStock` → `physical_stock`, en écartant les champs que l'application
+ * transporte sans qu'ils existent en base (`items`, `image`, `id`…).
+ */
+const snakeize = (obj, drop = []) =>
+  Object.fromEntries(
+    Object.entries(obj)
+      .filter(([k, v]) => v !== undefined && !drop.includes(k))
+      .map(([k, v]) => [toSnake(k), v])
+  );
+
+const insertRow = async (table, row, { withCompany = true, drop = [] } = {}) => {
+  const payload = snakeize(row, ['id', '_id', ...drop]);
+  if (withCompany) payload.company_id = await currentCompanyId();
+  const { data, error } = await supabase.from(table).insert(payload).select().single();
+  if (error) throw new Error(error.message);
+  return camelize(data);
+};
+
+const updateRow = async (table, id, patch, { drop = [] } = {}) => {
+  const { data, error } = await supabase
+    .from(table).update(snakeize(patch, ['id', '_id', 'companyId', ...drop])).eq('id', id).select().single();
+  if (error) throw new Error(error.message);
+  return camelize(data);
+};
+
+const deleteRow = async (table, id) => {
+  const { error } = await supabase.from(table).delete().eq('id', id);
+  if (error) throw new Error(error.message);
+  return { id };
+};
+
+/* ── Catalogue ───────────────────────────────────────────────────────────── */
+
+export const createProduct = (p) => insertRow('products', p, { drop: ['image'] });
+export const updateProduct = (id, p) => updateRow('products', id, p, { drop: ['image'] });
+export const deleteProduct = (id) => deleteRow('products', id);
+
+/** Import en lot : une seule requête, sinon 300 articles font 300 allers-retours. */
+export const importProducts = async (rows) => {
+  const companyId = await currentCompanyId();
+  const payload = rows.map((p) => ({ ...snakeize(p, ['id', '_id', 'image']), company_id: companyId }));
+  const { data, error } = await supabase
+    .from('products').upsert(payload, { onConflict: 'store_id,name' }).select();
+  if (error) throw new Error(error.message);
+  return (data || []).map(camelize);
+};
+
+export const createCategory = (c) =>
+  insertRow('categories', typeof c === 'string' ? { name: c } : c);
+export const deleteCategory = (id) => deleteRow('categories', id);
+
+/* ── Magasins ────────────────────────────────────────────────────────────── */
+
+export const createStore = (s) => insertRow('stores', s);
+export const updateStore = (id, s) => updateRow('stores', id, s);
+export const deleteStore = (id) => deleteRow('stores', id);
+
+/* ── Équipe ──────────────────────────────────────────────────────────────── */
+
+/** Le compte Auth ne bouge pas ici : seul le profil est modifiable sans la clé service. */
+export const updateUser = (id, patch) =>
+  updateRow('profiles', id, patch, { drop: ['password', 'email', 'username'] });
+
+export const toggleUserStatus = async (id) => {
+  const { data: cur } = await supabase.from('profiles').select('is_active').eq('id', id).single();
+  return updateRow('profiles', id, { isActive: !cur?.is_active });
+};
+
+/* ── Clients ─────────────────────────────────────────────────────────────── */
+
+export const createCustomer = (c) => insertRow('customers', c);
+export const createCustomerTransaction = (tx) => insertRow('customer_transactions', tx);
+
+/* ── Caisse ──────────────────────────────────────────────────────────────── */
+
+export const createExpense = (e) => insertRow('expenses', e);
+export const createVersement = (v) => insertRow('versements', v);
+export const createCashReport = (r) => insertRow('cash_reports', r);
+export const updateCashReport = (id, r) => updateRow('cash_reports', id, r);
+
+/* ── Casses et reconditionnement ─────────────────────────────────────────── */
+
+export const createBreakage = (b) => insertRow('breakages', b);
+export const createRepackaging = (r) => insertRow('repackagings', r);
+
+/* ── Paramètres d'entreprise ─────────────────────────────────────────────── */
+
+export const updateCompanySettings = async (patch) => {
+  const companyId = await currentCompanyId();
+  // `language` est une préférence individuelle depuis 0008 : elle n'a rien à
+  // faire dans la fiche entreprise, où elle écraserait le choix de chacun.
+  return updateRow('companies', companyId, patch, { drop: ['language', 'slug', 'status'] });
+};
+
+/* ═══ Opérations composées ═══════════════════════════════════════════════════
+ *
+ * Vente, entrée de stock et transfert touchent plusieurs tables et le stock.
+ * Enchaînées depuis le navigateur, elles ne sont pas atomiques : une coupure
+ * réseau laisse une vente sans lignes, ou un stock décrémenté pour une vente
+ * qui n'existe pas. Elles passent donc par les fonctions de la migration 0010,
+ * où tout passe ou rien.
+ */
+
+const rpc = async (fn, args) => {
+  const { data, error } = await supabase.rpc(fn, args);
+  if (error) throw new Error(error.message);
+  return data;
+};
+
+/** Les lignes imbriquées passent en snake_case comme le reste de la charge. */
+const snakeDeep = (v) =>
+  Array.isArray(v) ? v.map(snakeDeep)
+  : v && typeof v === 'object' && !(v instanceof Date)
+    ? Object.fromEntries(Object.entries(v)
+        .filter(([, x]) => x !== undefined)
+        .map(([k, x]) => [toSnake(k), snakeDeep(x)]))
+  : v;
+
+export const createSale = async (sale) => {
+  const id = await rpc('create_sale', { p_sale: snakeDeep(sale) });
+  return { ...sale, id };
+};
+
+export const cancelSale = (saleId) => rpc('cancel_sale', { p_sale_id: saleId });
+
+export const recordPayment = (saleId, { amount, method, cashier, reference }) =>
+  rpc('record_payment', {
+    p_sale_id: saleId, p_amount: amount, p_method: method || 'cash',
+    p_cashier: cashier || '', p_reference: reference || '',
+  });
+
+export const createStockEntry = async (entry) => {
+  const id = await rpc('create_stock_entry', { p_entry: snakeDeep(entry) });
+  return { ...entry, id };
+};
+
+export const createTransfer = async (transfer) => {
+  const id = await rpc('create_transfer', { p_transfer: snakeDeep(transfer) });
+  return { ...transfer, id };
+};
+
+export const receiveTransfer = (transferId, receivedBy) =>
+  rpc('receive_transfer', { p_transfer_id: transferId, p_received_by: receivedBy || '' });

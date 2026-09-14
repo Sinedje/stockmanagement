@@ -3,7 +3,7 @@
  * User management API calls.
  */
 import api from './api';
-import { hasSupabaseSession, fetchUsers as sbUsers } from './supabaseData';
+import { hasSupabaseSession, fetchUsers as sbUsers , updateUser as sbUpdateUser, toggleUserStatus as sbToggleUserStatus } from './supabaseData';
 
 const simulateDelay = (ms = 200) => new Promise((r) => setTimeout(r, ms));
 
@@ -27,6 +27,7 @@ export const createUser = async (userData) => {
 };
 
 export const updateUser = async (id, updates) => {
+  if (await hasSupabaseSession()) return sbUpdateUser(id, updates);
   if (import.meta.env.VITE_API_URL) {
     const response = await api.put(`/users/${id}`, updates);
     return response.data;
@@ -36,6 +37,7 @@ export const updateUser = async (id, updates) => {
 };
 
 export const toggleUserStatus = async (id) => {
+  if (await hasSupabaseSession()) return sbToggleUserStatus(id);
   if (import.meta.env.VITE_API_URL) {
     const response = await api.patch(`/users/${id}/toggle-status`);
     return response.data;

@@ -3,7 +3,7 @@
  * All sales, invoices, expenses, versements and returns API calls.
  */
 import api from './api';
-import { hasSupabaseSession, fetchSales as sbSales, fetchExpenses as sbExpenses, fetchVersements as sbVersements, fetchCashReports as sbCashReports } from './supabaseData';
+import { hasSupabaseSession, fetchSales as sbSales, fetchExpenses as sbExpenses, fetchVersements as sbVersements, fetchCashReports as sbCashReports , createExpense as sbCreateExpense, createVersement as sbCreateVersement, createSale as sbCreateSale, cancelSale as sbCancelSale, recordPayment as sbRecordPayment } from './supabaseData';
 
 const simulateDelay = (ms = 200) => new Promise((r) => setTimeout(r, ms));
 
@@ -18,6 +18,7 @@ export const fetchSales = async (filters = {}) => {
 };
 
 export const createSale = async (saleData) => {
+  if (await hasSupabaseSession()) return sbCreateSale(saleData);
   if (import.meta.env.VITE_API_URL) {
     const response = await api.post('/sales', saleData);
     return response.data;
@@ -27,6 +28,7 @@ export const createSale = async (saleData) => {
 };
 
 export const createInvoiceSale = async (saleData) => {
+  if (await hasSupabaseSession()) return sbCreateSale(saleData);
   if (import.meta.env.VITE_API_URL) {
     const response = await api.post('/sales/invoice', saleData);
     return response.data;
@@ -36,6 +38,7 @@ export const createInvoiceSale = async (saleData) => {
 };
 
 export const cancelSale = async (saleId) => {
+  if (await hasSupabaseSession()) return sbCancelSale(saleId);
   if (import.meta.env.VITE_API_URL) {
     const response = await api.patch(`/sales/${saleId}/cancel`);
     return response.data;
@@ -45,6 +48,7 @@ export const cancelSale = async (saleId) => {
 };
 
 export const recordPayment = async (saleId, amount, method) => {
+  if (await hasSupabaseSession()) return sbRecordPayment(saleId, { amount, method });
   if (import.meta.env.VITE_API_URL) {
     const response = await api.post(`/sales/${saleId}/payment`, { amount, method });
     return response.data;
@@ -101,6 +105,7 @@ export const fetchExpenses = async () => {
 };
 
 export const createExpense = async (expenseData) => {
+  if (await hasSupabaseSession()) return sbCreateExpense(expenseData);
   if (import.meta.env.VITE_API_URL) {
     const response = await api.post('/expenses', expenseData);
     return response.data;
@@ -121,6 +126,7 @@ export const fetchVersements = async () => {
 };
 
 export const createVersement = async (versementData) => {
+  if (await hasSupabaseSession()) return sbCreateVersement(versementData);
   if (import.meta.env.VITE_API_URL) {
     const response = await api.post('/versements', versementData);
     return response.data;

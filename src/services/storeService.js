@@ -3,7 +3,7 @@
  * Stores, transfers, stock entries, and inventory API calls.
  */
 import api from './api';
-import { hasSupabaseSession, fetchStores as sbStores, fetchTransfers as sbTransfers, fetchStockEntries as sbStockEntries } from './supabaseData';
+import { hasSupabaseSession, fetchStores as sbStores, fetchTransfers as sbTransfers, fetchStockEntries as sbStockEntries , createStore as sbCreateStore, updateStore as sbUpdateStore, deleteStore as sbDeleteStore, createTransfer as sbCreateTransfer, receiveTransfer as sbReceiveTransfer, createStockEntry as sbCreateStockEntry } from './supabaseData';
 
 const simulateDelay = (ms = 200) => new Promise((r) => setTimeout(r, ms));
 
@@ -19,6 +19,7 @@ export const fetchStores = async () => {
 };
 
 export const createStore = async (storeData) => {
+  if (await hasSupabaseSession()) return sbCreateStore(storeData);
   if (import.meta.env.VITE_API_URL) {
     const response = await api.post('/stores', storeData);
     return response.data;
@@ -28,6 +29,7 @@ export const createStore = async (storeData) => {
 };
 
 export const updateStore = async (id, updates) => {
+  if (await hasSupabaseSession()) return sbUpdateStore(id, updates);
   if (import.meta.env.VITE_API_URL) {
     const response = await api.put(`/stores/${id}`, updates);
     return response.data;
@@ -37,6 +39,7 @@ export const updateStore = async (id, updates) => {
 };
 
 export const deleteStore = async (id) => {
+  if (await hasSupabaseSession()) return sbDeleteStore(id);
   if (import.meta.env.VITE_API_URL) {
     await api.delete(`/stores/${id}`);
   }
@@ -56,6 +59,7 @@ export const fetchTransfers = async () => {
 };
 
 export const createTransfer = async (transferData) => {
+  if (await hasSupabaseSession()) return sbCreateTransfer(transferData);
   if (import.meta.env.VITE_API_URL) {
     const response = await api.post('/transfers', transferData);
     return response.data;
@@ -65,6 +69,7 @@ export const createTransfer = async (transferData) => {
 };
 
 export const receiveTransfer = async (transferId, receivedBy) => {
+  if (await hasSupabaseSession()) return sbReceiveTransfer(transferId, receivedBy);
   if (import.meta.env.VITE_API_URL) {
     const response = await api.patch(`/transfers/${transferId}/receive`, { receivedBy });
     return response.data;
@@ -85,6 +90,7 @@ export const fetchStockEntries = async (storeId) => {
 };
 
 export const createStockEntry = async (entryData) => {
+  if (await hasSupabaseSession()) return sbCreateStockEntry(entryData);
   if (import.meta.env.VITE_API_URL) {
     const response = await api.post('/stock-entries', entryData);
     return response.data;

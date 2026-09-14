@@ -8,6 +8,7 @@
  */
 import api from './api';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { forgetCompany } from './supabaseData';
 
 /**
  * Deux systèmes d'authentification coexistent pendant la migration :
@@ -167,6 +168,9 @@ export const loginRequest = async (username, password) => {
  * @returns {Promise<void>}
  */
 export const logoutRequest = async () => {
+  // Le prochain compte connecté n'appartient pas forcément à la même
+  // entreprise : garder l'identifiant en mémoire écrirait chez le voisin.
+  forgetCompany();
   // La session Supabase doit être fermée même si l'API historique répond mal.
   if (isSupabaseConfigured) {
     try { await supabase.auth.signOut(); } catch { /* session déjà close */ }

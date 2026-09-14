@@ -3,7 +3,7 @@
  * Customer accounts, deposits and refund API calls.
  */
 import api from './api';
-import { hasSupabaseSession, fetchCustomers as sbCustomers, fetchCustomerTransactions as sbCustomerTransactions } from './supabaseData';
+import { hasSupabaseSession, fetchCustomers as sbCustomers, fetchCustomerTransactions as sbCustomerTransactions , createCustomer as sbCreateCustomer } from './supabaseData';
 
 const simulateDelay = (ms = 200) => new Promise((r) => setTimeout(r, ms));
 
@@ -18,6 +18,7 @@ export const fetchCustomers = async () => {
 };
 
 export const createCustomer = async (customerData) => {
+  if (await hasSupabaseSession()) return sbCreateCustomer(customerData);
   if (import.meta.env.VITE_API_URL) {
     const response = await api.post('/customers', customerData);
     return response.data;
