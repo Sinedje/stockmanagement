@@ -1,8 +1,8 @@
 import { useI18n } from '../../i18n/I18nContext';
 import { LANGUAGES } from '../../i18n/translations';
 import React, { useEffect, useState } from 'react';
-import { Switch, message } from 'antd';
-import { AppstoreOutlined, GlobalOutlined } from '@ant-design/icons';
+import { Tabs, Switch, message } from 'antd';
+import { AppstoreOutlined, GlobalOutlined, UserOutlined } from '@ant-design/icons';
 import { Panel, Select } from '../ui';
 import MyAccountPanel from '../account/MyAccountPanel';
 import { FEATURES, isFeatureEnabled } from '../../config/features';
@@ -47,39 +47,58 @@ const PlatformSettingsPanel = () => {
 
 
 
+  // Le réglage de la plateforme et le compte de la personne qui l'exploite
+  // n'ont rien à voir : les séparer évite de chercher son mot de passe sous la
+  // liste des modules vendus.
+  const tabs = [
+    {
+      key: 'platform',
+      label: <span className="flex items-center gap-1.5"><AppstoreOutlined /> {t('s.plateforme')}</span>,
+      children: (
+        <Panel
+          title={t('s.modules_actives_par_defaut')} icon={AppstoreOutlined}
+          subtitle={t('s.s_appliquent_aux_entreprises_creees_ensuite_')}
+        >
+          {error && <p className="text-[0.8rem] text-red-500 mb-3">{error}</p>}
+          {loading ? (
+            <p className="py-4 text-[0.82rem] text-text-muted">{t('s.chargement')}</p>
+          ) : (
+            <ul className="divide-y divide-black/5 dark:divide-white/10 -my-2">
+              {FEATURES.map(f => (
+                <li key={f.key} className="flex items-center justify-between gap-4 py-3">
+                  <div className="min-w-0">
+                    <div className="text-[0.84rem] font-medium text-text-heading">{t(f.labelKey)}</div>
+                    <div className="text-[0.74rem] text-text-muted">{t(f.descriptionKey)}</div>
+                  </div>
+                  <Switch
+                    checked={isFeatureEnabled(features, f.key)}
+                    loading={savingFeature === f.key}
+                    onChange={(v) => toggleFeature(f.key, v)}
+                  />
+                </li>
+              ))}
+            </ul>
+          )}
+        </Panel>
+      ),
+    },
+    {
+      key: 'account',
+      label: <span className="flex items-center gap-1.5"><UserOutlined /> {t('s.mon_compte')}</span>,
+      children: (
+        <div className="space-y-4">
+          <MyAccountPanel />
+          <Panel icon={GlobalOutlined} title={t('common.language')} subtitle={t('common.languageHint')}>
+            <Select value={language} onChange={setLanguage} options={LANGUAGES} width={200} />
+          </Panel>
+        </div>
+      ),
+    },
+  ];
+
   return (
-    <div className="animate-fade-in space-y-4">
-      <Panel icon={GlobalOutlined} title={t('common.language')} subtitle={t('common.languageHint')}>
-        <Select value={language} onChange={setLanguage} options={LANGUAGES} width={200} />
-      </Panel>
-
-      <Panel
-        title={t('s.modules_actives_par_defaut')} icon={AppstoreOutlined}
-        subtitle={t('s.s_appliquent_aux_entreprises_creees_ensuite_')}
-      >
-        {error && <p className="text-[0.8rem] text-red-500 mb-3">{error}</p>}
-        {loading ? (
-          <p className="py-4 text-[0.82rem] text-text-muted">{t('s.chargement')}</p>
-        ) : (
-          <ul className="divide-y divide-black/5 dark:divide-white/10 -my-2">
-            {FEATURES.map(f => (
-              <li key={f.key} className="flex items-center justify-between gap-4 py-3">
-                <div className="min-w-0">
-                  <div className="text-[0.84rem] font-medium text-text-heading">{t(f.labelKey)}</div>
-                  <div className="text-[0.74rem] text-text-muted">{t(f.descriptionKey)}</div>
-                </div>
-                <Switch
-                  checked={isFeatureEnabled(features, f.key)}
-                  loading={savingFeature === f.key}
-                  onChange={(v) => toggleFeature(f.key, v)}
-                />
-              </li>
-            ))}
-          </ul>
-        )}
-      </Panel>
-
-      <MyAccountPanel />
+    <div className="animate-fade-in">
+      <Tabs items={tabs} />
     </div>
   );
 };

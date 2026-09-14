@@ -36,7 +36,7 @@ export const translations = {
     'nav.stores': 'Magasins',
     'nav.cashiers': 'Caissiers & magasiniers',
     'nav.users': 'Gestion système',
-    'nav.settings': 'Paramètres entreprise',
+    'nav.settings': 'Paramètres',
     'nav.summary': 'Résumé financier',
     'nav.transactions': 'Transactions',
     'nav.movements': 'Mouvements de stock',
@@ -99,7 +99,7 @@ export const translations = {
     'common.nothingToShow': "Il n'y a rien à afficher pour le moment.",
     'common.lowStock': 'Stock bas',
     'common.language': 'Langue',
-    'common.languageHint': "Langue d'affichage de l'interface pour tous les utilisateurs.",
+    'common.languageHint': "Langue d'affichage de l'interface, pour votre compte uniquement.",
     'common.settingsSaved': "Les paramètres de l'entreprise ont été enregistrés.",
     'cash.management': 'Gestion de caisse',
     'cash.managementHint': 'Contrôle des flux financiers',
@@ -114,6 +114,8 @@ export const translations = {
     'cash.month': 'Mois',
     'cash.opening': 'Ouverture de caisse',
     'cash.start': 'Démarrer ma caisse',
+
+
 
 
 
@@ -566,6 +568,7 @@ export const translations = {
     's.modules_actives': 'Modules activés',
     's.modules_actives_par_defaut': 'Modules activés par défaut',
     's.modules_par_defaut_et_votre_compte': 'Modules par défaut et votre compte',
+    's.mon_compte': 'Mon compte',
     's.mon_profil': 'Mon profil',
     's.montant': 'Montant',
     's.montant_a_payer': 'Montant à payer',
@@ -675,6 +678,7 @@ export const translations = {
     's.perte_estimee_cout': 'Perte Estimée (Coût)',
     's.physique': 'Physique',
     's.plage': 'Plage :',
+    's.plateforme': 'Plateforme',
     's.png_jpg_ou_gif_max_2mb_recommande': 'PNG, JPG ou GIF (Max 2MB recommandé)',
     's.pour_eviter_cette_etape_desactivez_confirm_e': 'Pour éviter cette étape, désactivez « Confirm email » dans Authentication → Providers.',
     's.pour_une_livraison_ulterieure': 'pour une livraison ultérieure.',
@@ -940,6 +944,7 @@ export const translations = {
     's.voir_la_facture': 'Voir la facture',
     's.voir_le_compte': 'Voir le compte',
     's.voir_les_transactions': 'Voir les transactions',
+    's.votre_compte_et_les_informations_de_l_entrep': 'Votre compte et les informations de l\'entreprise',
     's.votre_magasin': 'Votre Magasin',
     's.votre_nom': 'Votre nom',
     's.voulez_vous_vraiment_enregistrer_cette_entre': 'Voulez-vous vraiment enregistrer cette entrée ?',
@@ -973,7 +978,7 @@ export const translations = {
     'nav.stores': 'Stores',
     'nav.cashiers': 'Cashiers & storekeepers',
     'nav.users': 'System management',
-    'nav.settings': 'Company settings',
+    'nav.settings': 'Settings',
     'nav.summary': 'Financial summary',
     'nav.transactions': 'Transactions',
     'nav.movements': 'Stock movements',
@@ -1032,7 +1037,7 @@ export const translations = {
     'common.nothingToShow': 'There is nothing to show yet.',
     'common.lowStock': 'Low stock',
     'common.language': 'Language',
-    'common.languageHint': 'Interface display language for all users.',
+    'common.languageHint': 'Interface display language, for your account only.',
     'common.settingsSaved': 'Company settings have been saved.',
     'cash.management': 'Cash management',
     'cash.managementHint': 'Monitor cash flow',
@@ -1047,6 +1052,8 @@ export const translations = {
     'cash.month': 'Month',
     'cash.opening': 'Cash drawer opening',
     'cash.start': 'Open my drawer',
+
+
 
 
 
@@ -1499,6 +1506,7 @@ export const translations = {
     's.modules_actives': 'Enabled modules',
     's.modules_actives_par_defaut': 'Modules enabled by default',
     's.modules_par_defaut_et_votre_compte': 'Default modules and your account',
+    's.mon_compte': 'My account',
     's.mon_profil': 'My profile',
     's.montant': 'Amount',
     's.montant_a_payer': 'Amount due',
@@ -1608,6 +1616,7 @@ export const translations = {
     's.perte_estimee_cout': 'Estimated loss (cost)',
     's.physique': 'Physical',
     's.plage': 'Range:',
+    's.plateforme': 'Platform',
     's.png_jpg_ou_gif_max_2mb_recommande': 'PNG, JPG or GIF (2MB max recommended)',
     's.pour_eviter_cette_etape_desactivez_confirm_e': 'To skip this step, disable "Confirm email" under Authentication → Providers.',
     's.pour_une_livraison_ulterieure': 'for a later delivery.',
@@ -1873,6 +1882,7 @@ export const translations = {
     's.voir_la_facture': 'View invoice',
     's.voir_le_compte': 'View account',
     's.voir_les_transactions': 'View transactions',
+    's.votre_compte_et_les_informations_de_l_entrep': 'Your account and the company details',
     's.votre_magasin': 'Your store',
     's.votre_nom': 'Your name',
     's.voulez_vous_vraiment_enregistrer_cette_entre': 'Do you really want to save this entry?',

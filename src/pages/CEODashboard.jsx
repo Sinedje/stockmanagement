@@ -145,7 +145,7 @@ const CEODashboard = () => {
     stores: t('s.gerez_vos_points_de_vente'),
     cashiers: t('s.supervisez_les_caissiers_et_magasiniers_du_m'),
     users: t('s.creation_et_gestion_des_comptes_utilisateurs'),
-    settings: t('s.informations_globales_affichees_sur_les_fact'),
+    settings: t('s.votre_compte_et_les_informations_de_l_entrep'),
   };
 
   return (
