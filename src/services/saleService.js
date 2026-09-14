@@ -3,7 +3,7 @@
  * All sales, invoices, expenses, versements and returns API calls.
  */
 import api from './api';
-import { hasSupabaseSession, fetchSales as sbSales, fetchExpenses as sbExpenses, fetchVersements as sbVersements, fetchCashReports as sbCashReports , createExpense as sbCreateExpense, createVersement as sbCreateVersement, createSale as sbCreateSale, cancelSale as sbCancelSale, recordPayment as sbRecordPayment } from './supabaseData';
+import { hasSupabaseSession, fetchSales as sbSales, fetchExpenses as sbExpenses, fetchVersements as sbVersements, fetchCashReports as sbCashReports , createExpense as sbCreateExpense, createVersement as sbCreateVersement, createSale as sbCreateSale, cancelSale as sbCancelSale, recordPayment as sbRecordPayment , createCashReport as sbCreateCashReport } from './supabaseData';
 
 const simulateDelay = (ms = 200) => new Promise((r) => setTimeout(r, ms));
 
@@ -147,6 +147,9 @@ export const fetchCashReports = async () => {
 };
 
 export const initCashFund = async (payload) => {
+  // Le fonds de caisse initial est propre au poste et vit dans le navigateur :
+  // aucune table ne le porte, il n'y a donc rien à écrire côté Supabase.
+  if (await hasSupabaseSession()) return payload;
   if (import.meta.env.VITE_API_URL) {
     const response = await api.post('/cash/init', payload);
     return response.data;
@@ -156,6 +159,7 @@ export const initCashFund = async (payload) => {
 };
 
 export const closeCashSession = async (payload) => {
+  if (await hasSupabaseSession()) return sbCreateCashReport(payload);
   if (import.meta.env.VITE_API_URL) {
     const response = await api.post('/cash/close', payload);
     return response.data;

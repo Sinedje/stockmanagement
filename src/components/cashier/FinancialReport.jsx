@@ -28,7 +28,7 @@ const FinancialReport = () => {
   const { 
     sales, expenses, addExpense, 
     initialCashFund, isCashFundInitialized, initializeCashFund, cashInitializationDate,
-    versements, addVersement, currentCashBalance,
+    versements, addVersement,
     lastClosingBalance, closeCashSession
   } = useSales();
   const { customerTransactions, customers } = useCustomers();

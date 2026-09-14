@@ -11,7 +11,7 @@
 import { supabase } from '../lib/supabase';
 
 /** Tables dont une ligne suffit à mettre l'affichage à jour. */
-export const FLAT_TABLES = [
+const FLAT_TABLES = [
   'stores', 'categories', 'products', 'customers', 'customer_transactions',
   'expenses', 'versements', 'cash_reports', 'breakages', 'repackagings',
   'profiles',
@@ -22,7 +22,7 @@ export const FLAT_TABLES = [
  * articles n'a pas de sens. Un changement y déclenche un rechargement groupé
  * plutôt qu'une reconstruction à la main, que la moindre erreur rendrait fausse.
  */
-export const COMPOSED_TABLES = {
+const COMPOSED_TABLES = {
   sales: 'sales', sale_items: 'sales', sale_payments: 'sales',
   transfers: 'transfers', transfer_items: 'transfers',
   stock_entries: 'stockEntries', stock_entry_items: 'stockEntries',
@@ -65,27 +65,3 @@ export const subscribeToChanges = ({ onRow, onComposed, onStatus }) => {
   return () => { supabase.removeChannel(channel); };
 };
 
-/**
- * Canal du superadmin : entreprises, comptes et journal d'audit.
- *
- * Séparé du précédent parce qu'il suit d'autres tables et qu'il ne concerne
- * qu'un seul rôle — ouvrir les deux ferait écouter à chacun ce qui ne le
- * regarde pas, même si la RLS l'écarterait ensuite.
- */
-export const subscribeToPlatform = ({ onEvent, onStatus }) => {
-  if (!supabase) return () => {};
-
-  const channel = supabase.channel('stock-expert-platform');
-  for (const table of ['companies', 'profiles', 'audit_log']) {
-    channel.on('postgres_changes', { event: '*', schema: 'public', table }, (payload) => {
-      onEvent?.({
-        table,
-        event: payload.eventType,
-        row: camelize(payload.new) || null,
-        old: camelize(payload.old) || null,
-      });
-    });
-  }
-  channel.subscribe((status) => onStatus?.(status));
-  return () => { supabase.removeChannel(channel); };
-};

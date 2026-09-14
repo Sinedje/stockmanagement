@@ -138,7 +138,7 @@ export const fetchCompanySettings = async () => {
 
 let cachedCompanyId;
 
-export const currentCompanyId = async () => {
+const currentCompanyId = async () => {
   if (cachedCompanyId !== undefined) return cachedCompanyId;
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return (cachedCompanyId = null);

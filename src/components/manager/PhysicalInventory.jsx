@@ -2,7 +2,6 @@ import { useT } from '../../i18n/I18nContext';
 import { Toolbar, Panel, Table, Button } from '../ui';
 import { useOnlineStatus } from '../../offline/useOnlineStatus';
 import React, { useState, useMemo } from 'react';
-import { formatPrice } from '../../context/StoreContext';
 import { useAuth } from '../../context/AuthContext';
 import { useProducts, useStores } from '../../hooks';
 import { inventoryService } from '../../services/inventoryService';

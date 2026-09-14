@@ -61,17 +61,17 @@ export const enqueueSale = async (sale, kind = 'invoice') => {
   return entry.queueId;
 };
 
-export const listPendingSales = () => tx('readonly', (s) => s.getAll());
+const listPendingSales = () => tx('readonly', (s) => s.getAll());
 
 export const countPendingSales = async () => {
   const rows = await listPendingSales();
   return rows.length;
 };
 
-export const removePendingSale = (queueId) => tx('readwrite', (s) => s.delete(queueId));
+const removePendingSale = (queueId) => tx('readwrite', (s) => s.delete(queueId));
 
 /** Conserve la trace d'un échec, pour ne pas retenter indéfiniment en silence. */
-export const markAttempt = async (entry, message) => {
+const markAttempt = async (entry, message) => {
   await tx('readwrite', (s) => s.put({
     ...entry,
     attempts: (entry.attempts || 0) + 1,

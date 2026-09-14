@@ -1,7 +1,6 @@
 import { useT } from '../../i18n/I18nContext';
 import { Table } from '../ui';
 import React, { useState, useMemo } from 'react';
-import { formatPrice } from '../../context/StoreContext';
 import { useSales, useStores, useSettings } from '../../hooks';
 import { CarOutlined, CheckCircleOutlined, ClockCircleOutlined, ExclamationCircleOutlined, InboxOutlined, PrinterOutlined, SearchOutlined, ShopOutlined, UserOutlined } from '@ant-design/icons';
 import { Tag, Tooltip, Button } from 'antd';

@@ -19,7 +19,6 @@ import PendingInvoicesPanel from '../components/manager/PendingInvoicesPanel';
 import UserManagement from '../components/ceo/UserManagement';
 import CompanySettings from '../components/ceo/CompanySettings';
 import { AppstoreOutlined, AuditOutlined, BankOutlined, BarChartOutlined, CarOutlined, CompassOutlined, DashboardOutlined, DropboxOutlined, FileDoneOutlined, FileTextOutlined, HistoryOutlined, HomeOutlined, PlusCircleOutlined, RiseOutlined, SafetyCertificateOutlined, SettingOutlined, ShopOutlined, ShoppingOutlined, SwapOutlined, TeamOutlined, WalletOutlined } from '@ant-design/icons';
-import { useAuth } from '../context/AuthContext';
 import { useT } from '../i18n/I18nContext';
 import { useStores, useProducts } from '../hooks';
 
@@ -89,7 +88,6 @@ const SECTIONS = availableTabs;
 
 const CEODashboard = () => {
   const t = useT();
-  const { logout } = useAuth();
   const { activeStoreId, transfers } = useStores();
   const { lowStockProducts } = useProducts();
   const [activeTab, setActiveTab] = useSectionRoute(SECTIONS, 'strategic');
@@ -108,25 +106,6 @@ const CEODashboard = () => {
     group.children ? { ...localise(group), children: group.children.map(withBadge) } : withBadge(group)
   );
 
-  const titles = { 
-    dashboard: t('s.tableau_de_bord'), 
-    strategic: t('s.vue_strategique_pdg'),
-    inventory: 'Audit & Inventaire Physique', 
-    stock_entry: t('s.catalogue_entree_de_stock'),
-    sales: t('s.historique_des_ventes'),
-    pending_invoices: t('s.suivi_des_factures'),
-    deliveries: t('s.suivi_des_livraisons'),
-    financial: 'Bilan Financier Global',
-    reports: t('s.liste_des_bilans_de_caisse'),
-    releases: t('s.bons_de_sortie_marchandises'),
-    breakage: 'Casses & Reconditionnement',
-    transfers: t('s.transferts_inter_magasins'),
-    articles: t('s.liste_des_articles_2'),
-    stores: t('s.gestion_des_magasins'),
-    cashiers: 'Caissiers et Magasiniers',
-    users: t('s.gestion_du_personnel_systeme'),
-    settings: 'Paramètres de l\'Entreprise'
-  };
 
   const subtitles = { 
     dashboard: 'Vue d\'ensemble opérationnelle', 

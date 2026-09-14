@@ -24,13 +24,6 @@ export const fetchCompanies = async () => {
   }));
 };
 
-export const fetchCompany = async (id) => {
-  const sb = requireSupabase();
-  const { data, error } = await sb.from('companies').select('*').eq('id', id).single();
-  if (error) throw error;
-  return data;
-};
-
 /**
  * Crée une entreprise ET son premier administrateur.
  *

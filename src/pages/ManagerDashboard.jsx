@@ -17,7 +17,6 @@ import TransferManager from '../components/manager/TransferManager';
 import BreakagePanel from '../components/manager/BreakagePanel';
 import PendingInvoicesPanel from '../components/manager/PendingInvoicesPanel';
 import { AppstoreOutlined, AuditOutlined, BankOutlined, BarChartOutlined, CarOutlined, CompassOutlined, DashboardOutlined, DropboxOutlined, FileDoneOutlined, FileTextOutlined, HistoryOutlined, HomeOutlined, PlusCircleOutlined, RiseOutlined, SettingOutlined, ShoppingOutlined, SwapOutlined, TeamOutlined, WalletOutlined } from '@ant-design/icons';
-import { useAuth } from '../context/AuthContext';
 import { useT } from '../i18n/I18nContext';
 import { useStores, useProducts } from '../hooks';
 
@@ -84,8 +83,7 @@ const SECTIONS = availableTabs;
 
 const ManagerDashboard = () => {
   const t = useT();
-  const { logout } = useAuth();
-  const { activeStore, activeStoreId, transfers } = useStores();
+  const { activeStoreId, transfers } = useStores();
   const { lowStockProducts } = useProducts();
   const [activeTab, setActiveTab] = useSectionRoute(SECTIONS, 'dashboard');
 
@@ -103,23 +101,6 @@ const ManagerDashboard = () => {
     group.children ? { ...localise(group), children: group.children.map(withBadge) } : withBadge(group)
   );
 
-  const titles = { 
-    dashboard: t('s.tableau_de_bord'), 
-    strategic: t('s.vue_strategique'),
-    inventory: 'Audit & Inventaire Physique', 
-    stock_entry: t('s.catalogue_entree_de_stock'),
-    sales: t('s.historique_des_ventes'),
-    pending_invoices: t('s.suivi_des_factures'),
-    deliveries: t('s.suivi_des_livraisons'),
-    financial: 'Bilan Financier Global',
-    reports: t('s.liste_des_bilans_de_caisse'),
-    releases: t('s.bons_de_sortie_marchandises'),
-    breakage: 'Casses & Reconditionnement',
-    transfers: t('s.transferts_inter_magasins'),
-    articles: t('s.liste_des_articles_2'),
-    stores: t('s.gestion_des_magasins'),
-    cashiers: t('s.gestion_du_personnel_2'),
-  };
   const subtitles = { 
     dashboard: 'Vue d\'ensemble de votre activité', 
     strategic: t('s.performances_globales_stocks_et_analyse_du_c'),

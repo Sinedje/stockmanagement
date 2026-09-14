@@ -41,7 +41,7 @@ const tx = async (mode, fn) => {
 };
 
 /** Ce qu'il est utile de conserver : de quoi vendre, rien de plus. */
-export const CACHED_KEYS = ['stores', 'products', 'categories', 'customers', 'companySettings'];
+const CACHED_KEYS = ['stores', 'products', 'categories', 'customers', 'companySettings'];
 
 export const putCache = async (key, value) => {
   if (!CACHED_KEYS.includes(key)) return;
@@ -66,4 +66,3 @@ export const cacheAge = async () => {
   return dates[0] || null;
 };
 
-export const clearCache = () => tx('readwrite', (s) => s.clear());

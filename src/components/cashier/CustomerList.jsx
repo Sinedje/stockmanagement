@@ -114,7 +114,7 @@ const TxnBadge = ({ type }) => {
 };
 
 // --- Print Deposit Receipt ---
-const printDepositReceipt = (customer, txn, companySettings, stores) => {
+const printDepositReceipt = (customer, txn, companySettings, stores, t) => {
   const win = window.open('', '_blank');
   if (!win) return;
   const isDeposit = txn.type === 'deposit';
@@ -131,7 +131,6 @@ const printDepositReceipt = (customer, txn, companySettings, stores) => {
 
   const documentTitle = isDeposit ? 'Reçu de Dépôt' : 'Reçu de Remboursement';
   const totalLabel = isDeposit ? 'NET DÉPOSÉ' : 'NET REMBOURSÉ';
-  
   const soldeAvant = customer.balance;
   const soldeApres = customer.balance + txn.amount;
 
@@ -432,7 +431,7 @@ const CustomerList = () => {
       message.success(`Remboursement de ${formatPrice(amount)} effectué !`);
     }
     // Print receipt
-    if (txn) printDepositReceipt(selectedCustomer, txn, companySettings, stores, selectedCustomer.balance);
+    if (txn) printDepositReceipt(selectedCustomer, txn, companySettings, stores, t);
     setActionModal(null);
   };
 
@@ -529,13 +528,7 @@ const CustomerList = () => {
                     {(txn.type === 'deposit' || txn.type === 'refund') && (
                       <button
                         onClick={() => {
-                          const idx = txns.findIndex(t => t.id === txn.id);
-                          let sum = 0;
-                          for (let i = 0; i <= idx; i++) {
-                            sum += txns[i].amount;
-                          }
-                          const soldeAvant = selectedCustomer.balance - sum;
-                          printDepositReceipt(selectedCustomer, txn, companySettings, stores, soldeAvant);
+                          printDepositReceipt(selectedCustomer, txn, companySettings, stores, t);
                         }}
                         className="w-8 h-8 rounded-lg bg-black/5 dark:bg-white/5 text-text-muted hover:text-primary hover:bg-primary/10 flex items-center justify-center transition-all"
                         title={t('s.imprimer_le_recu')}

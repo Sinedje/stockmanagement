@@ -26,8 +26,6 @@ const TransferManager = () => {
   const [transferItems, setTransferItems] = useState([]);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [quantity, setQuantity] = useState(1);
-
-  const currentStore = stores.find(s => s.id === activeStoreId);
   const otherStores = stores.filter(s => s.id !== activeStoreId);
 
   // Derived data

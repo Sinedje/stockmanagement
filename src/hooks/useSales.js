@@ -18,7 +18,6 @@ import {
   createVersement as apiCreateVersement,
   initCashFund as apiInitCashFund,
   closeCashSession as apiCloseCashSession,
-  fetchSales as apiFetchSales,
 } from '../services/saleService';
 import { useStore } from '../context/StoreContext';
 import { enqueueSale } from '../offline/pendingSales';

@@ -6,7 +6,6 @@
 import { useState, useCallback } from 'react';
 import { hasSupabaseSession } from '../services/supabaseData';
 import {
-  fetchUsers as apiFetchUsers,
   createUser as apiCreateUser,
   updateUser as apiUpdateUser,
   toggleUserStatus as apiToggleUserStatus,

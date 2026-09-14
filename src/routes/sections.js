@@ -12,8 +12,8 @@ import { useNavigate, useParams } from 'react-router-dom';
  * Les identifiants d'onglet internes gardent leur forme (`stock_entry`) ; seule
  * leur écriture dans l'URL est normalisée en tirets.
  */
-export const idToSlug = (id) => String(id).replace(/_/g, '-');
-export const slugToId = (slug) => String(slug || '').replace(/-/g, '_');
+const idToSlug = (id) => String(id).replace(/_/g, '-');
+const slugToId = (slug) => String(slug || '').replace(/-/g, '_');
 
 /**
  * Relie l'onglet actif à l'URL.

@@ -420,7 +420,6 @@ export const StoreProvider = ({ children }) => {
   const addProduct = useCallback((product) => {
     // If called with server-returned product, it already has id set.
     // Otherwise (offline/mock mode) generate a local id.
-    const hasServerId = product.id || product._id;
     const normalized = {
       ...product,
       id: product._id || product.id || (Date.now()),
@@ -663,7 +662,6 @@ export const StoreProvider = ({ children }) => {
     const sale = {
       id: allSales.length + 1,
       date: new Date().toISOString(),
-      items: [...cart],
       total: cartTotal,
       paymentMethod,
       cashier: currentUser?.name || 'Inconnu',
@@ -775,7 +773,7 @@ export const StoreProvider = ({ children }) => {
     return newCustomer;
   }, []);
 
-  const addCustomerDeposit = useCallback((customerId, amount, method = 'Espèces') => {
+  const addCustomerDeposit = useCallback((customerId, amount, method = 'Espèces', reference) => {
     const txn = {
       id: Date.now(),
       customerId,
@@ -785,7 +783,7 @@ export const StoreProvider = ({ children }) => {
       date: new Date().toISOString(),
       cashier: currentUser?.name || 'Inconnu',
       storeId: activeStoreId,
-      reference: arguments[3] || `DEPOT-${Date.now()}`, // passed from useCustomers, fallback to timestamp
+      reference: reference || `DEPOT-${Date.now()}`,
     };
     // Match by either MongoDB string _id or local numeric id
     setCustomers(prev => prev.map(c =>

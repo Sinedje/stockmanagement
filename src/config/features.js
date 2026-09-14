@@ -27,8 +27,6 @@ export const FEATURES = [
     sections: ['financial', 'reports', 'transactions', 'movements', 'summary'] },
 ];
 
-export const FEATURE_KEYS = FEATURES.map(f => f.key);
-
 /** Une fonctionnalité est active tant qu'elle n'a pas été explicitement coupée. */
 export const isFeatureEnabled = (features, key) => features?.[key] !== false;
 

@@ -54,15 +54,6 @@ const AccountantDashboard = () => {
   const t = useT();
   const [activeTab, setActiveTab] = useSectionRoute(SECTIONS, 'summary');
 
-  const titles = { 
-    summary: t('s.resume_financier'), 
-    strategic: t('s.vue_strategique'),
-    transactions: t('s.historique_des_transactions'),
-    pending_invoices: t('s.suivi_des_factures'),
-    movements: t('s.mouvements_de_stock_2'),
-    reports: t('s.liste_des_bilans_de_caisse'),
-    releases: t('s.bons_de_sortie_marchandises'),
-  };
   const subtitles = { 
     summary: t('s.apercu_de_la_performance_financiere'), 
     strategic: t('s.performances_globales_stocks_et_analyse_du_c'),

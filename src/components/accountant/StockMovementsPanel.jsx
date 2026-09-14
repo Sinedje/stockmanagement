@@ -229,8 +229,6 @@ const TransfersTab = () => {
     }, 0);
   }, 0);
 
-  const statusLabel = { in_transit: { label: 'En Transit', color: 'orange' }, received: { label: t('s.recu'), color: 'green' } };
-
   return (
     <div className="space-y-5">
       {/* Filters */}

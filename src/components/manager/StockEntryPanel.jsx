@@ -1,10 +1,11 @@
 import { useT } from '../../i18n/I18nContext';
 import { Toolbar, Panel, SearchInput } from '../ui';
 import React, { useState, useMemo } from 'react';
+import PrintHeader from '../common/PrintHeader';
 import Pagination from '../common/Pagination';
 import { usePagination } from '../../hooks';
 import { formatPrice } from '../../context/StoreContext';
-import { useProducts, useStores, useSettings } from '../../hooks';
+import { useProducts, useStores } from '../../hooks';
 import Modal from '../common/Modal';
 import Input from '../common/Input';
 import MySelect from '../common/Select';
@@ -14,9 +15,8 @@ import CatalogManagement from './CatalogManagement';
 
 const StockEntryPanel = () => {
   const t = useT();
-  const { products, allProducts, categories, bulkUpdateStock, receiveStock, addProduct, addCategory } = useProducts();
+  const { allProducts, categories, receiveStock, addProduct, addCategory } = useProducts();
   const { stores, activeStoreId, stockEntries } = useStores();
-  const { companySettings } = useSettings();
   const [supplier, setSupplier] = useState('');
   const [noteNumber, setNoteNumber] = useState('');
   const [entryItems, setEntryItems] = useState([]); // { productId, name, quantity, cost }
@@ -676,15 +676,15 @@ const StockEntryPanel = () => {
         `}
       </style>
       <div id="reception-note" className="print-only">
-        <div style={{ textAlign: 'center', marginBottom: '40px' }}>
-          <h1 style={{ margin: 0, fontSize: '28pt', textTransform: 'uppercase' }}>
-            {((activeMode === 'history' && selectedPastEntry) 
-              ? stores.find(s => s.id === selectedPastEntry.storeId)?.name 
-              : currentStore?.name) || 'STOCK EXPERT'}
-          </h1>
-          <h2 style={{ margin: '10px 0', fontSize: '18pt' }}>{t('s.bon_d_entree_de_marchandise')}</h2>
-          <p style={{ fontSize: '10pt', color: '#666' }}>{t('s.document_de_reception_de_stock')}</p>
-        </div>
+        {/* Le document portait le seul nom du magasin : sans raison sociale ni
+            NIU, il n'identifiait pas l'entreprise qui reçoit la marchandise. */}
+        <PrintHeader
+          title={t('s.bon_d_entree_de_marchandise')}
+          subtitle={t('s.document_de_reception_de_stock')}
+          agency={((activeMode === 'history' && selectedPastEntry)
+            ? stores.find(s => s.id === selectedPastEntry.storeId)?.name
+            : currentStore?.name) || ''}
+        />
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '40px', marginBottom: '40px' }}>
           <div style={{ padding: '20px', border: '1px solid #ddd', borderRadius: '10px' }}>

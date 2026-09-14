@@ -17,9 +17,7 @@ const useBreakages = () => {
     declareBreakage: storeDeclareBreakage,
     repackagings,
     createRepackaging: storeCreateRepackaging,
-    categories,
-    addCategory,
-  } = useStore();
+    } = useStore();
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);

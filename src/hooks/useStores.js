@@ -10,7 +10,6 @@ import {
   deleteStore as apiDeleteStore,
   createTransfer as apiCreateTransfer,
   receiveTransfer as apiReceiveTransfer,
-  createStockEntry as apiCreateStockEntry,
 } from '../services/storeService';
 import { useStore } from '../context/StoreContext';
 

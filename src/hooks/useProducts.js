@@ -10,7 +10,6 @@ import {
   deleteProduct as apiDeleteProduct,
   bulkUpdateStock as apiBulkUpdateStock,
   createCategory as apiCreateCategory,
-  fetchProducts as apiFetchProducts,
   importProducts as apiImportProducts,
 } from '../services/productService';
 import { createStockEntry as apiCreateStockEntry } from '../services/storeService';
