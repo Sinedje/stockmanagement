@@ -360,7 +360,7 @@ const InvoiceBuilder = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {[
             { key: 'name', label: t('s.nom_du_client'), icon: UserOutlined, placeholder: 'Jean Dupont...' },
-            { key: 'phone', label: t('s.telephone'), icon: PhoneOutlined, placeholder: '+225 07 00 00 00...' },
+            { key: 'phone', label: t('s.telephone'), icon: PhoneOutlined, placeholder: '+237 6 00 00 00 00...' },
           ].map(({ key, label, icon: Icon, placeholder }) => (
             <div key={key}>
               <label className="text-[0.62rem] font-semibold text-text-muted uppercase tracking-widest mb-1.5 flex items-center gap-1.5">

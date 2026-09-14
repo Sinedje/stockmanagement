@@ -55,7 +55,7 @@ export const StoreProvider = ({ children }) => {
   const [companySettings, setCompanySettings] = useState({
     name: 'FEU FLAMENCO',
     activity: 'VENTE DE MATERIELS SECURITE INCENDIE ET ACCESSOIRES',
-    phones: '+225 07 48 48 55 90 / +225 05 05 57 26 01',
+    phones: '+237 6 00 00 00 00',
     ncc: '1947852 B',
     rccm: 'CI-ABJ-03-2019-B13-17654',
     language: 'fr'
