@@ -126,8 +126,10 @@ export const translations = {
 
 
 
+
     // — Chaînes des écrans (extraites automatiquement) —
     's.2_articles_a_transferer': '2. Articles à transférer',
+    's.50_premiers_comptes_affinez_la_recherche': '50 premiers comptes — affinez la recherche',
     's.8_caracteres_minimum': '8 caractères minimum',
     's.8_caracteres_minimum_2': '8 caractères minimum.',
     's.a_jour': 'À jour',
@@ -599,6 +601,7 @@ export const translations = {
     's.n_bon_livraison_commande': 'N° Bon (Livraison/Commande)',
     's.n_facture': 'N° Facture',
     's.n_magasins': '{n} magasins',
+    's.n_resultats': '{n} résultats',
     's.n_sur_total': '{n} sur {total}',
     's.n_utilisateurs': '{n} utilisateurs',
     's.name_creee': '« {name} » créée',
@@ -1064,8 +1067,10 @@ export const translations = {
 
 
 
+
     // — Screen strings —
     's.2_articles_a_transferer': '2. Items to transfer',
+    's.50_premiers_comptes_affinez_la_recherche': 'First 50 accounts — narrow your search',
     's.8_caracteres_minimum': '8 characters minimum',
     's.8_caracteres_minimum_2': '8 characters minimum.',
     's.a_jour': 'Up to date',
@@ -1537,6 +1542,7 @@ export const translations = {
     's.n_bon_livraison_commande': 'Note no. (delivery/order)',
     's.n_facture': 'Invoice no.',
     's.n_magasins': '{n} stores',
+    's.n_resultats': '{n} results',
     's.n_sur_total': '{n} of {total}',
     's.n_utilisateurs': '{n} users',
     's.name_creee': '“{name}” created',

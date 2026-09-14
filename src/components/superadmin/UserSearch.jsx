@@ -1,5 +1,5 @@
 import { useT } from '../../i18n/I18nContext';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Tag, message } from 'antd';
 import { TeamOutlined, MailOutlined, StopOutlined, CheckCircleOutlined } from '@ant-design/icons';
 import { Toolbar, Panel, Table, SearchInput, Button } from '../ui';
@@ -27,6 +27,10 @@ const UserSearch = () => {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
+
+  // La section s'appelle « Utilisateurs » : elle doit en montrer, pas un champ
+  // vide. search_users('') renvoie déjà les cinquante comptes les plus récents.
+  useEffect(() => { run(''); }, []);   // eslint-disable-line react-hooks/exhaustive-deps
 
   const run = async (value) => {
     setLoading(true);
@@ -103,7 +107,11 @@ const UserSearch = () => {
         <SearchInput value={term} onChange={setTerm} width={320}
                      placeholder={t('s.nom_identifiant_e_mail_ou_entreprise')}
                      onPressEnter={() => run(term)} />
-        {searched && <span className="text-[0.72rem] text-text-muted tabular-nums pl-1">{rows.length} résultats</span>}
+        {searched && (
+          <span className="text-[0.72rem] text-text-muted tabular-nums pl-1">
+            {rows.length >= 50 ? t('s.50_premiers_comptes_affinez_la_recherche') : t('s.n_resultats', { n: rows.length })}
+          </span>
+        )}
       </Toolbar>
 
       <Panel noPadding>
