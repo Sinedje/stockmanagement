@@ -26,6 +26,8 @@ dist-ssr
 # Surcharges locales (clés, base de dev) — jamais commitées
 .env.local
 server/.env.local
+# Contenait l'URI Mongo de production et le JWT_SECRET : dépublié.
+server/.env
 
 # Sortie du service worker en développement
 dev-dist
