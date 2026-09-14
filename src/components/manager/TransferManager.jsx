@@ -2,8 +2,9 @@ import { useT } from '../../i18n/I18nContext';
 import { Toolbar, Panel, Table, Button } from '../ui';
 import Modal from '../common/Modal';
 import React, { useState, useMemo } from 'react';
+import { printHeaderHtml } from '../common/PrintHeader';
 import OnlineOnly from '../../offline/OnlineOnly';
-import { useStores, useProducts } from '../../hooks';
+import { useStores, useProducts, useSettings } from '../../hooks';
 import { ArrowRightOutlined, CheckCircleOutlined, FileTextOutlined, InboxOutlined, PlusOutlined, PrinterOutlined, SearchOutlined, SwapOutlined, VerticalAlignBottomOutlined, VerticalAlignTopOutlined } from '@ant-design/icons';
 import { InputNumber, Popconfirm, Segmented, Select, Tag, message } from 'antd';
 
@@ -16,6 +17,7 @@ const TransferManager = () => {
     createTransfer, 
     receiveTransfer 
   } = useStores();
+  const { companySettings } = useSettings();
   const { products } = useProducts();
   
   const [activeTab, setActiveTab] = useState('outgoing');
@@ -114,24 +116,24 @@ const TransferManager = () => {
           </style>
         </head>
         <body>
-          <h1>{t('s.bon_de_transfert_interne')}</h1>
+          ${printHeaderHtml(companySettings, { title: t('s.bon_de_transfert_interne') })}
           <div class="meta">
             <div class="meta-box">
-              <strong>{t('s.ref')}</strong> ${transfer.reference}<br/>
-              <strong>{t('s.date_2')}</strong> ${new Date(transfer.date).toLocaleDateString()}<br/>
-              <strong>{t('s.statut_2')}</strong> ${transfer.status === 'completed' ? 'Réceptionné' : 'En transit'}
+              <strong>${t('s.ref')}</strong> ${transfer.reference}<br/>
+              <strong>${t('s.date_2')}</strong> ${new Date(transfer.date).toLocaleDateString()}<br/>
+              <strong>${t('s.statut_2')}</strong> ${transfer.status === 'completed' ? 'Réceptionné' : 'En transit'}
             </div>
             <div class="meta-box">
-              <strong>{t('s.de')}</strong> ${fromStore}<br/>
-              <strong>{t('s.vers')}</strong> ${toStore}<br/>
-              <strong>{t('s.initie_par')}</strong> ${transfer.initiatedBy}
+              <strong>${t('s.de')}</strong> ${fromStore}<br/>
+              <strong>${t('s.vers')}</strong> ${toStore}<br/>
+              <strong>${t('s.initie_par')}</strong> ${transfer.initiatedBy}
             </div>
           </div>
           <table>
             <thead>
               <tr>
-                <th>{t('s.article')}</th>
-                <th>{t('s.quantite')}</th>
+                <th>${t('s.article')}</th>
+                <th>${t('s.quantite')}</th>
               </tr>
             </thead>
             <tbody>

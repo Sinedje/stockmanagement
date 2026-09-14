@@ -192,11 +192,11 @@ const printDepositReceipt = (customer, txn, companySettings, stores) => {
               <!-- Droite -->
               <td style="padding-left: 12px;">
                 <div style="display: flex; gap: 20px; margin-bottom: 6px; font-weight: normal;">
-                  <span><strong>{t('s.date_2')}</strong> ${dateStr}</span>
+                  <span><strong>${t('s.date_2')}</strong> ${dateStr}</span>
                   <span style="margin-left: 15px;">${timeStr}</span>
                 </div>
                 <div>
-                  <strong>{t('s.client_2')}</strong>
+                  <strong>${t('s.client_2')}</strong>
                   <span style="margin-left: 8px; font-weight: bold; font-size: 11px;">
                     ${customer.name}
                   </span>

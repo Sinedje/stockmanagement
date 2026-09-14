@@ -1,6 +1,7 @@
 import { useT } from '../../i18n/I18nContext';
 import { Table } from '../ui';
 import React, { useState, useMemo } from 'react';
+import PrintHeader from '../common/PrintHeader';
 import { formatPrice } from '../../context/StoreContext';
 import { useSales } from '../../hooks';
 import { CarOutlined, ExclamationCircleOutlined, PrinterOutlined, SearchOutlined, WalletOutlined } from '@ant-design/icons';
@@ -191,7 +192,7 @@ const PendingInvoicesPanel = () => {
 
       <div className="hidden print:block print-area">
         <div className="text-center mb-5">
-          <h1 className="text-lg font-bold uppercase mb-2">{t('s.suivi_des_factures_impayees_non_livrees')}</h1>
+          <PrintHeader title={t('s.suivi_des_factures_impayees_non_livrees')} />
           <p className="text-sm text-gray-500">Imprimé le {new Date().toLocaleString('fr-FR')}</p>
         </div>
         <table>

@@ -2,6 +2,7 @@ import { useT } from '../../i18n/I18nContext';
 import { Table } from '../ui';
 import DateField from './DateField';
 import React, { useMemo, useState } from 'react';
+import PrintHeader from './PrintHeader';
 import { formatPrice } from '../../context/StoreContext';
 import { useSales } from '../../hooks';
 import { useAuth } from '../../context/AuthContext';
@@ -194,7 +195,7 @@ const ClosureHistory = () => {
       {reportToPrint && (
         <div className="hidden print:block text-black p-5">
           <div className="text-center mb-10">
-            <h1 className="text-xl font-bold uppercase tracking-tighter mb-2 border-b-2 border-black inline-block pb-2">{t('s.bilan_financier_copie')}</h1>
+            <PrintHeader title={t('s.bilan_financier_copie')} />
             <div className="flex justify-between items-end mt-6">
               <div className="text-left">
                 <p className="text-sm font-bold uppercase tracking-widest text-gray-500">{t('s.date_et_heure_de_cloture')}</p>

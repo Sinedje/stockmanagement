@@ -75,7 +75,9 @@ const InvoicePrintTemplate = ({ sale }) => {
 
   // Get the store associated with this sale
   const saleStore = stores.find(s => s.id === sale.storeId);
-  const agencyName = saleStore ? `AGENCE ${saleStore.name.toUpperCase()}` : 'AGENCE FEU FLAMENCO';
+  // Sans magasin identifié, pas de mention d'agence : en inventer une
+  // désignerait un point de vente qui n'est pas celui de la facture.
+  const agencyName = saleStore ? `AGENCE ${saleStore.name.toUpperCase()}` : '';
 
   return (
     <div id="invoice-print-area" style={S.wrap}>
@@ -86,13 +88,13 @@ const InvoicePrintTemplate = ({ sale }) => {
           <tr>
             {/* Gauche */}
             <td style={{ ...S.td, width: '55%', borderRight: '1px solid #000' }}>
-              <div style={{ fontWeight: 'bold', fontSize: '13px' }}>{companySettings?.name || 'GROUPE T. GRAND ZAO INTER SARL'}</div>
-              <div style={{ fontSize: '9.5px', marginTop: '1px' }}>{companySettings?.activity || 'COMMERCE GENERAL ET PRESTATION DE SERVICES'}</div>
+              <div style={{ fontWeight: 'bold', fontSize: '13px' }}>{companySettings?.name || ''}</div>
+              <div style={{ fontSize: '9.5px', marginTop: '1px' }}>{companySettings?.activity || ''}</div>
               <div style={{ fontSize: '9.5px', marginTop: '1px', fontWeight: 'bold' }}>{agencyName}</div>
-              <div style={{ fontSize: '9.5px', marginTop: '1px' }}>TEL : {companySettings?.phones || '659 146 882 / 672 126 507'}</div>
+              <div style={{ fontSize: '9.5px', marginTop: '1px' }}>{companySettings?.phones ? `TEL : ${companySettings.phones}` : ''}</div>
               <div style={{ fontSize: '9px', marginTop: '3px', display: 'flex', gap: '24px' }}>
-                <span>NIU : {companySettings?.ncc || 'M042318164160W'}</span>
-                <span>RCC : {companySettings?.rccm || '1391CH/N°94C1175/71994'}</span>
+                {companySettings?.ncc && <span>NIU : {companySettings.ncc}</span>}
+                {companySettings?.rccm && <span>RCC : {companySettings.rccm}</span>}
               </div>
             </td>
             {/* Droite */}
