@@ -4,6 +4,7 @@
  * Calls userService for API operations; local state managed by StoreContext.
  */
 import { useState, useCallback } from 'react';
+import { hasSupabaseSession } from '../services/supabaseData';
 import {
   fetchUsers as apiFetchUsers,
   createUser as apiCreateUser,
@@ -29,6 +30,15 @@ const useUsers = () => {
     setLoading(true);
     setError(null);
     try {
+      // Un compte Supabase se crée par l'Edge Function : elle seule détient la
+      // clé qui permet de confirmer d'office une adresse interne .local, à
+      // laquelle aucun lien de confirmation ne pourrait parvenir.
+      if (await hasSupabaseSession()) {
+        const { createMember } = await import('../services/memberService');
+        const saved = await createMember(userData);
+        storeAddUser(saved);
+        return saved;
+      }
       if (import.meta.env.VITE_API_URL) {
         const saved = await apiCreateUser(userData);
         // Use the server-returned user (with real _id) for local state

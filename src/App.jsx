@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useParams } from 'react-router-dom';
 import { StoreProvider } from './context/StoreContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 
@@ -10,6 +10,7 @@ import AccountantDashboard from './pages/AccountantDashboard';
 import StorekeeperDashboard from './pages/StorekeeperDashboard';
 import CEODashboard from './pages/CEODashboard';
 import SuperAdminDashboard from './pages/SuperAdminDashboard';
+import { fetchCompanyBySlug } from './services/memberService';
 import PlatformSetup from './pages/PlatformSetup';
 import ResetPassword from './pages/ResetPassword';
 import MentionsLegales from './pages/legal/MentionsLegales';
@@ -32,6 +33,39 @@ const ProtectedRoute = ({ children }) => {
   if (!currentUser) return <Navigate to="/login" replace />;
 
   return children;
+};
+
+/**
+ * Départage une section applicative d'un lien d'entreprise.
+ *
+ * Connecté, le segment est une page (/articles, /inventory…). Déconnecté, on
+ * demande à la base s'il désigne une entreprise active : si oui, l'employé voit
+ * la page de connexion de son commerce, avec le nom affiché ; sinon il retombe
+ * sur l'écran de connexion ordinaire.
+ */
+const SectionOrCompanyLogin = () => {
+  const { currentUser, authLoading } = useAuth();
+  const { section } = useParams();
+  const [company, setCompany] = React.useState(undefined); // undefined = en cours
+
+  React.useEffect(() => {
+    let cancelled = false;
+    if (currentUser) { setCompany(null); return; }
+    fetchCompanyBySlug(section).then((c) => { if (!cancelled) setCompany(c); });
+    return () => { cancelled = true; };
+  }, [section, currentUser]);
+
+  if (authLoading || (!currentUser && company === undefined)) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-bg-secondary">
+        <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (currentUser) return <ProtectedRoute><RoleDashboard /></ProtectedRoute>;
+  if (company) return <Login company={company} />;
+  return <Navigate to="/login" replace />;
 };
 
 // ── Tableau de bord selon le rôle ─────────────────────────────
@@ -81,12 +115,10 @@ const AppRoutes = () => {
       {/* « / » renvoie vers la section d'accueil du rôle. */}
       <Route path="/" element={<Navigate to={home} replace />} />
 
-      {/* Une seule route pour toutes les pages : /articles, /inventory, /stock-entry… */}
-      <Route path="/:section" element={
-        <ProtectedRoute>
-          <RoleDashboard />
-        </ProtectedRoute>
-      } />
+      {/* Une seule route pour toutes les pages : /articles, /inventory, /stock-entry…
+          Déconnecté, le même segment peut désigner une entreprise : /feu-flamenco
+          ouvre alors sa page de connexion. */}
+      <Route path="/:section" element={<SectionOrCompanyLogin />} />
 
       {/* Toute autre adresse retombe sur l'accueil plutôt que sur un écran vide. */}
       <Route path="*" element={<Navigate to={home} replace />} />

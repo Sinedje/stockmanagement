@@ -4,7 +4,10 @@ import React, { useState } from 'react';
 import { useUsers, useStores } from '../../hooks';
 import { useAuth } from '../../context/AuthContext';
 import Modal from '../common/Modal';
-import { CheckCircleOutlined, EditOutlined, ExclamationCircleOutlined, LockOutlined, SafetyOutlined, ShopOutlined, StopOutlined, TeamOutlined, UserAddOutlined } from '@ant-design/icons';
+import { message, Input as AntInput } from 'antd';
+import { setMemberPassword } from '../../services/memberService';
+import { hasSupabaseSession } from '../../services/supabaseData';
+import { CheckCircleOutlined, EditOutlined, KeyOutlined, ExclamationCircleOutlined, LockOutlined, SafetyOutlined, ShopOutlined, StopOutlined, TeamOutlined, UserAddOutlined } from '@ant-design/icons';
 
 const UserManagement = () => {
   const t = useT();
@@ -13,6 +16,22 @@ const UserManagement = () => {
   const { currentUser } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  // Réinitialisation d'un mot de passe employé : l'administrateur le choisit et
+  // le transmet de vive voix. Aucun message ne peut atteindre une adresse .local.
+  const [resetting, setResetting] = useState(null);   // profil visé
+  const [newPwd, setNewPwd] = useState('');
+  const [savingPwd, setSavingPwd] = useState(false);
+
+  const confirmReset = async () => {
+    if (newPwd.length < 8) return message.error(t('s.8_caracteres_minimum_2'));
+    setSavingPwd(true);
+    try {
+      await setMemberPassword(resetting.id, newPwd);
+      message.success(t('s.mot_de_passe_modifie'));
+      setResetting(null); setNewPwd('');
+    } catch (err) { message.error(err.message); }
+    finally { setSavingPwd(false); }
+  };
   const [editingUser, setEditingUser] = useState(null);
 
   // Form state
@@ -150,6 +169,17 @@ const UserManagement = () => {
               >
                 <EditOutlined style={{ fontSize: 16 }} />
               </button>
+              <button
+                onClick={async () => {
+                  if (!(await hasSupabaseSession()))
+                    return message.info(t('s.disponible_une_fois_l_entreprise_migree'));
+                  setResetting(row); setNewPwd('');
+                }}
+                className="p-2 bg-amber-500/10 text-amber-500 hover:bg-amber-500 hover:text-white rounded-lg transition-colors"
+                title={t('s.definir_un_nouveau_mot_de_passe')}
+              >
+                <KeyOutlined style={{ fontSize: 16 }} />
+              </button>
               <button 
                 onClick={() => toggleUserStatus(row.id)}
                 className={`p-2 rounded-lg transition-colors ${row.isActive ? 'bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white' : 'bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500 hover:text-white'}`}
@@ -206,6 +236,28 @@ const UserManagement = () => {
           emptyDescription={t('s.modifiez_votre_recherche_ou_ajoutez_un_nouve')}
         />
       </div>
+
+      {resetting && (
+        <Modal
+          onClose={() => setResetting(null)}
+          title={t('s.nouveau_mot_de_passe_pour_name', { name: resetting.name })}
+          onOk={confirmReset}
+          okText={t('s.modifier')}
+          okDisabled={newPwd.length < 8}
+          confirmLoading={savingPwd}
+        >
+          <AntInput.Password
+            size="large"
+            autoFocus
+            value={newPwd}
+            onChange={(e) => setNewPwd(e.target.value)}
+            placeholder={t('s.8_caracteres_minimum')}
+          />
+          <p className="mt-3 text-[0.78rem] text-text-muted">
+            {t('s.transmettez_ce_mot_de_passe_de_vive_voix_l_e')}
+          </p>
+        </Modal>
+      )}
 
       {isModalOpen && (
         <Modal 
