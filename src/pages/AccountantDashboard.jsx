@@ -1,4 +1,5 @@
 import { useSectionRoute } from '../routes/sections';
+import NotificationsPanel from '../notifications/NotificationsPanel';
 import React from 'react';
 import DashboardLayout from '../components/layouts/DashboardLayout';
 import { useT } from '../i18n/I18nContext';
@@ -48,13 +49,14 @@ const sidebarItems = [
 const availableTabs = sidebarItems.flatMap(node => node.children ? node.children.map(c => c.id) : [node.id]);
 
 // Sections adressables pour ce rôle : une URL hors de cette liste retombe sur l'accueil.
-const SECTIONS = availableTabs;
+const SECTIONS = [...availableTabs, 'notifications'];
 
 const AccountantDashboard = () => {
   const t = useT();
   const [activeTab, setActiveTab] = useSectionRoute(SECTIONS, 'summary');
 
   const subtitles = { 
+    notifications: t('s.tout_ce_qui_vous_concerne'),
     summary: t('s.apercu_de_la_performance_financiere'), 
     strategic: t('s.performances_globales_stocks_et_analyse_du_c'),
     transactions: t('s.details_de_toutes_les_transactions'),
@@ -81,6 +83,7 @@ const AccountantDashboard = () => {
         {activeTab === 'reports' && <ClosureHistory />}
         {activeTab === 'releases' && <ReleaseNotes />}
       </div>
+      {activeTab === 'notifications' && <NotificationsPanel />}
     </DashboardLayout>
   );
 };

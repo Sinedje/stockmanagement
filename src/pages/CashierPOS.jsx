@@ -1,4 +1,5 @@
 import { useSectionRoute } from '../routes/sections';
+import NotificationsPanel from '../notifications/NotificationsPanel';
 import { useT } from '../i18n/I18nContext';
 import React, { useState } from 'react';
 import DashboardLayout from '../components/layouts/DashboardLayout';
@@ -26,7 +27,7 @@ const sidebarItems = [
 ];
 
 // Sections adressables pour ce rôle : une URL hors de cette liste retombe sur l'accueil.
-const SECTIONS = sidebarItems.flatMap(n => n.children ? n.children.map(c => c.id) : [n.id]);
+const SECTIONS = sidebarItems.flatMap(n => n.children ? n.children.map(c => c.id) : [n.id]).concat('notifications');
 
 const CashierPOS = () => {
   const t = useT();
@@ -58,6 +59,7 @@ const CashierPOS = () => {
     history: t('s.historique_des_bilans'),
   };
   const subtitles = {
+    notifications: t('s.tout_ce_qui_vous_concerne'),
     invoice: t('s.creez_et_encaissez_des_factures_multi_magasi'),
     invoices: t('s.consultez_et_reimprimez_vos_factures_etablie'),
     customers: 'Gérez vos clients et consultez leur historique d\'achats',
@@ -91,6 +93,7 @@ const CashierPOS = () => {
       {activeTab === 'history' && <ClosureHistory />}
 
       {showPayment && <PaymentModal onClose={() => setShowPayment(false)} />}
+      {activeTab === 'notifications' && <NotificationsPanel />}
     </DashboardLayout>
   );
 };

@@ -36,6 +36,7 @@ export const translations = {
     'nav.stores': 'Magasins',
     'nav.cashiers': 'Caissiers & magasiniers',
     'nav.users': 'Gestion système',
+    'nav.notifications': 'Notifications',
     'nav.settings': 'Paramètres',
     'nav.summary': 'Résumé financier',
     'nav.transactions': 'Transactions',
@@ -90,6 +91,7 @@ export const translations = {
     'cash.month': 'Mois',
     'cash.opening': 'Ouverture de caisse',
     'cash.start': 'Démarrer ma caisse',
+
 
 
 
@@ -192,6 +194,7 @@ export const translations = {
     's.aucune_vente_ne_correspond_a_votre_recherche': 'Aucune vente ne correspond à votre recherche.',
     's.aucune_vente_sur_la_periode': 'Aucune vente sur la période',
     's.aucune_vente_trouvee': 'Aucune vente trouvée',
+    's.aujourd_hui': 'Aujourd\'hui',
     's.auteur': 'Auteur',
     's.autoriser_la_livraison_immediate_credit': 'Autoriser la livraison immédiate (Crédit)',
     's.benefice_brut': 'Bénéfice brut',
@@ -382,6 +385,7 @@ export const translations = {
     's.etat_final': 'État Final',
     's.etat_global': 'État Global',
     's.etats_de_compte_par_caissier': 'États de Compte par Caissier',
+    's.evenement': 'Événement',
     's.ex_06_00_00_00_00': 'Ex: 06 00 00 00 00',
     's.ex_10000': 'Ex: 10000',
     's.ex_1391ch_n94c1175_71994': 'Ex: 1391CH/N°94C1175/71994',
@@ -709,6 +713,7 @@ export const translations = {
     's.rechercher_un_utilisateur': 'Rechercher un utilisateur',
     's.rechercher_une_entreprise': 'Rechercher une entreprise…',
     's.rechercher_une_facture_ou_un_article': 'Rechercher une facture ou un article...',
+    's.rechercher_une_notification': 'Rechercher une notification…',
     's.rechercher_une_transaction': 'Rechercher une transaction...',
     's.rechercher_une_vente_par_id_caissier_ou_prod': 'Rechercher une vente par ID, caissier ou produit...',
     's.recherchez_un_article_pour_commencer_la_fact': 'Recherchez un article pour commencer la facture',
@@ -946,6 +951,7 @@ export const translations = {
     'nav.stores': 'Stores',
     'nav.cashiers': 'Cashiers & storekeepers',
     'nav.users': 'System management',
+    'nav.notifications': 'Notifications',
     'nav.settings': 'Settings',
     'nav.summary': 'Financial summary',
     'nav.transactions': 'Transactions',
@@ -992,6 +998,7 @@ export const translations = {
     'cash.month': 'Month',
     'cash.opening': 'Cash drawer opening',
     'cash.start': 'Open my drawer',
+
 
 
 
@@ -1094,6 +1101,7 @@ export const translations = {
     's.aucune_vente_ne_correspond_a_votre_recherche': 'No sale matches your search.',
     's.aucune_vente_sur_la_periode': 'No sale in this period',
     's.aucune_vente_trouvee': 'No sale found',
+    's.aujourd_hui': 'Today',
     's.auteur': 'Author',
     's.autoriser_la_livraison_immediate_credit': 'Allow immediate delivery (credit)',
     's.benefice_brut': 'Gross profit',
@@ -1284,6 +1292,7 @@ export const translations = {
     's.etat_final': 'Final status',
     's.etat_global': 'Overall status',
     's.etats_de_compte_par_caissier': 'Account statements by cashier',
+    's.evenement': 'Event',
     's.ex_06_00_00_00_00': 'e.g. 06 00 00 00 00',
     's.ex_10000': 'e.g. 10000',
     's.ex_1391ch_n94c1175_71994': 'e.g. 1391CH/No.94C1175/71994',
@@ -1611,6 +1620,7 @@ export const translations = {
     's.rechercher_un_utilisateur': 'Search for a user',
     's.rechercher_une_entreprise': 'Search a company…',
     's.rechercher_une_facture_ou_un_article': 'Search an invoice or item…',
+    's.rechercher_une_notification': 'Search a notification…',
     's.rechercher_une_transaction': 'Search a transaction…',
     's.rechercher_une_vente_par_id_caissier_ou_prod': 'Search a sale by ID, cashier or product…',
     's.recherchez_un_article_pour_commencer_la_fact': 'Search an item to start the invoice',

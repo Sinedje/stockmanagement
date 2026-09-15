@@ -1,60 +1,92 @@
 import React, { useMemo, useState } from 'react';
-import { Tag, Segmented, Popconfirm } from 'antd';
-import { BellOutlined, CheckOutlined, DeleteOutlined, WifiOutlined } from '@ant-design/icons';
+import { Tag, Popconfirm } from 'antd';
+import {
+  BellOutlined, CheckOutlined, DeleteOutlined, InboxOutlined,
+  ThunderboltOutlined, WifiOutlined,
+} from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
-import { Panel, Button, Toolbar } from '../components/ui';
+import { Panel, Button, Table, Toolbar, SearchInput, Select, StatsCard } from '../components/ui';
 import { useT } from '../i18n/I18nContext';
 import { useNotifications } from './NotificationsContext';
 import { since } from './format';
 
 /**
- * Page dédiée aux notifications.
+ * Historique des notifications du compte.
  *
- * Le panneau de la cloche n'en montre que cinq : au-delà, il déborde de
- * l'écran. Tout l'historique du compte est ici, avec le filtre non lus, parce
- * que c'est la question qu'on se pose en arrivant — qu'ai-je manqué ?
+ * Bâti comme les autres écrans — bandeau d'indicateurs, barre d'outils,
+ * tableau paginé — plutôt qu'en liste à part : c'est une page du tableau de
+ * bord, elle doit s'ouvrir avec le même menu et se lire de la même façon.
  */
 const NotificationsPanel = () => {
   const t = useT();
   const navigate = useNavigate();
   const { items, unread, status, markAllRead, markRead, clear } = useNotifications();
   const [filter, setFilter] = useState('all');
+  const [search, setSearch] = useState('');
 
-  const shown = useMemo(
-    () => (filter === 'unread' ? items.filter((n) => !n.read) : items),
-    [items, filter]
-  );
+  const rows = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    return items
+      .filter((n) => (filter === 'unread' ? !n.read : true))
+      .filter((n) => (term ? (n.text || '').toLowerCase().includes(term) : true));
+  }, [items, filter, search]);
 
-  // Les notifications d'un même jour se lisent ensemble ; les séparer par date
-  // évite de faire calculer au lecteur ce que « il y a 26 h » veut dire.
-  const groups = useMemo(() => {
-    const map = new Map();
-    for (const n of shown) {
-      const day = new Date(n.at).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
-      if (!map.has(day)) map.set(day, []);
-      map.get(day).push(n);
-    }
-    return [...map.entries()];
-  }, [shown]);
+  const today = useMemo(() => {
+    const start = new Date(); start.setHours(0, 0, 0, 0);
+    return items.filter((n) => new Date(n.at) >= start).length;
+  }, [items]);
 
-  const go = (n) => { markRead(n.id); if (n.target) navigate(`/${n.target}`); };
+  const open = (n) => { markRead(n.id); if (n.target) navigate(`/${n.target}`); };
+
+  const columns = [
+    {
+      key: 'text', title: t('s.evenement'),
+      render: (v, row) => (
+        <div className="flex items-center gap-2 min-w-0">
+          <Tag color={row.tone} bordered={false} className="!mr-0 !px-1.5 shrink-0">
+            <span className="inline-block w-1.5 h-1.5 rounded-full bg-current align-middle" />
+          </Tag>
+          <span className={`text-[0.82rem] truncate ${row.read ? 'text-text-secondary' : 'text-text-heading font-medium'}`}>
+            {v}
+          </span>
+        </div>
+      ),
+    },
+    {
+      key: 'at', title: t('s.date'), width: 150,
+      render: (v) => (
+        <span className="text-[0.76rem] text-text-muted tabular-nums whitespace-nowrap"
+              title={new Date(v).toLocaleString('fr-FR')}>
+          {since(t, v)}
+        </span>
+      ),
+    },
+  ];
 
   return (
     <div className="space-y-4 animate-fade-in pb-10">
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+        <StatsCard icon={BellOutlined} label={t('s.non_lues')} value={unread} accentColor="#6366f1" />
+        <StatsCard icon={ThunderboltOutlined} label={t('s.aujourd_hui')} value={today} accentColor="#10b981" />
+        <StatsCard icon={InboxOutlined} label={t('s.total')} value={items.length} accentColor="#8b5cf6" />
+      </div>
+
       <Toolbar>
-        <Segmented
+        <SearchInput value={search} onChange={setSearch} placeholder={t('s.rechercher_une_notification')} />
+        <Select
           value={filter}
           onChange={setFilter}
+          width={170}
           options={[
-            { label: t('s.toutes'), value: 'all' },
-            { label: `${t('s.non_lues')}${unread ? ` (${unread})` : ''}`, value: 'unread' },
+            { value: 'all', label: t('s.toutes') },
+            { value: 'unread', label: t('s.non_lues') },
           ]}
         />
         <span className="flex-1" />
         <span className="flex items-center gap-1.5 pr-1">
           <WifiOutlined style={{ fontSize: 11 }}
                         className={status === 'SUBSCRIBED' ? 'text-emerald-500' : 'text-text-muted'} />
-          <span className="text-[0.72rem] text-text-muted">
+          <span className="text-[0.72rem] text-text-muted whitespace-nowrap">
             {status === 'SUBSCRIBED' ? t('s.connecte_en_direct') : t('s.hors_connexion_directe')}
           </span>
         </span>
@@ -69,39 +101,17 @@ const NotificationsPanel = () => {
         )}
       </Toolbar>
 
-      {shown.length === 0 ? (
-        <Panel>
-          <div className="py-14 text-center">
-            <BellOutlined style={{ fontSize: 28 }} className="text-text-muted opacity-40" />
-            <p className="mt-3 text-[0.86rem] font-medium text-text-heading">
-              {filter === 'unread' ? t('s.aucune_notification_non_lue') : t('s.aucune_notification')}
-            </p>
-            <p className="mt-1 text-[0.78rem] text-text-muted">{t('s.les_evenements_apparaitront_ici_en_direct')}</p>
-          </div>
-        </Panel>
-      ) : (
-        groups.map(([day, list]) => (
-          <Panel key={day} title={day} noPadding>
-            <ul className="divide-y divide-black/5 dark:divide-white/10">
-              {list.map((n) => (
-                <li key={n.id}>
-                  <button onClick={() => go(n)}
-                          className={`w-full text-left flex items-start gap-3 px-4 py-3 hover:bg-black/[0.03] dark:hover:bg-white/[0.04] transition-colors ${n.read ? 'opacity-55' : ''}`}>
-                    <Tag color={n.tone} bordered={false} className="mt-1 shrink-0 !mr-0 !px-1.5">
-                      <span className="inline-block w-1.5 h-1.5 rounded-full bg-current align-middle" />
-                    </Tag>
-                    <span className="min-w-0 flex-1">
-                      <span className="block text-[0.84rem] text-text-heading leading-snug break-words">{n.text}</span>
-                      <span className="block text-[0.72rem] text-text-muted mt-0.5">{since(t, n.at)}</span>
-                    </span>
-                    {!n.read && <span className="mt-1.5 w-2 h-2 rounded-full bg-primary shrink-0" />}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </Panel>
-        ))
-      )}
+      <Panel noPadding>
+        <Table
+          columns={columns}
+          data={rows}
+          rowKey="id"
+          onRowClick={open}
+          emptyIcon={BellOutlined}
+          emptyTitle={filter === 'unread' ? t('s.aucune_notification_non_lue') : t('s.aucune_notification')}
+          emptyDescription={t('s.les_evenements_apparaitront_ici_en_direct')}
+        />
+      </Panel>
     </div>
   );
 };

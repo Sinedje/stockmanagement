@@ -1,4 +1,5 @@
 import { useSectionRoute } from '../routes/sections';
+import NotificationsPanel from '../notifications/NotificationsPanel';
 import React from 'react';
 import DashboardLayout from '../components/layouts/DashboardLayout';
 import DashboardHome from '../components/manager/DashboardHome';
@@ -79,7 +80,7 @@ const sidebarItems = [
 const availableTabs = sidebarItems.flatMap(node => node.children ? node.children.map(c => c.id) : [node.id]);
 
 // Sections adressables pour ce rôle : une URL hors de cette liste retombe sur l'accueil.
-const SECTIONS = availableTabs;
+const SECTIONS = [...availableTabs, 'notifications'];
 
 const ManagerDashboard = () => {
   const t = useT();
@@ -102,6 +103,7 @@ const ManagerDashboard = () => {
   );
 
   const subtitles = { 
+    notifications: t('s.tout_ce_qui_vous_concerne'),
     dashboard: 'Vue d\'ensemble de votre activité', 
     strategic: t('s.performances_globales_stocks_et_analyse_du_c'),
     inventory: t('s.effectuer_un_comptage_physique_et_ajuster_le'), 
@@ -142,6 +144,7 @@ const ManagerDashboard = () => {
       {activeTab === 'transfers' && <TransferManager />}
       {activeTab === 'stores' && <StoresPanel />}
       {activeTab === 'cashiers' && <CashiersPanel />}
+      {activeTab === 'notifications' && <NotificationsPanel />}
     </DashboardLayout>
   );
 };

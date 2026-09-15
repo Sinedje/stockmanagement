@@ -11,6 +11,7 @@ import PlatformSettingsPanel from '../components/superadmin/PlatformSettingsPane
 import UserSearch from '../components/superadmin/UserSearch';
 import AuditTable from '../components/superadmin/AuditTable';
 import { useSectionRoute } from '../routes/sections';
+import NotificationsPanel from '../notifications/NotificationsPanel';
 import { isSupabaseConfigured } from '../lib/supabase';
 import { recordAudit } from '../services/operationsService';
 import { useAuth } from '../context/AuthContext';
@@ -26,7 +27,8 @@ const SECTION_DEFS = [
   { id: 'settings',  key: 's.parametres',        icon: SettingOutlined },
 ];
 
-const SECTIONS = SECTION_DEFS.map(i => i.id);
+// « notifications » n'a pas d'entrée de menu : on y vient par la cloche.
+const SECTIONS = [...SECTION_DEFS.map(i => i.id), 'notifications'];
 
 
 
@@ -43,8 +45,9 @@ const SuperAdminDashboard = () => {
   const t = useT();
   const { currentUser } = useAuth();
   const sidebarItems = SECTION_DEFS.map(({ key, ...rest }) => ({ ...rest, label: t(key) }));
-  const TITLES = Object.fromEntries(SECTION_DEFS.map(d => [d.id, t(d.key)]));
+  const TITLES = { ...Object.fromEntries(SECTION_DEFS.map(d => [d.id, t(d.key)])), notifications: t('s.notifications') };
   const SUBTITLES = {
+    notifications: t('s.tout_ce_qui_vous_concerne'),
     dashboard: t('s.vue_d_ensemble_du_parc'),
     companies: t('s.creez_et_supervisez_les_entreprises_clientes'),
     users: t('s.rechercher_un_compte_dans_toutes_les_entrepr'),
@@ -183,6 +186,8 @@ const SuperAdminDashboard = () => {
         <UserSearch />
       ) : activeTab === 'audit' ? (
         <AuditTable />
+      ) : activeTab === 'notifications' ? (
+        <NotificationsPanel />
       ) : activeTab === 'settings' ? (
         <PlatformSettingsPanel />
       ) : showWizard ? (

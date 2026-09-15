@@ -1,4 +1,5 @@
 import { useSectionRoute } from '../routes/sections';
+import NotificationsPanel from '../notifications/NotificationsPanel';
 import { useT } from '../i18n/I18nContext';
 import React from 'react';
 import DashboardLayout from '../components/layouts/DashboardLayout';
@@ -14,7 +15,7 @@ const sidebarItems = [
 ];
 
 // Sections adressables pour ce rôle : une URL hors de cette liste retombe sur l'accueil.
-const SECTIONS = sidebarItems.flatMap(n => n.children ? n.children.map(c => c.id) : [n.id]);
+const SECTIONS = sidebarItems.flatMap(n => n.children ? n.children.map(c => c.id) : [n.id]).concat('notifications');
 
 const StorekeeperDashboard = () => {
   const t = useT();
@@ -27,6 +28,7 @@ const StorekeeperDashboard = () => {
   };
   
   const subtitles = { 
+    notifications: t('s.tout_ce_qui_vous_concerne'),
     deliveries: t('s.valider_la_sortie_physique_des_marchandises'), 
     invoices: 'Consulter l\'historique des ventes de votre magasin',
     inventory: t('s.visualiser_les_quantites_disponibles_en_maga'),
@@ -43,6 +45,7 @@ const StorekeeperDashboard = () => {
       {activeTab === 'deliveries' && <DeliveriesPanel />}
       {activeTab === 'invoices' && <StorekeeperInvoices />}
       {activeTab === 'inventory' && <ProductList />}
+      {activeTab === 'notifications' && <NotificationsPanel />}
     </DashboardLayout>
   );
 };
