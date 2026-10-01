@@ -30,7 +30,7 @@ const useBreakages = () => {
     try {
       // Build local record first to get all enriched fields (productName, storeId, etc.)
       const record = storeDeclareBreakage(productId, quantity, reason);
-      if (import.meta.env.VITE_API_URL && record) {
+      if (record) {
         await apiCreateBreakage(record);
       }
       return record;
@@ -47,7 +47,7 @@ const useBreakages = () => {
     setError(null);
     try {
       const record = storeCreateRepackaging(brokenProductId, brokenQty, newProductName, newProductQty, defaultPrice);
-      if (import.meta.env.VITE_API_URL && record) {
+      if (record) {
         await apiCreateRepackaging(record);
       }
       return record;

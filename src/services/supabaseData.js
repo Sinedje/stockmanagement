@@ -185,8 +185,54 @@ const deleteRow = async (table, id) => {
 
 /* ── Catalogue ───────────────────────────────────────────────────────────── */
 
-export const createProduct = (p) => insertRow('products', p, { drop: ['image'] });
-export const updateProduct = (id, p) => updateRow('products', id, p, { drop: ['image'] });
+/**
+ * Handles product image for storage:
+ * - If base64 data URL → uploads to Supabase Storage, returns the new path.
+ * - If already a Supabase Storage public URL → extracts and returns the existing path (no re-upload).
+ * - Otherwise (empty or external URL) → returns null.
+ */
+export const uploadProductImage = async (imageData) => {
+  if (!imageData) return null;
+
+  // Case 1: Already a Supabase Storage public URL — extract the path
+  const storageMarker = `/object/public/${BUCKET}/`;
+  if (imageData.includes(storageMarker)) {
+    const path = imageData.split(storageMarker)[1];
+    return path || null;
+  }
+
+  // Case 2: New base64 image — convert and upload
+  if (imageData.startsWith('data:')) {
+    const [header, base64] = imageData.split(',');
+    const mime = header.match(/:(.*?);/)[1];
+    const ext = mime.split('/')[1] || 'jpg';
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    const blob = new Blob([bytes], { type: mime });
+
+    const path = `products/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+    const { error } = await supabase.storage.from(BUCKET).upload(path, blob, { upsert: true, contentType: mime });
+    if (error) throw new Error(`Image upload failed: ${error.message}`);
+    return path;
+  }
+
+  // Case 3: External URL or unknown format — ignore
+  return null;
+};
+
+export const createProduct = async (p) => {
+  const imagePath = await uploadProductImage(p.image).catch(() => null);
+  const row = imagePath ? { ...p, imagePath } : p;
+  return insertRow('products', row, { drop: ['image'] });
+};
+
+export const updateProduct = async (id, p) => {
+  const imagePath = await uploadProductImage(p.image).catch(() => null);
+  const patch = imagePath ? { ...p, imagePath } : p;
+  return updateRow('products', id, patch, { drop: ['image'] });
+};
+
 export const deleteProduct = (id) => deleteRow('products', id);
 
 /** Import en lot : une seule requête, sinon 300 articles font 300 allers-retours. */
@@ -225,10 +271,54 @@ export const toggleUserStatus = async (id) => {
 export const createCustomer = (c) => insertRow('customers', c);
 export const createCustomerTransaction = (tx) => insertRow('customer_transactions', tx);
 
+export const addCustomerDeposit = async (customerId, amount, method, reference) => {
+  if (!supabase) throw new Error('Supabase non initialisé');
+  const companyId = await currentCompanyId();
+  const tx = {
+    company_id: companyId,
+    customer_id: customerId,
+    type: 'deposit',
+    amount: amount,
+    method: method || 'Espèces',
+    reference: reference || `DEP-${Math.floor(1000 + Math.random() * 9000)}`
+  };
+  
+  // Update balance
+  const { data: customer } = await supabase.from('customers').select('balance').eq('id', customerId).single();
+  await supabase.from('customers').update({ balance: (customer?.balance || 0) + amount }).eq('id', customerId);
+  
+  const { data, error } = await supabase.from('customer_transactions').insert(tx).select().single();
+  if (error) throw new Error(error.message);
+  return camelize(data);
+};
+
+export const refundCustomer = async (customerId, amount, reference) => {
+  if (!supabase) throw new Error('Supabase non initialisé');
+  const companyId = await currentCompanyId();
+  const tx = {
+    company_id: companyId,
+    customer_id: customerId,
+    type: 'refund',
+    amount: -amount, // Negative for refund
+    method: 'Espèces',
+    reference: reference || `REM-${Math.floor(1000 + Math.random() * 9000)}`
+  };
+  
+  // Update balance
+  const { data: customer } = await supabase.from('customers').select('balance').eq('id', customerId).single();
+  await supabase.from('customers').update({ balance: (customer?.balance || 0) - amount }).eq('id', customerId);
+  
+  const { data, error } = await supabase.from('customer_transactions').insert(tx).select().single();
+  if (error) throw new Error(error.message);
+  return camelize(data);
+};
+
 /* ── Caisse ──────────────────────────────────────────────────────────────── */
 
 export const createExpense = (e) => insertRow('expenses', e);
+export const deleteExpense = (id) => deleteRow('expenses', id);
 export const createVersement = (v) => insertRow('versements', v);
+export const deleteVersement = (id) => deleteRow('versements', id);
 export const createCashReport = (r) => insertRow('cash_reports', r);
 export const updateCashReport = (id, r) => updateRow('cash_reports', id, r);
 
@@ -295,3 +385,86 @@ export const createTransfer = async (transfer) => {
 
 export const receiveTransfer = (transferId, receivedBy) =>
   rpc('receive_transfer', { p_transfer_id: transferId, p_received_by: receivedBy || '' });
+
+/**
+ * Sortie de stock physique par le magasinier.
+ * deliveries = [{ productId, qtyNow }]
+ *
+ * Pour chaque article :
+ *   1. Déduit qtyNow du physical_stock (le stock théorique a déjà été touché
+ *      lors de la création de la vente — la sortie physique ne touche que
+ *      physical_stock).
+ *   2. Marque l'article comme livré (is_delivered = true) dans sale_items et
+ *      enregistre la quantité livrée.
+ *   3. Met à jour le delivery_status de la vente.
+ */
+export const deliverPartial = async (saleId, storeId, deliveries) => {
+  if (!supabase) throw new Error('Supabase non initialisé');
+
+  // 1. Déduire le stock physique pour chaque produit livré
+  for (const { productId, qtyNow } of deliveries) {
+    if (!productId || qtyNow <= 0) continue;
+    const { error } = await supabase.rpc('deliver_partial_stock', {
+      p_product_id: productId,
+      p_qty: qtyNow,
+    });
+    // Si la RPC n'existe pas encore, on fait l'update direct
+    if (error && error.code === 'PGRST202') {
+      // Si la RPC n'existe pas encore, on lit et on met à jour manuellement
+      const { data: prod } = await supabase.from('products').select('physical_stock').eq('id', productId).single();
+      if (prod) {
+        await supabase.from('products')
+          .update({ physical_stock: Math.max(0, (prod.physical_stock || 0) - qtyNow), updated_at: new Date().toISOString() })
+          .eq('id', productId);
+      }
+    } else if (error) {
+      // Fallback direct sans RPC
+      const { data: prod } = await supabase.from('products').select('physical_stock').eq('id', productId).single();
+      if (prod) {
+        await supabase.from('products')
+          .update({ physical_stock: Math.max(0, (prod.physical_stock || 0) - qtyNow), updated_at: new Date().toISOString() })
+          .eq('id', productId);
+      }
+    }
+  }
+
+  // 2. Marquer les articles comme partiellement ou totalement livrés
+  for (const { productId, qtyNow } of deliveries) {
+    if (!productId || qtyNow <= 0) continue;
+    
+    // On récupère l'article pour avoir la quantité totale commandée et la quantité déjà livrée
+    const { data: item } = await supabase
+      .from('sale_items')
+      .select('id, quantity, quantity_delivered')
+      .eq('sale_id', saleId)
+      .eq('product_id', productId)
+      .maybeSingle();
+      
+    if (item) {
+      const alreadyDelivered = item.quantity_delivered || 0;
+      const newDelivered = alreadyDelivered + qtyNow;
+      const isNowDelivered = newDelivered >= item.quantity;
+      
+      await supabase
+        .from('sale_items')
+        .update({ is_delivered: isNowDelivered, quantity_delivered: newDelivered })
+        .eq('id', item.id);
+    }
+  }
+
+  // 3. Déterminer le nouveau statut de livraison global de la vente
+  const { data: allItems } = await supabase
+    .from('sale_items')
+    .select('is_delivered, quantity_delivered, quantity, store_id')
+    .eq('sale_id', saleId);
+
+  const itemsList = allItems || [];
+  const allDelivered = itemsList.length > 0 && itemsList.every(i => i.is_delivered || (i.quantity_delivered || 0) >= i.quantity);
+  const anyDelivered = itemsList.some(i => (i.quantity_delivered || 0) > 0 || i.is_delivered);
+  const newStatus = allDelivered ? 'delivered' : anyDelivered ? 'partially_delivered' : 'pending';
+  const deliveryDate = new Date().toISOString();
+
+  await supabase.from('sales').update({ delivery_status: newStatus, delivery_date: deliveryDate, updated_at: deliveryDate }).eq('id', saleId);
+
+  return { saleId, storeId, deliveries, deliveryStatus: newStatus, deliveryDate };
+};

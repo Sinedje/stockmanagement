@@ -245,6 +245,7 @@ const InvoiceBuilder = () => {
   const { customers } = useCustomers();
 
   const [customer, setCustomer] = useState({ name: '', phone: '' });
+  const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
   const [lines, setLines] = useState([]);
   const [search, setSearch] = useState('');
   const [filterStore, setFilterStore] = useState('Tous');
@@ -252,14 +253,44 @@ const InvoiceBuilder = () => {
   const [completedSale, setCompletedSale] = useState(null);
   const [discount, setDiscount] = useState(0);
 
-  // Look up customer account balance by name+phone
+  // Filter customers matching name or phone for suggestions dropdown
+  const customerSuggestions = useMemo(() => {
+    const qName = customer.name.trim().toLowerCase();
+    const qPhone = customer.phone.trim();
+    if (!qName && !qPhone) return [];
+    return customers.filter(c => 
+      (qName && c.name.toLowerCase().includes(qName)) ||
+      (qPhone && c.phone && c.phone.includes(qPhone))
+    ).slice(0, 5);
+  }, [customers, customer.name, customer.phone]);
+
+  // List of all customers sharing this exact name
+  const sameNameCustomers = useMemo(() => {
+    if (!customer.name.trim()) return [];
+    return customers.filter(c => c.name.toLowerCase().trim() === customer.name.toLowerCase().trim());
+  }, [customers, customer.name]);
+
+  // Look up customer account balance requiring phone match when name is ambiguous
   const matchedCustomer = useMemo(() => {
     if (!customer.name.trim()) return null;
-    return customers.find(c =>
-      c.name.toLowerCase() === customer.name.toLowerCase() &&
-      (!customer.phone || c.phone === customer.phone)
-    ) || customers.find(c => c.name.toLowerCase() === customer.name.toLowerCase()) || null;
-  }, [customers, customer.name, customer.phone]);
+    
+    // Si un numéro de téléphone est renseigné, on cherche le client ayant ce téléphone
+    if (customer.phone.trim()) {
+      const byPhone = customers.find(c => c.phone && c.phone.trim() === customer.phone.trim());
+      if (byPhone) return byPhone;
+    }
+
+    // S'il n'y a qu'UN SEUL client portant ce nom et qu'aucun téléphone contradictoire n'est saisi
+    if (sameNameCustomers.length === 1) {
+      const single = sameNameCustomers[0];
+      if (!customer.phone.trim() || !single.phone || single.phone.trim() === customer.phone.trim()) {
+        return single;
+      }
+    }
+
+    // Plusieurs clients du même nom sans téléphone exact : impossible de trancher
+    return null;
+  }, [customers, customer.name, customer.phone, sameNameCustomers]);
 
   const itemsTotal = lines.reduce((s, l) => s + l.price * l.quantity, 0);
   const total = itemsTotal - discount;
@@ -271,7 +302,8 @@ const InvoiceBuilder = () => {
         const matchSearch = 
           p.name.toLowerCase().includes(search.toLowerCase()) ||
           (p.designation && p.designation.toLowerCase().includes(search.toLowerCase()));
-        const matchStore = filterStore === 'Tous' || String(p.storeId) === String(filterStore);
+        const pStoreStr = String(p.storeId?._id || p.storeId?.id || p.storeId);
+        const matchStore = filterStore === 'Tous' || pStoreStr === String(filterStore);
         // Show all products with any stock (>= 0) or non-inventory items — 
         // avoids hiding items when local cache hasn't synced yet with server.
         const hasStock = p.isNonInventory || (p.stock ?? 0) >= 0;
@@ -356,33 +388,103 @@ const InvoiceBuilder = () => {
       </div>
 
       {/* Customer info */}
-      <div className="glass-panel rounded-2xl p-4 space-y-3">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {[
-            { key: 'name', label: t('s.nom_du_client'), icon: UserOutlined, placeholder: 'Jean Dupont...' },
-            { key: 'phone', label: t('s.telephone'), icon: PhoneOutlined, placeholder: '+237 6 00 00 00 00...' },
-          ].map(({ key, label, icon: Icon, placeholder }) => (
-            <div key={key}>
-              <label className="text-[0.62rem] font-semibold text-text-muted uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
-                <Icon size={10} /> {label}
-              </label>
-              <input
-                className="w-full bg-white dark:bg-black/20 border border-black/15 dark:border-white/10 rounded-xl px-4 py-2.5 text-[0.88rem] text-text-heading placeholder-text-muted/40 focus:outline-none focus:border-primary/50 transition-colors"
-                placeholder={placeholder}
-                value={customer[key]}
-                onChange={e => setCustomer(p => ({ ...p, [key]: e.target.value }))}
-              />
-            </div>
-          ))}
+      <div className="glass-panel rounded-2xl p-4 space-y-3 relative">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 relative">
+          <div>
+            <label className="text-[0.62rem] font-semibold text-text-muted uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
+              <UserOutlined style={{ fontSize: 10 }} /> {t('s.nom_du_client')}
+            </label>
+            <input
+              className="w-full bg-white dark:bg-black/20 border border-black/15 dark:border-white/10 rounded-xl px-4 py-2.5 text-[0.88rem] text-text-heading placeholder-text-muted/40 focus:outline-none focus:border-primary/50 transition-colors"
+              placeholder="Jean Dupont..."
+              value={customer.name}
+              onFocus={() => setShowCustomerDropdown(true)}
+              onChange={e => {
+                setCustomer(p => ({ ...p, name: e.target.value }));
+                setShowCustomerDropdown(true);
+              }}
+            />
+          </div>
+
+          <div>
+            <label className="text-[0.62rem] font-semibold text-text-muted uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
+              <PhoneOutlined style={{ fontSize: 10 }} /> {t('s.telephone')}
+            </label>
+            <input
+              className="w-full bg-white dark:bg-black/20 border border-black/15 dark:border-white/10 rounded-xl px-4 py-2.5 text-[0.88rem] text-text-heading placeholder-text-muted/40 focus:outline-none focus:border-primary/50 transition-colors"
+              placeholder="+237 6 00 00 00 00..."
+              value={customer.phone}
+              onFocus={() => setShowCustomerDropdown(true)}
+              onChange={e => {
+                setCustomer(p => ({ ...p, phone: e.target.value }));
+                setShowCustomerDropdown(true);
+              }}
+            />
+          </div>
         </div>
-        {/* Show matched customer balance */}
-        {matchedCustomer && matchedCustomer.balance > 0 && (
-          <div className="flex items-center gap-2 px-3 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-xl">
-            <WalletOutlined style={{ fontSize: 14 }} className="text-emerald-500" />
-            <span className="text-xs font-semibold text-emerald-600">
-              Solde disponible: {formatPrice(matchedCustomer.balance)}
+
+        {/* Customer Suggestions Dropdown */}
+        {showCustomerDropdown && customerSuggestions.length > 0 && (
+          <div className="absolute top-full left-0 right-0 mt-1 glass-panel-strong rounded-xl z-50 overflow-hidden shadow-xl border border-black/10 dark:border-white/10">
+            <div className="px-3 py-1.5 bg-black/5 dark:bg-white/5 text-[0.62rem] font-bold text-text-muted uppercase tracking-widest flex justify-between items-center">
+              <span>Clients existants trouvés ({customerSuggestions.length})</span>
+              <button 
+                type="button"
+                className="text-xs text-primary hover:underline"
+                onClick={() => setShowCustomerDropdown(false)}
+              >
+                Fermer ✕
+              </button>
+            </div>
+            {customerSuggestions.map(c => (
+              <button
+                key={c.id || c._id}
+                type="button"
+                className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-primary/10 transition-colors border-b border-black/5 dark:border-white/5 last:border-0 text-left"
+                onClick={() => {
+                  setCustomer({ name: c.name, phone: c.phone || '' });
+                  setShowCustomerDropdown(false);
+                }}
+              >
+                <div className="flex items-center gap-2 min-w-0">
+                  <UserOutlined style={{ fontSize: 12 }} className="text-primary shrink-0" />
+                  <span className="text-xs font-bold text-text-heading truncate">{c.name}</span>
+                  {c.phone && <span className="text-[0.68rem] text-text-muted font-mono shrink-0">({c.phone})</span>}
+                </div>
+                {c.balance > 0 && (
+                  <span className="text-xs font-black text-emerald-500 shrink-0 ml-2">
+                    Dépôt: {formatPrice(c.balance)}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Warning if multiple customers match the name without exact phone */}
+        {sameNameCustomers.length > 1 && !matchedCustomer && (
+          <div className="flex items-center gap-2 px-3 py-2 bg-amber-500/10 border border-amber-500/20 rounded-xl">
+            <WarningOutlined style={{ fontSize: 14 }} className="text-amber-500 shrink-0" />
+            <span className="text-xs font-bold text-amber-600">
+              ⚠️ {sameNameCustomers.length} clients s'appellent "{customer.name}". Veuillez saisir le numéro de téléphone exact pour identifier le bon client.
             </span>
-            <span className="text-xs text-emerald-500 ml-auto">{t('s.utilisable_a_l_encaissement')}</span>
+          </div>
+        )}
+
+        {/* Show matched customer balance and identified status */}
+        {matchedCustomer && (
+          <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-xl">
+            <div className="flex items-center gap-2">
+              <CheckCircleOutlined style={{ fontSize: 14 }} className="text-emerald-500 shrink-0" />
+              <span className="text-xs font-bold text-emerald-600">
+                Client identifié : {matchedCustomer.name} {matchedCustomer.phone ? `(${matchedCustomer.phone})` : ''}
+              </span>
+            </div>
+            {matchedCustomer.balance > 0 && (
+              <span className="text-xs font-black text-emerald-600 bg-emerald-500/20 px-2 py-0.5 rounded-lg">
+                Dépôt disponible : {formatPrice(matchedCustomer.balance)}
+              </span>
+            )}
           </div>
         )}
       </div>

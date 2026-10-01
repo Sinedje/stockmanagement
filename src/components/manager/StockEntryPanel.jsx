@@ -72,6 +72,24 @@ const StockEntryPanel = () => {
 
   const addRow = (product) => {
     if (isSaved) return;
+
+    // PROTECTION MULTI-MAGASIN : Si le produit vient d'un autre magasin (catalogue partagé),
+    // on ne peut pas utiliser son ID. On ouvre la création pour le cloner dans ce magasin.
+    if (String(product.storeId) !== String(activeStoreId)) {
+      message.info("Cet article n'existe pas encore dans ce magasin. Validation des infos...");
+      setQuickForm({
+        name: product.name,
+        designation: product.designation || '',
+        category: product.category || '',
+        price: product.price || '',
+        cost: product.cost || '',
+        image: product.image || ''
+      });
+      setShowQuickAdd(true);
+      setSearchTerm('');
+      return;
+    }
+
     if (entryItems.find(item => item.productId === product.id)) {
       message.warning('Ce produit est déjà dans la liste');
       return;

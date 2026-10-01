@@ -5,10 +5,13 @@ import DashboardLayout from '../components/layouts/DashboardLayout';
 import DeliveriesPanel from '../components/storekeeper/DeliveriesPanel';
 import StorekeeperInvoices from '../components/storekeeper/StorekeeperInvoices';
 import ProductList from '../components/cashier/ProductList';
-import { CarOutlined, DashboardOutlined, FileTextOutlined, HistoryOutlined, InboxOutlined } from '@ant-design/icons';
+import ReleaseNotes from '../components/manager/ReleaseNotes';
+import { useAuth } from '../context/AuthContext';
+import { CarOutlined, DashboardOutlined, FileTextOutlined, HistoryOutlined, InboxOutlined, ProfileOutlined } from '@ant-design/icons';
 
 const sidebarItems = [
   { id: 'deliveries', label: 'Livraisons', icon: CarOutlined },
+  { id: 'releases', label: 'Bons de sortie', icon: ProfileOutlined },
   { id: 'invoices', labelKey: 's.liste_des_factures', icon: FileTextOutlined },
   { id: 'inventory', labelKey: 's.etat_du_stock', icon: InboxOutlined },
 ];
@@ -18,16 +21,19 @@ const SECTIONS = sidebarItems.flatMap(n => n.children ? n.children.map(c => c.id
 
 const StorekeeperDashboard = () => {
   const t = useT();
+  const { currentUser } = useAuth();
   const [activeTab, setActiveTab] = useSectionRoute(SECTIONS, 'deliveries');
 
   const titles = { 
     deliveries: t('s.gestion_des_livraisons'), 
+    releases: 'Bons de sortie de votre magasin',
     invoices: t('s.journal_des_factures'),
     inventory: t('s.consultation_du_stock'),
   };
   
   const subtitles = { 
     deliveries: t('s.valider_la_sortie_physique_des_marchandises'), 
+    releases: 'Consulter et imprimer les bons de sortie des marchandises de votre magasin',
     invoices: 'Consulter l\'historique des ventes de votre magasin',
     inventory: t('s.visualiser_les_quantites_disponibles_en_maga'),
   };
@@ -41,6 +47,7 @@ const StorekeeperDashboard = () => {
       subtitle={subtitles[activeTab]}
     >
       {activeTab === 'deliveries' && <DeliveriesPanel />}
+      {activeTab === 'releases' && <ReleaseNotes storeIdFilter={currentUser?.storeId} />}
       {activeTab === 'invoices' && <StorekeeperInvoices />}
       {activeTab === 'inventory' && <ProductList />}
     </DashboardLayout>

@@ -11,13 +11,15 @@ import Cart from '../components/cashier/Cart';
 import PaymentModal from '../components/cashier/PaymentModal';
 import ClosureHistory from '../components/common/ClosureHistory';
 import StockEntryPanel from '../components/manager/StockEntryPanel';
-import { BarChartOutlined, FileTextOutlined, HistoryOutlined, InboxOutlined, PlusSquareOutlined, ShoppingCartOutlined, TeamOutlined, UnorderedListOutlined } from '@ant-design/icons';
+import ReleaseNotes from '../components/manager/ReleaseNotes';
+import { BarChartOutlined, FileTextOutlined, HistoryOutlined, InboxOutlined, PlusSquareOutlined, ProfileOutlined, ShoppingCartOutlined, TeamOutlined, UnorderedListOutlined } from '@ant-design/icons';
 import { formatPrice } from '../context/StoreContext';
 import { useSales } from '../hooks';
 
 const sidebarItems = [
   { id: 'invoice', label: 'Facturation', icon: FileTextOutlined },
   { id: 'invoices', labelKey: 's.liste_des_factures_2', icon: UnorderedListOutlined },
+  { id: 'releases', label: 'Bons de sortie', icon: ProfileOutlined },
   { id: 'customers', labelKey: 's.liste_des_clients', icon: TeamOutlined },
   { id: 'products', labelKey: 's.liste_des_articles', icon: InboxOutlined },
   { id: 'catalog', labelKey: 's.catalogue_entrees', icon: PlusSquareOutlined },
@@ -51,6 +53,7 @@ const CashierPOS = () => {
   const titles = {
     invoice: 'Facturation',
     invoices: t('s.liste_des_factures_2'),
+    releases: 'Bons de sortie de vos factures',
     customers: t('s.liste_des_clients'),
     products: t('s.liste_des_articles'),
     catalog: t('s.catalogue_entrees_de_stock'),
@@ -60,6 +63,7 @@ const CashierPOS = () => {
   const subtitles = {
     invoice: t('s.creez_et_encaissez_des_factures_multi_magasi'),
     invoices: t('s.consultez_et_reimprimez_vos_factures_etablie'),
+    releases: 'Suivez le statut de livraison de vos factures dans les différents magasins de l\'entreprise',
     customers: 'Gérez vos clients et consultez leur historique d\'achats',
     products: t('s.consultez_les_stocks_disponibles_par_magasin'),
     catalog: t('s.gerez_le_catalogue_et_receptionnez_la_marcha'),
@@ -79,6 +83,8 @@ const CashierPOS = () => {
       {activeTab === 'invoice' && <InvoiceBuilder />}
       
       {activeTab === 'invoices' && <InvoiceList />}
+
+      {activeTab === 'releases' && <ReleaseNotes cashierOnly={true} />}
 
       {activeTab === 'customers' && <CustomerList />}
 

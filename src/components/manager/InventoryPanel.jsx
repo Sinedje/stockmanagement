@@ -2,7 +2,7 @@ import { useT } from '../../i18n/I18nContext';
 import { Table } from '../ui';
 import React, { useState } from 'react';
 import { formatPrice } from '../../context/StoreContext';
-import { useProducts } from '../../hooks';
+import { useProducts, useStores } from '../../hooks';
 import Modal from '../common/Modal';
 import Input from '../common/Input';
 import Select from '../common/Select';
@@ -25,6 +25,7 @@ const emptyProduct = {
 const InventoryPanel = () => {
   const t = useT();
   const { products, categories, addProduct, updateProduct, deleteProduct, addCategory } = useProducts();
+  const { stores } = useStores();
   const [search, setSearch] = useState('');
   const [filterCat, setFilterCat] = useState('Tous');
   const [showModal, setShowModal] = useState(false);
@@ -92,7 +93,15 @@ const InventoryPanel = () => {
         )}
       </div>
     )},
-    { key: 'name', title: t('s.produit'), render: (val) => <span className="font-semibold text-text-heading">{val}</span> },
+    { key: 'name', title: t('s.produit'), render: (val, row) => {
+      const storeName = stores.find(s => String(s.id) === String(row.storeId))?.name || 'Principal';
+      return (
+        <div className="flex flex-col">
+          <span className="font-semibold text-text-heading">{val}</span>
+          <span className="text-[0.65rem] text-primary/70 font-bold">{storeName}</span>
+        </div>
+      );
+    }},
     { key: 'category', title: t('s.categorie'), render: (val) => <span className="badge badge-info">{val}</span> },
     { key: 'price', title: t('s.prix'), render: (val) => <span className="font-bold text-primary">{formatPrice(val)}</span> },
     { key: 'cost', title: t('s.cout'), render: (val) => formatPrice(val) },

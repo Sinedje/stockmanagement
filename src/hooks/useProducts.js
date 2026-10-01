@@ -1,19 +1,21 @@
 /**
  * useProducts.js
  * Manages product and category state.
- * Calls productService for API operations; maintains local state for offline/mock mode.
+ *
+ * Toutes les opérations passent par productService / storeService, qui
+ * routent vers Supabase si une session existe. Le mode hors-ligne (state
+ * local uniquement) n'est utilisé qu'en dernier recours.
  */
 import { useState, useCallback } from 'react';
 import {
   createProduct as apiCreateProduct,
   updateProduct as apiUpdateProduct,
   deleteProduct as apiDeleteProduct,
-  bulkUpdateStock as apiBulkUpdateStock,
   createCategory as apiCreateCategory,
-  fetchProducts as apiFetchProducts,
   importProducts as apiImportProducts,
 } from '../services/productService';
-import { createStockEntry as apiCreateStockEntry } from '../services/storeService';
+import { createStockEntry as supabaseCreateStockEntry } from '../services/storeService';
+import { hasSupabaseSession } from '../services/supabaseData';
 import { useStore } from '../context/StoreContext';
 
 const useProducts = () => {
@@ -36,39 +38,21 @@ const useProducts = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  // ── Créer un produit ────────────────────────────────────────────────────
   const addProduct = useCallback(async (productData) => {
     setLoading(true);
     setError(null);
     try {
-      // Inject the current activeStoreId if not already present
       const payload = { ...productData, storeId: productData.storeId || activeStoreId };
-      if (import.meta.env.VITE_API_URL) {
-        const saved = await apiCreateProduct(payload);
-        // Use server-returned product (with real _id → id) for local state
-        storeAddProduct(saved || payload);
+      // apiCreateProduct route déjà vers Supabase si session existe
+      const saved = await apiCreateProduct(payload);
+      if (saved?.id) {
+        storeAddProduct(saved);
       } else {
         storeAddProduct(payload);
       }
-    } catch (err) {
-      setError(err.message);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  }, [storeAddProduct, activeStoreId]);
-
-  const importProducts = useCallback(async (productsData) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const payload = productsData.map(p => ({ ...p, storeId: p.storeId || activeStoreId }));
-      if (import.meta.env.VITE_API_URL) {
-        await apiImportProducts(payload);
-        await storeRefreshProducts(); // Refresh to get all the new/updated products with correct IDs
-      } else {
-        // Offline mock
-        payload.forEach(p => storeAddProduct(p));
-      }
+      // Rafraîchir pour avoir les vrais IDs UUID de la BDD
+      await storeRefreshProducts();
     } catch (err) {
       setError(err.message);
       throw err;
@@ -77,16 +61,29 @@ const useProducts = () => {
     }
   }, [storeAddProduct, storeRefreshProducts, activeStoreId]);
 
+  // ── Import Excel ────────────────────────────────────────────────────────
+  const importProducts = useCallback(async (productsData) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const payload = productsData.map(p => ({ ...p, storeId: p.storeId || activeStoreId }));
+      await apiImportProducts(payload);
+      await storeRefreshProducts();
+    } catch (err) {
+      setError(err.message);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, [storeRefreshProducts, activeStoreId]);
+
+  // ── Modifier un produit ─────────────────────────────────────────────────
   const updateProduct = useCallback(async (id, updates) => {
     setLoading(true);
     setError(null);
     try {
-      if (import.meta.env.VITE_API_URL) {
-        const saved = await apiUpdateProduct(id, updates);
-        storeUpdateProduct(id, saved || updates);
-      } else {
-        storeUpdateProduct(id, updates);
-      }
+      const saved = await apiUpdateProduct(id, updates);
+      storeUpdateProduct(id, saved || updates);
     } catch (err) {
       setError(err.message);
       throw err;
@@ -95,11 +92,12 @@ const useProducts = () => {
     }
   }, [storeUpdateProduct]);
 
+  // ── Supprimer un produit ────────────────────────────────────────────────
   const deleteProduct = useCallback(async (id) => {
     setLoading(true);
     setError(null);
     try {
-      if (import.meta.env.VITE_API_URL) await apiDeleteProduct(id);
+      await apiDeleteProduct(id);
       storeDeleteProduct(id);
     } catch (err) {
       setError(err.message);
@@ -109,11 +107,11 @@ const useProducts = () => {
     }
   }, [storeDeleteProduct]);
 
+  // ── Mise à jour de stock en masse (legacy) ──────────────────────────────
   const bulkUpdateStock = useCallback(async (items, entryMeta) => {
     setLoading(true);
     setError(null);
     try {
-      if (import.meta.env.VITE_API_URL) await apiBulkUpdateStock(items, entryMeta);
       storeBulkUpdateStock(items, entryMeta);
     } catch (err) {
       setError(err.message);
@@ -123,39 +121,24 @@ const useProducts = () => {
     }
   }, [storeBulkUpdateStock]);
 
-  /**
-   * receiveStock — preferred function for stock receptions.
-   * Calls the /stock-entries endpoint which:
-   *   1. Creates / updates product stock in the database
-   *   2. Creates a StockEntry document for history
-   * Then synchronises local state so the UI reflects the new quantities
-   * without requiring a full page reload.
-   *
-   * @param {Array}  items      - Array of { productId, name, quantity, cost }
-   * @param {Object} entryMeta - { supplier, noteNumber, storeId }
-   */
+  // ── Entrée de stock (réception) ─────────────────────────────────────────
   const receiveStock = useCallback(async (items, entryMeta) => {
     setLoading(true);
     setError(null);
     try {
-      if (import.meta.env.VITE_API_URL) {
-        // Server creates StockEntry + updates Product.stock in MongoDB
-        const savedEntry = await apiCreateStockEntry({
+      const isOnline = await hasSupabaseSession();
+      if (isOnline) {
+        const savedEntry = await supabaseCreateStockEntry({
           supplier: entryMeta.supplier,
           noteNumber: entryMeta.noteNumber,
           storeId: entryMeta.storeId || activeStoreId,
           items,
         });
-        
-        // The backend might have cloned a product from another store.
-        // Instead of a risky optimistic update with the wrong productId, 
-        // we just refresh the whole product list to get the real IDs.
         if (savedEntry) {
           storeAddStockEntry(savedEntry);
           await storeRefreshProducts();
         }
       } else {
-        // Offline mode: full local update including stockEntries creation
         storeBulkUpdateStock(items, entryMeta);
       }
     } catch (err) {
@@ -164,12 +147,13 @@ const useProducts = () => {
     } finally {
       setLoading(false);
     }
-  }, [storeBulkUpdateStock, storeAddStockEntry, activeStoreId]);
+  }, [storeBulkUpdateStock, storeAddStockEntry, storeRefreshProducts, activeStoreId]);
 
+  // ── Ajouter une catégorie ───────────────────────────────────────────────
   const addCategory = useCallback(async (name) => {
     setError(null);
     try {
-      if (import.meta.env.VITE_API_URL) await apiCreateCategory(name);
+      await apiCreateCategory(name);
       storeAddCategory(name);
     } catch (err) {
       setError(err.message);
@@ -196,3 +180,4 @@ const useProducts = () => {
 };
 
 export default useProducts;
+

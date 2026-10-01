@@ -121,7 +121,9 @@ export const StoreProvider = ({ children }) => {
       ['stores', fetchStores, ALL],
       ['products', fetchProducts, ALL],
       ['sales', fetchSales, ALL],
-      ['users', fetchUsers, BACK_OFFICE],
+      // Les caissiers ont besoin de la liste users pour calculer leur indicatif
+      // (code lettre A, B, C…). Sans elle, leur code est toujours 'X'.
+      ['users', fetchUsers, ALL],
       ['transfers', fetchTransfers, ALL],
       ['stockEntries', fetchStockEntries, BACK_OFFICE],
       ['customers', fetchCustomers, ALL],
@@ -295,6 +297,26 @@ export const StoreProvider = ({ children }) => {
       setLastClosingBalance(0);
     }
   }, [currentUser, activeStoreId]);
+
+  // Auto-repair script: if the user's current session is initialized with an old date (due to the previous bug),
+  // snap it to their actual most recent closure date so they don't see historical expenses.
+  React.useEffect(() => {
+    if (currentUser && cashReports.length > 0 && isCashFundInitialized && cashInitializationDate) {
+      const sortedReports = [...cashReports].sort((a, b) => new Date(b.date) - new Date(a.date));
+      const myLastReport = sortedReports.find(r => r.cashier === (currentUser?.name || 'Inconnu') && String(r.storeId) === String(activeStoreId));
+      
+      if (myLastReport) {
+        const initTime = new Date(cashInitializationDate).getTime();
+        const lastReportTime = new Date(myLastReport.date).getTime();
+        // If the session claims to have started BEFORE the last closure, it's the bug.
+        if (initTime < lastReportTime) {
+          console.warn("Auto-repairing cashInitializationDate from", cashInitializationDate, "to", myLastReport.date);
+          setCashInitializationDate(myLastReport.date);
+          localStorage.setItem(`cashFund_${activeStoreId}_${currentUser.id}_cashInitializationDate`, myLastReport.date);
+        }
+      }
+    }
+  }, [currentUser, activeStoreId, cashReports, isCashFundInitialized, cashInitializationDate]);
 
   const toggleTheme = useCallback(() => {
     setTheme(prev => {
@@ -688,8 +710,9 @@ export const StoreProvider = ({ children }) => {
   }, [cart, cartTotal, currentUser, allSales.length, activeStoreId, invoiceCounters, users]);
 
   const initializeCashFund = useCallback((amount) => {
-    // Retrouver la dernière clôture de ce caissier pour ce magasin
-    const myLastReport = cashReports.find(r => r.cashier === (currentUser?.name || 'Inconnu') && r.storeId === activeStoreId);
+    // Retrouver la dernière clôture de ce caissier pour ce magasin (trier par date décroissante pour avoir la plus récente)
+    const sortedReports = [...cashReports].sort((a, b) => new Date(b.date) - new Date(a.date));
+    const myLastReport = sortedReports.find(r => r.cashier === (currentUser?.name || 'Inconnu') && String(r.storeId) === String(activeStoreId));
 
     // Si une clôture précédente existe, la nouvelle session démarre exactement à l'heure de cette clôture.
     // Cela permet d'inclure toutes les factures faites entre la clôture et la nouvelle ouverture.
@@ -761,6 +784,14 @@ export const StoreProvider = ({ children }) => {
     setVersements(prev => [normalized, ...prev]);
   }, [currentUser, activeStoreId]);
 
+  const removeExpense = useCallback((id) => {
+    setExpenses(prev => prev.filter(e => e.id !== id));
+  }, []);
+
+  const removeVersement = useCallback((id) => {
+    setVersements(prev => prev.filter(v => v.id !== id));
+  }, []);
+
   // Customer account management
   const addCustomer = useCallback((customerData) => {
     // When called with server-returned customer, use real id/_id
@@ -775,7 +806,7 @@ export const StoreProvider = ({ children }) => {
     return newCustomer;
   }, []);
 
-  const addCustomerDeposit = useCallback((customerId, amount, method = 'Espèces') => {
+  const addCustomerDeposit = useCallback((customerId, amount, method = 'Espèces', reference) => {
     const txn = {
       id: Date.now(),
       customerId,
@@ -785,7 +816,7 @@ export const StoreProvider = ({ children }) => {
       date: new Date().toISOString(),
       cashier: currentUser?.name || 'Inconnu',
       storeId: activeStoreId,
-      reference: arguments[3] || `DEPOT-${Date.now()}`, // passed from useCustomers, fallback to timestamp
+      reference: reference || `DEPOT-${Date.now()}`, // passed from useCustomers, fallback to timestamp
     };
     // Match by either MongoDB string _id or local numeric id
     setCustomers(prev => prev.map(c =>
@@ -1012,7 +1043,7 @@ export const StoreProvider = ({ children }) => {
   // All products from all stores enriched with storeName — for cashier multi-store POS
   const allCashierProducts = allProducts.map(p => ({
     ...p,
-    storeName: stores.find(s => s.id === p.storeId)?.name || 'Principal',
+    storeName: stores.find(s => String(s.id) === String(p.storeId?._id || p.storeId?.id || p.storeId))?.name || 'Principal',
   }));
 
   // Next invoice number for the current cashier — uses same stable sort as completeInvoiceSale
@@ -1053,9 +1084,14 @@ export const StoreProvider = ({ children }) => {
   const nextDepositNumber = `DEPOT-${currentCashierCode}-${String(_maxDepCounter + 1).padStart(4, '0')}`;
 
   // Staff list with their letter codes (Cashiers & Storekeepers)
+  // Le tri doit être identique à celui de _cashierList pour garantir
+  // des codes stables et cohérents entre les deux calculs.
   const staffWithCodes = users
     .filter(u => u.role === 'cashier' || u.role === 'storekeeper')
-    .sort((a, b) => a.id - b.id)
+    .sort((a, b) => {
+      if (a.createdAt && b.createdAt) return new Date(a.createdAt) - new Date(b.createdAt);
+      return String(a.id || a._id).localeCompare(String(b.id || b._id));
+    })
     .map((u, i) => ({ ...u, staffCode: String.fromCharCode(65 + i) }));
 
   // Function to validate delivery for a SPECIFIC STORE
@@ -1107,22 +1143,22 @@ export const StoreProvider = ({ children }) => {
       if (sale.id !== saleId) return sale;
 
       const updatedItems = sale.items.map(item => {
-        if (item.storeId !== storeId) return item;
-        const delivery = deliveries.find(d => d.productId === item.productId);
+        if (storeId && item.storeId && String(item.storeId) !== String(storeId)) return item;
+        const delivery = deliveries.find(d => String(d.productId) === String(item.productId || item.id));
         if (!delivery || delivery.qtyNow <= 0) return item;
 
         const alreadyDelivered = item.quantityDelivered ?? 0;
         const newDelivered = alreadyDelivered + delivery.qtyNow;
         const isNowDelivered = newDelivered >= item.quantity;
 
-        stockUpdates[item.productId] = delivery.qtyNow;
+        stockUpdates[item.productId || item.id] = delivery.qtyNow;
 
         return { ...item, quantityDelivered: newDelivered, isDelivered: isNowDelivered };
       });
 
       // Recalculate global delivery status
-      const allDelivered = updatedItems.every(i => i.isDelivered);
-      const anyDelivered = updatedItems.some(i => (i.quantityDelivered ?? 0) > 0);
+      const allDelivered = updatedItems.length > 0 && updatedItems.every(i => i.isDelivered || (i.quantityDelivered ?? 0) >= i.quantity);
+      const anyDelivered = updatedItems.some(i => (i.quantityDelivered ?? 0) > 0 || i.isDelivered);
       const newStatus = allDelivered ? 'delivered' : anyDelivered ? 'partially_delivered' : 'pending';
 
       return { ...sale, items: updatedItems, deliveryStatus: newStatus };
@@ -1355,9 +1391,9 @@ export const StoreProvider = ({ children }) => {
     users, addUser, updateUser, toggleUserStatus,
     // Cashier multi-store & invoice features
     allCashierProducts, nextInvoiceNumber, nextDepositNumber, currentCashierCode, staffWithCodes, invoiceCounters,
-    completeInvoiceSale, expenses, addExpense,
+    completeInvoiceSale, expenses, addExpense, removeExpense,
     initialCashFund, isCashFundInitialized, initializeCashFund, cashInitializationDate,
-    versements, addVersement, currentCashBalance,
+    versements, addVersement, removeVersement, currentCashBalance,
     allSales, deliverSale, deliverPartial, cancelSale, processReturn, recordInvoicePayment, unlockDelivery,
     lastClosingBalance, closeCashSession, cashReports,
     transfers, createTransfer, receiveTransfer, refreshTransfers,

@@ -3,7 +3,7 @@
  * Customer accounts, deposits and refund API calls.
  */
 import api from './api';
-import { hasSupabaseSession, fetchCustomers as sbCustomers, fetchCustomerTransactions as sbCustomerTransactions , createCustomer as sbCreateCustomer } from './supabaseData';
+import { hasSupabaseSession, fetchCustomers as sbCustomers, fetchCustomerTransactions as sbCustomerTransactions, createCustomer as sbCreateCustomer, addCustomerDeposit as sbAddDeposit, refundCustomer as sbRefundCustomer } from './supabaseData';
 
 const simulateDelay = (ms = 200) => new Promise((r) => setTimeout(r, ms));
 
@@ -41,6 +41,7 @@ export const fetchCustomerTransactions = async (customerId) => {
 };
 
 export const addDeposit = async (customerId, amount, method, reference) => {
+  if (await hasSupabaseSession()) return sbAddDeposit(customerId, amount, method, reference);
   if (import.meta.env.VITE_API_URL) {
     const response = await api.post(`/customers/${customerId}/deposit`, { amount, method, reference });
     return response.data;
@@ -58,6 +59,7 @@ export const addDeposit = async (customerId, amount, method, reference) => {
 };
 
 export const refundCustomer = async (customerId, amount, reference) => {
+  if (await hasSupabaseSession()) return sbRefundCustomer(customerId, amount, reference);
   if (import.meta.env.VITE_API_URL) {
     const response = await api.post(`/customers/${customerId}/refund`, { amount, reference });
     return response.data;

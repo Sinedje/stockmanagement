@@ -30,22 +30,14 @@ const useUsers = () => {
     setLoading(true);
     setError(null);
     try {
-      // Un compte Supabase se crée par l'Edge Function : elle seule détient la
-      // clé qui permet de confirmer d'office une adresse interne .local, à
-      // laquelle aucun lien de confirmation ne pourrait parvenir.
       if (await hasSupabaseSession()) {
         const { createMember } = await import('../services/memberService');
         const saved = await createMember(userData);
         storeAddUser(saved);
         return saved;
       }
-      if (import.meta.env.VITE_API_URL) {
-        const saved = await apiCreateUser(userData);
-        // Use the server-returned user (with real _id) for local state
-        storeAddUser(saved || userData);
-      } else {
-        storeAddUser(userData);
-      }
+      const saved = await apiCreateUser(userData);
+      storeAddUser(saved || userData);
     } catch (err) {
       setError(err.message);
       throw err;
@@ -57,12 +49,8 @@ const useUsers = () => {
   const updateUser = useCallback(async (id, updates) => {
     setError(null);
     try {
-      if (import.meta.env.VITE_API_URL) {
-        const saved = await apiUpdateUser(id, updates);
-        storeUpdateUser(id, saved || updates);
-      } else {
-        storeUpdateUser(id, updates);
-      }
+      const saved = await apiUpdateUser(id, updates);
+      storeUpdateUser(id, saved || updates);
     } catch (err) {
       setError(err.message);
     }
@@ -71,9 +59,7 @@ const useUsers = () => {
   const toggleUserStatus = useCallback(async (id) => {
     setError(null);
     try {
-      if (import.meta.env.VITE_API_URL) {
-        await apiToggleUserStatus(id);
-      }
+      await apiToggleUserStatus(id);
       storeToggleUserStatus(id);
     } catch (err) {
       setError(err.message);

@@ -20,7 +20,7 @@ const useSettings = () => {
     setLoading(true);
     setError(null);
     try {
-      if (import.meta.env.VITE_API_URL) await apiUpdateCompanySettings(newSettings);
+      await apiUpdateCompanySettings(newSettings);
       storeUpdateCompanySettings(newSettings);
     } catch (err) {
       setError(err.message);

@@ -19,9 +19,12 @@ import {
   initCashFund as apiInitCashFund,
   closeCashSession as apiCloseCashSession,
   fetchSales as apiFetchSales,
+  deleteExpense as apiDeleteExpense,
+  deleteVersement as apiDeleteVersement,
 } from '../services/saleService';
 import { useStore } from '../context/StoreContext';
 import { enqueueSale } from '../offline/pendingSales';
+import { hasSupabaseSession } from '../services/supabaseData';
 
 const useSales = () => {
   const {
@@ -43,8 +46,10 @@ const useSales = () => {
     unlockDelivery: storeUnlockDelivery,
     expenses,
     addExpense: storeAddExpense,
+    removeExpense: storeRemoveExpense,
     versements,
     addVersement: storeAddVersement,
+    removeVersement: storeRemoveVersement,
     initialCashFund,
     isCashFundInitialized,
     cashInitializationDate,
@@ -76,18 +81,15 @@ const useSales = () => {
     setError(null);
     const sale = storeCompleteSale(paymentMethod);
     try {
-      if (import.meta.env.VITE_API_URL && sale) {
+      if (sale) {
         const saved = await apiCreateSale(sale);
-        // Patch local state id with server _id if returned
         if (saved?.id && saved.id !== sale.id) {
-          storeCancelSale(sale.id);   // remove optimistic
-          storeCompleteSale && null; // already in state, skip re-add
+          storeCancelSale(sale.id);
+          // (storeCompleteSale handles local state updates, we rely on refresh via websockets or reload for perfect sync)
         }
       }
       return sale;
     } catch (err) {
-      // La vente est déjà passée en caisse : la laisser remonter en exception
-      // la ferait disparaître. On la met en file comme l'autre chemin.
       console.warn('Vente non transmise au serveur :', err?.message);
       if (sale) {
         try {
@@ -114,32 +116,22 @@ const useSales = () => {
     setLoading(true);
     setError(null);
     try {
-      // 1. Always update local state first (works offline too)
       const sale = storeCompleteInvoiceSale(...args);
       if (!sale) return null;
 
-      // 2. Try to persist to server — failure here should NOT block the receipt
-      if (import.meta.env.VITE_API_URL) {
+      try {
+        await apiCreateInvoiceSale(sale);
+      } catch (apiErr) {
+        console.warn('Vente non transmise au serveur :', apiErr?.message);
         try {
-          await apiCreateInvoiceSale(sale);
-        } catch (apiErr) {
-          console.warn('Vente non transmise au serveur :', apiErr?.message);
-          // Le serveur n'a pas pris la vente. Elle est écrite sur le disque du
-          // poste : sans cela, elle ne vivait que dans l'état React et
-          // disparaissait au premier rafraîchissement, alors que le client
-          // avait payé.
-          try {
-            await enqueueSale(sale, 'invoice');
-            setError('Vente enregistrée sur ce poste. Elle sera transmise dès le retour du réseau.');
-          } catch (queueErr) {
-            // Dernier recours : on ne peut ni transmettre ni conserver.
-            // Mieux vaut le dire franchement que laisser croire à un succès.
-            console.error('Mise en file impossible :', queueErr?.message);
-            setError(
-              'ATTENTION : la vente n\'a pu être ni transmise ni enregistrée sur ce poste. '
-              + 'Notez le numéro de facture ' + (sale.invoiceNumber || '') + ' avant de continuer.'
-            );
-          }
+          await enqueueSale(sale, 'invoice');
+          setError('Vente enregistrée sur ce poste. Elle sera transmise dès le retour du réseau.');
+        } catch (queueErr) {
+          console.error('Mise en file impossible :', queueErr?.message);
+          setError(
+            'ATTENTION : la vente n\'a pu être ni transmise ni enregistrée sur ce poste. '
+            + 'Notez le numéro de facture ' + (sale.invoiceNumber || '') + ' avant de continuer.'
+          );
         }
       }
       return sale;
@@ -154,7 +146,7 @@ const useSales = () => {
   const cancelSale = useCallback(async (saleId) => {
     setError(null);
     try {
-      if (import.meta.env.VITE_API_URL) await apiCancelSale(saleId);
+      await apiCancelSale(saleId);
       storeCancelSale(saleId);
     } catch (err) {
       setError(err.message);
@@ -164,14 +156,8 @@ const useSales = () => {
   const recordInvoicePayment = useCallback(async (saleId, amount, method) => {
     setError(null);
     try {
-      if (import.meta.env.VITE_API_URL) {
-        const saved = await apiRecordPayment(saleId, amount, method);
-        // Update local state with server-confirmed sale
-        if (saved) storeRecordInvoicePayment(saleId, amount, method);
-        else storeRecordInvoicePayment(saleId, amount, method);
-      } else {
-        storeRecordInvoicePayment(saleId, amount, method);
-      }
+      const saved = await apiRecordPayment(saleId, amount, method);
+      storeRecordInvoicePayment(saleId, amount, method);
     } catch (err) {
       setError(err.message);
     }
@@ -180,7 +166,7 @@ const useSales = () => {
   const processReturn = useCallback(async (originalSale, itemsToReturn) => {
     setError(null);
     try {
-      if (import.meta.env.VITE_API_URL) await apiProcessReturn(originalSale.id, itemsToReturn);
+      await apiProcessReturn(originalSale.id, itemsToReturn);
       return storeProcessReturn(originalSale, itemsToReturn);
     } catch (err) {
       setError(err.message);
@@ -190,13 +176,13 @@ const useSales = () => {
   const deliverSale = useCallback(async (saleId, storeId) => {
     setError(null);
     try {
-      if (import.meta.env.VITE_API_URL) {
+      if (await hasSupabaseSession()) {
         await apiDeliverSale(saleId, storeId);
-        // Resync products and sales from server to reflect physical stock and delivery status changes
         await refreshProducts();
         await refreshSales();
+      } else {
+        storeDeliverSale(saleId, storeId);
       }
-      storeDeliverSale(saleId, storeId);
     } catch (err) {
       setError(err.message);
     }
@@ -205,18 +191,13 @@ const useSales = () => {
   const deliverPartial = useCallback(async (saleId, storeId, deliveries) => {
     setError(null);
     try {
-      // Convert array [{productId, qtyNow}] to object {[productId]: qty} expected by server
-      const deliveriesObj = {};
-      deliveries.forEach(d => {
-        deliveriesObj[d.productId] = d.qtyNow;
-      });
-      if (import.meta.env.VITE_API_URL) {
-        await apiDeliverPartial(saleId, storeId, deliveriesObj);
-        // Resync products and sales from server
+      if (await hasSupabaseSession()) {
+        await apiDeliverPartial(saleId, storeId, deliveries);
         await refreshProducts();
         await refreshSales();
+      } else {
+        storeDeliverPartial(saleId, storeId, deliveries);
       }
-      storeDeliverPartial(saleId, storeId, deliveries);
     } catch (err) {
       setError(err.message);
     }
@@ -225,7 +206,7 @@ const useSales = () => {
   const unlockDelivery = useCallback(async (saleId) => {
     setError(null);
     try {
-      if (import.meta.env.VITE_API_URL) await apiUnlockDelivery(saleId);
+      await apiUnlockDelivery(saleId);
       storeUnlockDelivery(saleId);
     } catch (err) {
       setError(err.message);
@@ -241,16 +222,12 @@ const useSales = () => {
         cashier: currentUser?.name || 'Inconnu',
         storeId: activeStoreId,
       };
-      if (import.meta.env.VITE_API_URL) {
-        const saved = await apiCreateExpense(payload);
-        storeAddExpense(saved || payload);
-      } else {
-        storeAddExpense(payload);
-      }
+      const saved = await apiCreateExpense(payload);
+      storeAddExpense(saved || payload);
     } catch (err) {
       setError(err.message);
     }
-  }, [storeAddExpense]);
+  }, [storeAddExpense, currentUser, activeStoreId]);
 
   // ── Versements ────────────────────────────────────────────────
   const addVersement = useCallback(async (amount) => {
@@ -261,48 +238,58 @@ const useSales = () => {
         cashier: currentUser?.name || 'Inconnu',
         storeId: activeStoreId,
       };
-      if (import.meta.env.VITE_API_URL) {
-        const saved = await apiCreateVersement(payload);
-        storeAddVersement(saved ? saved : amount);
-      } else {
-        storeAddVersement(amount);
-      }
+      const saved = await apiCreateVersement(payload);
+      storeAddVersement(saved ? saved : amount);
     } catch (err) {
       setError(err.message);
     }
-  }, [storeAddVersement]);
+  }, [storeAddVersement, currentUser, activeStoreId]);
+
+  const removeExpense = useCallback(async (id) => {
+    setError(null);
+    try {
+      await apiDeleteExpense(id);
+      storeRemoveExpense(id);
+    } catch (err) {
+      setError(err.message);
+    }
+  }, [storeRemoveExpense]);
+
+  const removeVersement = useCallback(async (id) => {
+    setError(null);
+    try {
+      await apiDeleteVersement(id);
+      storeRemoveVersement(id);
+    } catch (err) {
+      setError(err.message);
+    }
+  }, [storeRemoveVersement]);
 
   // ── Cash session ──────────────────────────────────────────────
   const initializeCashFund = useCallback(async (amount) => {
     setError(null);
     try {
-      if (import.meta.env.VITE_API_URL) {
-        await apiInitCashFund({ 
-          amount,
-          cashier: currentUser?.name || 'Inconnu',
-          storeId: activeStoreId, 
-        });
-      }
+      await apiInitCashFund({ 
+        amount,
+        cashier: currentUser?.name || 'Inconnu',
+        storeId: activeStoreId, 
+      });
       storeInitializeCashFund(amount);
     } catch (err) {
       setError(err.message);
     }
-  }, [storeInitializeCashFund]);
+  }, [storeInitializeCashFund, currentUser, activeStoreId]);
 
   const closeCashSession = useCallback(async (finalBalance, sessionStats) => {
     setError(null);
     try {
-      if (import.meta.env.VITE_API_URL) {
-        const saved = await apiCloseCashSession({ 
-          finalBalance, 
-          ...sessionStats,
-          cashier: currentUser?.name || 'Inconnu',
-          storeId: activeStoreId,
-        });
-        storeCloseCashSession(finalBalance, { ...sessionStats, id: saved._id || saved.id, date: saved.date });
-      } else {
-        storeCloseCashSession(finalBalance, sessionStats);
-      }
+      const saved = await apiCloseCashSession({ 
+        finalBalance, 
+        ...sessionStats,
+        cashier: currentUser?.name || 'Inconnu',
+        storeId: activeStoreId,
+      });
+      storeCloseCashSession(finalBalance, { ...sessionStats, id: saved?._id || saved?.id, date: saved?.date });
     } catch (err) {
       setError(err.message);
     }
@@ -346,7 +333,9 @@ const useSales = () => {
     unlockDelivery,
     // Finance
     addExpense,
+    removeExpense,
     addVersement,
+    removeVersement,
     initializeCashFund,
     closeCashSession,
   };

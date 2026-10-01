@@ -7,7 +7,7 @@ import { formatPrice } from '../../context/StoreContext';
 import { useAuth } from '../../context/AuthContext';
 import { useSales, useCustomers, useSettings, useStores } from '../../hooks';
 import Modal from '../common/Modal';
-import { BarChartOutlined, CalculatorOutlined, CalendarOutlined, CheckCircleOutlined, CreditCardOutlined, DropboxOutlined, ExclamationCircleOutlined, FileTextOutlined, InboxOutlined, LockOutlined, MinusCircleOutlined, PlusCircleOutlined, PrinterOutlined, RiseOutlined, UpCircleOutlined, WalletOutlined } from '@ant-design/icons';
+import { BarChartOutlined, CalculatorOutlined, CalendarOutlined, CheckCircleOutlined, CreditCardOutlined, DropboxOutlined, ExclamationCircleOutlined, FileTextOutlined, InboxOutlined, LockOutlined, MinusCircleOutlined, PlusCircleOutlined, PrinterOutlined, RiseOutlined, UpCircleOutlined, WalletOutlined, DeleteOutlined } from '@ant-design/icons';
 
 
 const FinancialReport = () => {
@@ -26,10 +26,10 @@ const FinancialReport = () => {
       : '';
   const { currentUser } = useAuth();
   const { 
-    sales, expenses, addExpense, 
+    sales, expenses, addExpense, removeExpense,
     initialCashFund, isCashFundInitialized, initializeCashFund, cashInitializationDate,
-    versements, addVersement, currentCashBalance,
-    lastClosingBalance, closeCashSession
+    versements, addVersement, removeVersement, currentCashBalance,
+    lastClosingBalance, closeCashSession, cashReports
   } = useSales();
   const { customerTransactions, customers } = useCustomers();
   const { companySettings } = useSettings();
@@ -47,32 +47,36 @@ const FinancialReport = () => {
   const [tempInitialFund, setTempInitialFund] = useState(lastClosingBalance || 0);
   const [showClosureModal, setShowClosureModal] = useState(false);
 
-  // Filtrer uniquement les ventes du caissier connecté
+  // Filtrer uniquement les ventes du caissier connecté et du magasin actif
   const mySales = useMemo(() => 
-    sales.filter(s => s.cashier === currentUser?.name && s.status !== 'cancelled'),
-    [sales, currentUser]
+    sales.filter(s => s.cashier === currentUser?.name && String(s.storeId) === String(cashierStore?.id) && s.status !== 'cancelled'),
+    [sales, currentUser, cashierStore]
   );
 
-  // Filtrer uniquement les dépenses du caissier connecté
+  // Filtrer uniquement les dépenses du caissier connecté et du magasin actif, triées par date décroissante
   const myExpenses = useMemo(() => 
-    expenses.filter(e => e.cashier === currentUser?.name),
-    [expenses, currentUser]
+    expenses
+      .filter(e => e.cashier === currentUser?.name && String(e.storeId) === String(cashierStore?.id))
+      .sort((a, b) => new Date(b.date) - new Date(a.date)),
+    [expenses, currentUser, cashierStore]
   );
 
-  // Filtrer les versements du caissier
+  // Filtrer les versements du caissier et du magasin actif, triés par date décroissante
   const myVersements = useMemo(() => 
-    versements.filter(v => v.cashier === currentUser?.name),
-    [versements, currentUser]
+    versements
+      .filter(v => v.cashier === currentUser?.name && String(v.storeId) === String(cashierStore?.id))
+      .sort((a, b) => new Date(b.date) - new Date(a.date)),
+    [versements, currentUser, cashierStore]
   );
 
-  // Filtrer les dépôts et remboursements clients du caissier
+  // Filtrer les dépôts et remboursements clients du caissier et du magasin actif
   const myDeposits = useMemo(() =>
-    customerTransactions.filter(t => t.cashier === currentUser?.name && t.type === 'deposit'),
-    [customerTransactions, currentUser]
+    customerTransactions.filter(t => t.cashier === currentUser?.name && String(t.storeId) === String(cashierStore?.id) && t.type === 'deposit'),
+    [customerTransactions, currentUser, cashierStore]
   );
   const myRefunds = useMemo(() =>
-    customerTransactions.filter(t => t.cashier === currentUser?.name && t.type === 'refund'),
-    [customerTransactions, currentUser]
+    customerTransactions.filter(t => t.cashier === currentUser?.name && String(t.storeId) === String(cashierStore?.id) && t.type === 'refund'),
+    [customerTransactions, currentUser, cashierStore]
   );
 
   // Extraire tous les numéros de facture pour les sélecteurs
@@ -112,48 +116,77 @@ const FinancialReport = () => {
     return result.sort((a, b) => new Date(b.date) - new Date(a.date));
   }, [mySales, startInvoice, endInvoice, reportType, invoiceNumbers]);
 
-  // Filtrer les dépenses selon la période
+  // Filtrer les dépenses selon la période sélectionnée ou la plage de factures
   const filteredExpenses = useMemo(() => {
-    const now = new Date();
-    const startOfPeriod = new Date();
-    const initDate = cashInitializationDate ? new Date(cashInitializationDate) : new Date(0);
-    
+    let result = [...myExpenses];
     if (startInvoice && endInvoice) {
-      // Pour une plage de factures, on prend de l'initialisation jusqu'à la dernière facture de la plage
-      const lastInvoice = mySales.find(s => s.invoiceNumber === endInvoice);
-      const endDate = lastInvoice ? new Date(lastInvoice.date) : now;
-      return myExpenses.filter(e => new Date(e.date) >= initDate && new Date(e.date) <= endDate);
+      if (filteredSales.length > 0) {
+        const dates = filteredSales.map(s => new Date(s.date).getTime());
+        const minDate = new Date(Math.min(...dates));
+        const maxDate = new Date(Math.max(...dates));
+        minDate.setHours(0, 0, 0, 0);
+        maxDate.setHours(23, 59, 59, 999);
+        result = result.filter(e => {
+          const d = new Date(e.date);
+          return d >= minDate && d <= maxDate;
+        });
+      }
+    } else {
+      const now = new Date();
+      const startOfPeriod = new Date();
+      switch (reportType) {
+        case 'journalier': startOfPeriod.setHours(0,0,0,0); break;
+        case 'hebdomadaire': startOfPeriod.setDate(now.getDate() - 7); break;
+        case 'mensuel': startOfPeriod.setMonth(now.getMonth() - 1); break;
+        default: startOfPeriod.setHours(0,0,0,0); break;
+      }
+      result = result.filter(e => new Date(e.date) >= startOfPeriod);
     }
-    switch (reportType) {
-      case 'journalier': startOfPeriod.setHours(0,0,0,0); break;
-      case 'hebdomadaire': startOfPeriod.setDate(now.getDate() - 7); break;
-      case 'mensuel': startOfPeriod.setMonth(now.getMonth() - 1); break;
-      default: startOfPeriod.setHours(0,0,0,0); break;
-    }
-    const effectiveStart = new Date(Math.max(startOfPeriod, initDate));
-    return myExpenses.filter(e => new Date(e.date) >= effectiveStart);
-  }, [myExpenses, mySales, startInvoice, endInvoice, reportType, cashInitializationDate]);
+    // S'assurer qu'on ne remonte jamais avant l'initialisation de la caisse courante
+    const initDate = cashInitializationDate ? new Date(cashInitializationDate) : new Date(0);
+    return result.filter(e => new Date(e.date) >= initDate);
+  }, [myExpenses, cashInitializationDate, startInvoice, endInvoice, reportType, filteredSales]);
 
-  // Filtrer les versements selon la période
+  // Filtrer les versements selon la période sélectionnée ou la plage de factures
   const filteredVersements = useMemo(() => {
-    const now = new Date();
-    const startOfPeriod = new Date();
-    const initDate = cashInitializationDate ? new Date(cashInitializationDate) : new Date(0);
-    
+    let result = [...myVersements];
     if (startInvoice && endInvoice) {
-      const lastInvoice = mySales.find(s => s.invoiceNumber === endInvoice);
-      const endDate = lastInvoice ? new Date(lastInvoice.date) : now;
-      return myVersements.filter(v => v.date && new Date(v.date) >= initDate && new Date(v.date) <= endDate);
+      if (filteredSales.length > 0) {
+        const dates = filteredSales.map(s => new Date(s.date).getTime());
+        const minDate = new Date(Math.min(...dates));
+        const maxDate = new Date(Math.max(...dates));
+        minDate.setHours(0, 0, 0, 0);
+        maxDate.setHours(23, 59, 59, 999);
+        result = result.filter(v => {
+          const d = new Date(v.date);
+          return d >= minDate && d <= maxDate;
+        });
+      }
+    } else {
+      const now = new Date();
+      const startOfPeriod = new Date();
+      switch (reportType) {
+        case 'journalier': startOfPeriod.setHours(0,0,0,0); break;
+        case 'hebdomadaire': startOfPeriod.setDate(now.getDate() - 7); break;
+        case 'mensuel': startOfPeriod.setMonth(now.getMonth() - 1); break;
+        default: startOfPeriod.setHours(0,0,0,0); break;
+      }
+      result = result.filter(v => new Date(v.date) >= startOfPeriod);
     }
-    switch (reportType) {
-      case 'journalier': startOfPeriod.setHours(0,0,0,0); break;
-      case 'hebdomadaire': startOfPeriod.setDate(now.getDate() - 7); break;
-      case 'mensuel': startOfPeriod.setMonth(now.getMonth() - 1); break;
-      default: startOfPeriod.setHours(0,0,0,0); break;
-    }
-    const effectiveStart = new Date(Math.max(startOfPeriod, initDate));
-    return myVersements.filter(v => v.date && new Date(v.date) >= effectiveStart);
-  }, [myVersements, mySales, startInvoice, endInvoice, reportType, cashInitializationDate]);
+    const initDate = cashInitializationDate ? new Date(cashInitializationDate) : new Date(0);
+    return result.filter(v => new Date(v.date) >= initDate);
+  }, [myVersements, cashInitializationDate, startInvoice, endInvoice, reportType, filteredSales]);
+
+  // Vérifier si le caissier a déjà clôturé sa caisse aujourd'hui.
+  // Si oui, il ne peut pas clôturer une seconde fois le même jour.
+  const hasClosedToday = useMemo(() => {
+    const today = new Date().toDateString();
+    return cashReports.some(r =>
+      r.cashier === currentUser?.name &&
+      r.storeId === cashierStore?.id &&
+      new Date(r.date).toDateString() === today
+    );
+  }, [cashReports, currentUser, cashierStore]);
 
   // Statistiques de la période sélectionnée
   const stats = useMemo(() => {
@@ -178,8 +211,8 @@ const FinancialReport = () => {
 
     const initDate = cashInitializationDate ? new Date(cashInitializationDate) : new Date(0);
 
-    const periodExpenses = myExpenses.filter(e => new Date(e.date) >= initDate && new Date(e.date) <= endDateForBalance);
-    const periodVersements = myVersements.filter(v => v.date && new Date(v.date) >= initDate && new Date(v.date) <= endDateForBalance);
+    const periodExpenses = filteredExpenses.filter(e => new Date(e.date) <= endDateForBalance);
+    const periodVersements = filteredVersements.filter(v => new Date(v.date) <= endDateForBalance);
     const periodDeposits = myDeposits.filter(t => t.method === 'Espèces' && new Date(t.date) >= initDate && new Date(t.date) <= endDateForBalance);
     const periodRefunds = myRefunds.filter(t => new Date(t.date) >= initDate && new Date(t.date) <= endDateForBalance);
 
@@ -426,7 +459,20 @@ const FinancialReport = () => {
                 {filteredExpenses.slice(0, 5).map(exp => (
                   <div key={exp.id} className="flex items-center justify-between bg-black/5 dark:bg-white/5 px-4 py-2.5 rounded-xl text-[0.8rem]">
                     <span className="text-text-secondary font-bold">{exp.label}</span>
-                    <span className="text-red-500 font-black">-{formatPrice(exp.amount)}</span>
+                    <div className="flex items-center gap-3">
+                      <span className="text-red-500 font-black">-{formatPrice(exp.amount)}</span>
+                      <button 
+                        onClick={() => {
+                          if (window.confirm("Êtes-vous sûr de vouloir supprimer cette dépense ?")) {
+                            removeExpense(exp.id);
+                          }
+                        }}
+                        className="text-red-400 hover:text-red-600 transition-colors"
+                        title="Annuler la dépense"
+                      >
+                        <DeleteOutlined />
+                      </button>
+                    </div>
                   </div>
                 ))}
                 {filteredExpenses.length === 0 && <p className="text-[0.7rem] text-text-muted text-center py-4">{t('s.aucune_depense_enregistree')}</p>}
@@ -442,7 +488,20 @@ const FinancialReport = () => {
                 {filteredVersements.slice(0, 5).map(v => (
                   <div key={v.id} className="flex items-center justify-between bg-black/5 dark:bg-white/5 px-4 py-2.5 rounded-xl text-[0.8rem]">
                     <span className="text-text-secondary font-bold">{t('s.versement_a_la_direction')}</span>
-                    <span className="text-emerald-500 font-black">-{formatPrice(v.amount)}</span>
+                    <div className="flex items-center gap-3">
+                      <span className="text-emerald-500 font-black">-{formatPrice(v.amount)}</span>
+                      <button 
+                        onClick={() => {
+                          if (window.confirm("Êtes-vous sûr de vouloir supprimer ce versement ?")) {
+                            removeVersement(v.id);
+                          }
+                        }}
+                        className="text-red-400 hover:text-red-600 transition-colors"
+                        title="Annuler le versement"
+                      >
+                        <DeleteOutlined />
+                      </button>
+                    </div>
                   </div>
                 ))}
                 {filteredVersements.length === 0 && <p className="text-[0.7rem] text-text-muted text-center py-4">{t('s.aucun_versement_effectue')}</p>}
@@ -468,9 +527,17 @@ const FinancialReport = () => {
               <span>+{formatPrice(stats.cashSales)}</span>
             </div>
             {stats.totalPeriodDeposits > 0 && (
-              <div className="flex justify-between items-center text-[0.8rem] text-black font-semibold border-b border-black/10 pb-2">
-                <span>{t('s.depots_clients_especes')}</span>
-                <span>+{formatPrice(stats.totalPeriodDeposits)}</span>
+              <div className="flex flex-col border-b border-black/10 pb-2 gap-1">
+                <div className="flex justify-between items-center text-[0.8rem] text-emerald-700 font-semibold">
+                  <span>{t('s.depots_clients_especes')}</span>
+                  <span>+{formatPrice(stats.totalPeriodDeposits)}</span>
+                </div>
+                {stats.depositsList?.map((d, i) => (
+                  <div key={i} className="flex justify-between items-center text-[0.7rem] text-emerald-600 pl-4">
+                    <span>{d.reference ? `Réf: ${d.reference}` : 'Dépôt'} ({d.customerName})</span>
+                    <span>+{formatPrice(d.amount)}</span>
+                  </div>
+                ))}
               </div>
             )}
             <div className="flex justify-between items-center text-[0.8rem] text-red-800 font-bold border-b border-black/10 pb-2">
@@ -528,16 +595,25 @@ const FinancialReport = () => {
               
               {/* La clôture arrête les comptes du jour : la faire alors que des
                   ventes attendent encore d'être transmises produirait un bilan
-                  incomplet, que rien ne viendrait corriger ensuite. */}
+                  incomplet, que rien ne viendrait corriger ensuite.
+                  De plus, une seule clôture par jour est autorisée par caissier. */}
               <button
                 onClick={() => setShowClosureModal(true)}
-                disabled={!canClose}
-                title={canClose ? undefined : blockReason}
+                disabled={!canClose || hasClosedToday}
+                title={
+                  hasClosedToday
+                    ? "Vous avez déjà clôturé votre caisse aujourd'hui. La prochaine clôture ne sera possible que demain."
+                    : canClose ? undefined : blockReason
+                }
                 className="inline-flex items-center gap-2 px-4 py-2 bg-black text-white rounded-xl text-[0.7rem] font-semibold uppercase tracking-widest hover:bg-black/80 transition-all shadow-sm disabled:opacity-45 disabled:cursor-not-allowed disabled:hover:bg-black"
               >
                 <LockOutlined style={{ fontSize: 14 }} /> {t('s.cloturer_la_caisse')}
               </button>
-              {!canClose && (
+              {hasClosedToday ? (
+                <p className="mt-2 text-[0.7rem] text-black/60 max-w-xs">
+                  Caisse déjà clôturée aujourd'hui. Prochaine clôture disponible demain.
+                </p>
+              ) : !canClose && (
                 <p className="mt-2 text-[0.7rem] text-black/60 max-w-xs">{blockReason}</p>
               )}
             </div>

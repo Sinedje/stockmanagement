@@ -20,7 +20,10 @@ export const internalEmail = (username, slug) =>
 export const fetchCompanyBySlug = async (slug) => {
   if (!supabase || !slug) return null;
   const { data, error } = await supabase.rpc('company_by_slug', { p_slug: slug });
-  if (error) return null;
+  if (error) {
+    console.error('Erreur fetchCompanyBySlug:', error);
+    return null;
+  }
   return data?.[0] || null;
 };
 

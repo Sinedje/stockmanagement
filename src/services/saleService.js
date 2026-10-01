@@ -3,7 +3,7 @@
  * All sales, invoices, expenses, versements and returns API calls.
  */
 import api from './api';
-import { hasSupabaseSession, fetchSales as sbSales, fetchExpenses as sbExpenses, fetchVersements as sbVersements, fetchCashReports as sbCashReports , createExpense as sbCreateExpense, createVersement as sbCreateVersement, createSale as sbCreateSale, cancelSale as sbCancelSale, recordPayment as sbRecordPayment } from './supabaseData';
+import { hasSupabaseSession, fetchSales as sbSales, fetchExpenses as sbExpenses, fetchVersements as sbVersements, fetchCashReports as sbCashReports , createExpense as sbCreateExpense, deleteExpense as sbDeleteExpense, createVersement as sbCreateVersement, deleteVersement as sbDeleteVersement, createSale as sbCreateSale, cancelSale as sbCancelSale, recordPayment as sbRecordPayment, deliverPartial as sbDeliverPartial } from './supabaseData';
 
 const simulateDelay = (ms = 200) => new Promise((r) => setTimeout(r, ms));
 
@@ -76,6 +76,7 @@ export const deliverSale = async (saleId, storeId) => {
 };
 
 export const deliverPartial = async (saleId, storeId, deliveries) => {
+  if (await hasSupabaseSession()) return sbDeliverPartial(saleId, storeId, deliveries);
   if (import.meta.env.VITE_API_URL) {
     const response = await api.patch(`/sales/${saleId}/deliver-partial`, { storeId, deliveries });
     return response.data;
@@ -114,6 +115,16 @@ export const createExpense = async (expenseData) => {
   return { ...expenseData, id: Date.now() };
 };
 
+export const deleteExpense = async (id) => {
+  if (await hasSupabaseSession()) return sbDeleteExpense(id);
+  if (import.meta.env.VITE_API_URL) {
+    const response = await api.delete(`/expenses/${id}`);
+    return response.data;
+  }
+  await simulateDelay();
+  return { id };
+};
+
 // ── Versements (cash handover) ────────────────────────────────
 export const fetchVersements = async () => {
   if (await hasSupabaseSession()) return sbVersements();
@@ -133,6 +144,16 @@ export const createVersement = async (versementData) => {
   }
   await simulateDelay();
   return { ...versementData, id: Date.now() };
+};
+
+export const deleteVersement = async (id) => {
+  if (await hasSupabaseSession()) return sbDeleteVersement(id);
+  if (import.meta.env.VITE_API_URL) {
+    const response = await api.delete(`/versements/${id}`);
+    return response.data;
+  }
+  await simulateDelay();
+  return { id };
 };
 
 // ── Cash session ──────────────────────────────────────────────

@@ -131,7 +131,7 @@ const InvoicePrintTemplate = ({ sale }) => {
             </td>
             <td style={{ padding: '3px 4px', width: '35%' }}>
               <span style={{ fontWeight: 'bold' }}>CAISSE : </span>
-              <span style={{ fontSize: '10px' }}>{sale.cashier || ''}</span>
+              <span style={{ fontSize: '10px' }}>{sale.cashier ? sale.cashier.split(' ')[0] : ''}</span>
             </td>
           </tr>
         </tbody>

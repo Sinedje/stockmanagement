@@ -9,7 +9,7 @@ import { numberToWords } from './InvoicePrintTemplate';
 import { Button, InputNumber, Select, Tag, message, Popconfirm } from 'antd';
 
 // --- Deposit / Refund Modal ---
-const AccountActionModal = ({ customer, action, onClose, onConfirm }) => {
+const AccountActionModal = ({ customer, action, onClose, onConfirm, loading }) => {
   const t = useT();
   const [amount, setAmount] = useState(null);
   const [method, setMethod] = useState('Espèces');
@@ -91,8 +91,8 @@ const AccountActionModal = ({ customer, action, onClose, onConfirm }) => {
         )}
 
         <div className="flex gap-3 pt-2">
-          <Button className="flex-1" onClick={onClose}>{t('s.annuler')}</Button>
-          <Button type="primary" className={`flex-1 border-none ${isDeposit ? 'bg-emerald-500 hover:bg-emerald-600' : 'bg-red-500 hover:bg-red-600'}`} onClick={handleConfirm} >
+          <Button className="flex-1" onClick={onClose} disabled={loading}>{t('s.annuler')}</Button>
+          <Button type="primary" loading={loading} className={`flex-1 border-none ${isDeposit ? 'bg-emerald-500 hover:bg-emerald-600' : 'bg-red-500 hover:bg-red-600'}`} onClick={handleConfirm} >
             {isDeposit ? 'Confirmer le Dépôt' : 'Confirmer le Remboursement'}
           </Button>
         </div>
@@ -114,17 +114,16 @@ const TxnBadge = ({ type }) => {
 };
 
 // --- Print Deposit Receipt ---
-const printDepositReceipt = (customer, txn, companySettings, stores) => {
-  const win = window.open('', '_blank');
-  if (!win) return;
+const printDepositReceipt = (customer, txn, companySettings, stores, soldeAvantOverride) => {
+  if (!customer || !txn) return;
   const isDeposit = txn.type === 'deposit';
   
   const date = new Date(txn.date);
   const dateStr = date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: '2-digit' });
   const timeStr = date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
-  const saleStore = stores?.find(s => s.id === txn.storeId);
-  const agencyName = saleStore ? `AGENCE ${saleStore.name.toUpperCase()}` : 'AGENCE FEU FLAMENCO';
+  const saleStore = stores?.find(s => String(s.id) === String(txn.storeId));
+  const agencyName = saleStore ? `AGENCE ${saleStore.name.toUpperCase()}` : (companySettings?.name ? `AGENCE ${companySettings.name.toUpperCase()}` : 'AGENCE PRINCIPALE');
 
   const amountVal = Math.abs(txn.amount);
   const amountInWords = numberToWords(amountVal);
@@ -132,13 +131,14 @@ const printDepositReceipt = (customer, txn, companySettings, stores) => {
   const documentTitle = isDeposit ? 'Reçu de Dépôt' : 'Reçu de Remboursement';
   const totalLabel = isDeposit ? 'NET DÉPOSÉ' : 'NET REMBOURSÉ';
   
-  const soldeAvant = customer.balance;
-  const soldeApres = customer.balance + txn.amount;
+  const soldeAvant = soldeAvantOverride !== undefined ? soldeAvantOverride : (customer.balance ?? 0);
+  const soldeApres = soldeAvant + (isDeposit ? amountVal : -amountVal);
 
-  win.document.write(`
+  const html = `
+    <!DOCTYPE html>
     <html>
       <head>
-        <title>${txn.reference}</title>
+        <title>${txn.reference || 'Reçu'}</title>
         <style>
           @page { margin: 5mm; size: A5 landscape; }
           body { 
@@ -174,11 +174,9 @@ const printDepositReceipt = (customer, txn, companySettings, stores) => {
         </style>
       </head>
       <body>
-        <!-- ── EN-TÊTE ── -->
         <table class="header-table">
           <tbody>
             <tr>
-              <!-- Gauche -->
               <td style="width: 55%; border-right: 1px solid #000; padding-right: 12px;">
                 <div style="font-weight: bold; font-size: 13px;">${companySettings?.name || 'GROUPE T. GRAND ZAO INTER SARL'}</div>
                 <div style="font-size: 9.5px; margin-top: 1px;">${companySettings?.activity || 'COMMERCE GENERAL ET PRESTATION DE SERVICES'}</div>
@@ -189,14 +187,13 @@ const printDepositReceipt = (customer, txn, companySettings, stores) => {
                   <span style="margin-left: 20px;">RCC : ${companySettings?.rccm || '1391CH/N°94C1175/71994'}</span>
                 </div>
               </td>
-              <!-- Droite -->
               <td style="padding-left: 12px;">
                 <div style="display: flex; gap: 20px; margin-bottom: 6px; font-weight: normal;">
-                  <span><strong>${t('s.date_2')}</strong> ${dateStr}</span>
+                  <span><strong>Date:</strong> ${dateStr}</span>
                   <span style="margin-left: 15px;">${timeStr}</span>
                 </div>
                 <div>
-                  <strong>${t('s.client_2')}</strong>
+                  <strong>Client:</strong>
                   <span style="margin-left: 8px; font-weight: bold; font-size: 11px;">
                     ${customer.name}
                   </span>
@@ -211,7 +208,6 @@ const printDepositReceipt = (customer, txn, companySettings, stores) => {
           </tbody>
         </table>
 
-        <!-- ── LIGNE REÇU / N° / CAISSE ── -->
         <table class="title-table">
           <tbody>
             <tr>
@@ -219,30 +215,29 @@ const printDepositReceipt = (customer, txn, companySettings, stores) => {
                 <span style="font-weight: bold; font-style: italic; font-size: 16px;">${documentTitle}</span>
               </td>
               <td style="width: 35%;">
-                <span style="font-weight: bold; font-size: 11px;">N° : ${txn.reference}</span>
+                <span style="font-weight: bold; font-size: 11px;">N° : ${txn.reference || 'DEP'}</span>
               </td>
               <td style="width: 35%;">
-                <span style="font-weight: bold;">{t('s.caisse')} </span>
-                <span style="font-size: 10px;">${txn.cashier}</span>
+                <span style="font-weight: bold;">Caisse : </span>
+                <span style="font-size: 10px;">${txn.cashier || 'Caissier'}</span>
               </td>
             </tr>
           </tbody>
         </table>
 
-        <!-- ── TABLEAU DES DETAILS ── -->
         <table class="items-table">
           <thead>
             <tr>
-              <th style="width: 15%; border-right: 1px solid #999;">{t('s.reference')}</th>
-              <th style="width: 45%; border-right: 1px solid #999;">{t('s.designation')}</th>
-              <th style="width: 10%; border-right: 1px solid #999; text-align: center;">{t('s.qte')}</th>
-              <th style="width: 15%; border-right: 1px solid #999; text-align: right;">{t('s.prix_unitaire')}</th>
-              <th style="width: 15%; text-align: right;">{t('s.montant_ht')}</th>
+              <th style="width: 20%; border-right: 1px solid #999;">Référence</th>
+              <th style="width: 40%; border-right: 1px solid #999;">Désignation</th>
+              <th style="width: 10%; border-right: 1px solid #999; text-align: center;">Qté</th>
+              <th style="width: 15%; border-right: 1px solid #999; text-align: right;">Prix Unitaire</th>
+              <th style="width: 15%; text-align: right;">Montant HT</th>
             </tr>
           </thead>
           <tbody>
             <tr>
-              <td style="border-right: 1px solid #ddd;">${txn.reference}</td>
+              <td style="border-right: 1px solid #ddd;">${txn.reference || 'DEP'}</td>
               <td style="border-right: 1px solid #ddd; font-weight: bold;">
                 ${(isDeposit ? 'DÉPÔT SUR COMPTE CLIENT' : 'REMBOURSEMENT COMPTE CLIENT')}
               </td>
@@ -254,41 +249,18 @@ const printDepositReceipt = (customer, txn, companySettings, stores) => {
                 ${amountVal.toLocaleString('fr-FR', { minimumFractionDigits: 2 })}
               </td>
             </tr>
-            <!-- Lignes vides pour correspondre au design de la facture -->
-            <tr style="height: 18px;">
-              <td style="border-bottom: 1px solid #eee; border-right: 1px solid #ddd;"></td>
-              <td style="border-bottom: 1px solid #eee; border-right: 1px solid #ddd;"></td>
-              <td style="border-bottom: 1px solid #eee; border-right: 1px solid #ddd;"></td>
-              <td style="border-bottom: 1px solid #eee; border-right: 1px solid #ddd;"></td>
-              <td style="border-bottom: 1px solid #eee;"></td>
-            </tr>
-            <tr style="height: 18px;">
-              <td style="border-bottom: 1px solid #eee; border-right: 1px solid #ddd;"></td>
-              <td style="border-bottom: 1px solid #eee; border-right: 1px solid #ddd;"></td>
-              <td style="border-bottom: 1px solid #eee; border-right: 1px solid #ddd;"></td>
-              <td style="border-bottom: 1px solid #eee; border-right: 1px solid #ddd;"></td>
-              <td style="border-bottom: 1px solid #eee;"></td>
-            </tr>
-            <tr style="height: 18px;">
-              <td style="border-bottom: 1px solid #eee; border-right: 1px solid #ddd;"></td>
-              <td style="border-bottom: 1px solid #eee; border-right: 1px solid #ddd;"></td>
-              <td style="border-bottom: 1px solid #eee; border-right: 1px solid #ddd;"></td>
-              <td style="border-bottom: 1px solid #eee; border-right: 1px solid #ddd;"></td>
-              <td style="border-bottom: 1px solid #eee;"></td>
-            </tr>
           </tbody>
         </table>
 
-        <!-- ── TOTAL & SOLDE INFO ── -->
         <table class="total-table">
           <tbody>
             <tr>
               <td style="width: 50%; font-size: 10px;">
                 <div style="font-style: italic; margin-bottom: 4px;">${amountInWords}</div>
                 <div style="border-top: 1px dashed #ddd; padding-top: 4px; color: #333;">
-                  <strong>{t('s.solde_avant')}</strong> ${formatPrice(soldeAvant)} &nbsp;&nbsp;|&nbsp;&nbsp; 
-                  <strong>{t('s.nouveau_solde')}</strong> ${formatPrice(soldeApres)}
-                  ${isDeposit ? `&nbsp;&nbsp;|&nbsp;&nbsp; <strong>{t('s.mode_2')}</strong> ${txn.method}` : ''}
+                  <strong>Solde avant:</strong> ${soldeAvant.toLocaleString('fr-FR')} FCFA &nbsp;&nbsp;|&nbsp;&nbsp; 
+                  <strong>Nouveau solde:</strong> ${soldeApres.toLocaleString('fr-FR')} FCFA
+                  ${isDeposit ? `&nbsp;&nbsp;|&nbsp;&nbsp; <strong>Mode:</strong> ${txn.method || 'Espèces'}` : ''}
                 </div>
               </td>
               <td style="text-align: right; font-weight: bold; font-size: 10px; border-left: 1px solid #000; width: 22%; padding-top: 8px;">
@@ -301,33 +273,42 @@ const printDepositReceipt = (customer, txn, companySettings, stores) => {
           </tbody>
         </table>
 
-        <!-- ── SIGNATURES ── -->
         <table class="signatures-table">
           <tbody>
             <tr>
-              <td style="width: 18%; font-weight: bold; font-size: 10px; border-right: 1px solid #000;">
-                {t('s.client_3')}
-              </td>
-              <td style="font-size: 9px; font-style: italic;">
-                {t('s.merci_de_conserver_ce_recu')}
-              </td>
-              <td style="width: 18%; font-weight: bold; font-size: 10px; border-left: 1px solid #000;">
-                VENDEUR
-              </td>
+              <td style="width: 25%; font-weight: bold; font-size: 10px; border-right: 1px solid #000;">CLIENT</td>
+              <td style="font-size: 9px; font-style: italic;">Merci de conserver ce reçu</td>
+              <td style="width: 25%; font-weight: bold; font-size: 10px; border-left: 1px solid #000;">VENDEUR</td>
             </tr>
           </tbody>
         </table>
-
-        <script>
-          setTimeout(() => {
-            window.print();
-            window.close();
-          }, 300);
-        </script>
       </body>
     </html>
-  `);
-  win.document.close();
+  `;
+
+  const iframe = document.createElement('iframe');
+  iframe.style.position = 'fixed';
+  iframe.style.right = '0';
+  iframe.style.bottom = '0';
+  iframe.style.width = '0';
+  iframe.style.height = '0';
+  iframe.style.border = '0';
+  document.body.appendChild(iframe);
+
+  const doc = iframe.contentWindow.document;
+  doc.open();
+  doc.write(html);
+  doc.close();
+
+  setTimeout(() => {
+    iframe.contentWindow.focus();
+    iframe.contentWindow.print();
+    setTimeout(() => {
+      if (document.body.contains(iframe)) {
+        document.body.removeChild(iframe);
+      }
+    }, 1000);
+  }, 300);
 };
 
 const InvoicePaymentModal = ({ sale, onClose }) => {
@@ -403,6 +384,7 @@ const CustomerList = () => {
   const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [paymentInvoice, setPaymentInvoice] = useState(null);
   const [actionModal, setActionModal] = useState(null); // 'deposit' | 'refund'
+  const [isConfirmingAction, setIsConfirmingAction] = useState(false);
   const [showNewCustomerModal, setShowNewCustomerModal] = useState(false);
   const [newCustomerForm, setNewCustomerForm] = useState({ name: '', phone: '' });
 
@@ -417,23 +399,30 @@ const CustomerList = () => {
   const getCustomerInvoices = (customer) =>
     sales.filter(s => s.customerId === customer.id || (s.customerName === customer.name && s.customerPhone === customer.phone)).sort((a, b) => new Date(b.date) - new Date(a.date));
 
-  const handleConfirmAction = (amount, method) => {
+  const handleConfirmAction = async (amount, method) => {
     const customerId = selectedCustomer.id;
     let txn;
-    if (actionModal === 'deposit') {
-      txn = addCustomerDeposit(customerId, amount, method);
-      // Update local selectedCustomer so UI reflects immediately
-      setSelectedCustomer(prev => ({ ...prev, balance: prev.balance + amount }));
-      message.success(`Dépôt de ${formatPrice(amount)} enregistré !`);
-    } else {
-      txn = refundCustomer(customerId, amount);
-      if (!txn) { message.error('Remboursement impossible.'); return; }
-      setSelectedCustomer(prev => ({ ...prev, balance: prev.balance - amount }));
-      message.success(`Remboursement de ${formatPrice(amount)} effectué !`);
+    setIsConfirmingAction(true);
+    try {
+      if (actionModal === 'deposit') {
+        txn = await addCustomerDeposit(customerId, amount, method);
+        if (txn?.error) { message.error(`Dépôt impossible: ${txn.error}`); return; }
+        if (!txn) { message.error('Dépôt impossible. Erreur inconnue.'); return; }
+        // Update local selectedCustomer so UI reflects immediately
+        setSelectedCustomer(prev => ({ ...prev, balance: prev.balance + amount }));
+        message.success(`Dépôt de ${formatPrice(amount)} enregistré !`);
+      } else {
+        txn = await refundCustomer(customerId, amount);
+        if (!txn) { message.error('Remboursement impossible.'); return; }
+        setSelectedCustomer(prev => ({ ...prev, balance: prev.balance - amount }));
+        message.success(`Remboursement de ${formatPrice(amount)} effectué !`);
+      }
+      // Print receipt only after the transaction is confirmed
+      if (txn) printDepositReceipt(selectedCustomer, txn, companySettings, stores, selectedCustomer.balance);
+      setActionModal(null);
+    } finally {
+      setIsConfirmingAction(false);
     }
-    // Print receipt
-    if (txn) printDepositReceipt(selectedCustomer, txn, companySettings, stores, selectedCustomer.balance);
-    setActionModal(null);
   };
 
   const handleCreateCustomer = () => {
@@ -607,6 +596,7 @@ const CustomerList = () => {
           <AccountActionModal
             customer={selectedCustomer}
             action={actionModal}
+            loading={isConfirmingAction}
             onClose={() => setActionModal(null)}
             onConfirm={handleConfirmAction}
           />

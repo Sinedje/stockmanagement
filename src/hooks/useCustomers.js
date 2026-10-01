@@ -29,11 +29,8 @@ const useCustomers = () => {
     setLoading(true);
     setError(null);
     try {
-      if (import.meta.env.VITE_API_URL) {
-        const saved = await apiCreateCustomer(customerData);
-        return storeAddCustomer(saved || customerData);
-      }
-      return storeAddCustomer(customerData);
+      const saved = await apiCreateCustomer(customerData);
+      return storeAddCustomer(saved || customerData);
     } catch (err) {
       setError(err.message);
       throw err;
@@ -45,21 +42,19 @@ const useCustomers = () => {
   const addCustomerDeposit = useCallback(async (customerId, amount, method) => {
     setError(null);
     try {
-      if (import.meta.env.VITE_API_URL) {
-        await apiAddDeposit(customerId, amount, method, nextDepositNumber);
-      }
+      await apiAddDeposit(customerId, amount, method, nextDepositNumber);
       return storeAddDeposit(customerId, amount, method, nextDepositNumber);
     } catch (err) {
+      console.error('Supabase deposit error:', err);
       setError(err.message);
+      return { error: err.message };
     }
   }, [storeAddDeposit, nextDepositNumber]);
 
   const refundCustomer = useCallback(async (customerId, amount) => {
     setError(null);
     try {
-      if (import.meta.env.VITE_API_URL) {
-        await apiRefundCustomer(customerId, amount);
-      }
+      await apiRefundCustomer(customerId, amount);
       return storeRefundCustomer(customerId, amount);
     } catch (err) {
       setError(err.message);

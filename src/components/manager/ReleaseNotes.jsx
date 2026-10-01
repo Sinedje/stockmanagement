@@ -4,6 +4,8 @@ import Pagination from '../common/Pagination';
 import { usePagination } from '../../hooks';
 import { formatPrice } from '../../context/StoreContext';
 import { useSales, useStores, useUsers } from '../../hooks';
+import { useAuth } from '../../context/AuthContext';
+import Modal from '../common/Modal';
 import { CalendarOutlined, DownloadOutlined, FileTextOutlined, FilterOutlined, InboxOutlined, PrinterOutlined, SearchOutlined, ShopOutlined, UserOutlined } from '@ant-design/icons';
 import { Button, Select, DatePicker, ConfigProvider } from 'antd';
 import frFR from 'antd/locale/fr_FR';
@@ -14,8 +16,9 @@ dayjs.locale('fr');
 
 const { RangePicker } = DatePicker;
 
-const ReleaseNotes = () => {
+const ReleaseNotes = ({ storeIdFilter, cashierFilter, cashierOnly }) => {
   const t = useT();
+  const { currentUser } = useAuth();
   const { allSales = [] } = useSales();
   const { stores = [] } = useStores();
   const { users = [] } = useUsers();
@@ -32,7 +35,7 @@ const ReleaseNotes = () => {
     
     allSales.forEach(sale => {
       // Ne prendre en compte que les factures avec des articles livrés ou partiellement livrés
-      const deliveredItems = sale.items?.filter(item => item.isDelivered || item.quantityDelivered > 0) || [];
+      const deliveredItems = sale.items?.filter(item => item.isDelivered || (item.quantityDelivered || 0) > 0) || [];
       if (deliveredItems.length === 0) return;
 
       // Find the true store of the cashier, fallback to sale.storeId
@@ -48,23 +51,23 @@ const ReleaseNotes = () => {
       });
       
       // Créer un bon de sortie distinct pour chaque magasin
-      Object.keys(itemsByStore).forEach(storeIdStr => {
-        const storeId = parseInt(storeIdStr);
-        const storeItems = itemsByStore[storeId];
+      Object.keys(itemsByStore).forEach(storeIdKey => {
+        const storeItems = itemsByStore[storeIdKey];
+        if (!storeItems || storeItems.length === 0) return;
         
         const noteTotal = storeItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-        const type = storeId === trueSaleStoreId ? 'local' : 'inter_store';
+        const type = String(storeIdKey) === String(trueSaleStoreId) ? 'local' : 'inter_store';
         
         // Statut de livraison spécifique à ce bon de sortie
-        const isNoteFullyDelivered = storeItems.every(item => item.isDelivered || (item.quantityDelivered && item.quantityDelivered >= item.quantity));
+        const isNoteFullyDelivered = storeItems.every(item => item.isDelivered || ((item.quantityDelivered || 0) >= item.quantity));
         const noteDeliveryStatus = isNoteFullyDelivered ? 'delivered' : 'partially_delivered';
         
         notes.push({
           ...sale,
-          id: `${sale.id}-${storeId}`,
+          id: `${sale.id}-${storeIdKey}`,
           originalSaleId: sale.id,
           storeId: trueSaleStoreId, // Override with true store ID
-          releaseStoreId: storeId,
+          releaseStoreId: storeIdKey,
           releaseType: type,
           items: storeItems,
           total: noteTotal,
@@ -79,6 +82,19 @@ const ReleaseNotes = () => {
   const filteredNotes = useMemo(() => {
     let result = [...releaseNotes];
     
+    // Storekeeper Filter
+    if (storeIdFilter) {
+      result = result.filter(n => String(n.releaseStoreId) === String(storeIdFilter));
+    }
+
+    // Cashier Filter
+    if (cashierOnly || cashierFilter) {
+      const targetCashier = cashierFilter || currentUser?.name;
+      if (targetCashier) {
+        result = result.filter(n => n.cashier === targetCashier);
+      }
+    }
+
     // Filter by Date Range
     if (dateRange && dateRange[0] && dateRange[1]) {
       const start = dateRange[0].startOf('day').toDate();
@@ -96,7 +112,7 @@ const ReleaseNotes = () => {
 
     // Filter by Store (using releaseStoreId instead of sale.storeId)
     if (selectedStore !== 'all') {
-      result = result.filter(n => n.releaseStoreId === parseInt(selectedStore));
+      result = result.filter(n => String(n.releaseStoreId) === String(selectedStore));
     }
 
     // Filter by Cashier
@@ -114,7 +130,7 @@ const ReleaseNotes = () => {
     }
 
     return result.sort((a, b) => new Date(b.date) - new Date(a.date));
-  }, [releaseNotes, dateRange, releaseType, selectedStore, selectedCashier, searchTerm]);
+  }, [releaseNotes, dateRange, releaseType, selectedStore, selectedCashier, searchTerm, storeIdFilter, cashierFilter, cashierOnly, currentUser]);
 
   const handleExportPDF = () => {
     window.print();
@@ -165,24 +181,28 @@ const ReleaseNotes = () => {
               ]}
             />
 
-            <Select 
-              value={selectedStore}
-              onChange={setSelectedStore}
-              className="custom-select min-w-[160px]"
-              options={[
-                { value: 'all', label: t('s.tous_les_magasins') },
-                ...stores.map(s => ({ value: s.id.toString(), label: s.name }))
-              ]}
-            />
-            <Select 
-              value={selectedCashier}
-              onChange={setSelectedCashier}
-              className="custom-select min-w-[160px]"
-              options={[
-                { value: 'all', label: t('s.tous_les_caissiers') },
-                ...users.filter(u => u.role === 'cashier').map(u => ({ value: u.name, label: u.name }))
-              ]}
-            />
+            {!storeIdFilter && (
+              <Select 
+                value={selectedStore}
+                onChange={setSelectedStore}
+                className="custom-select min-w-[160px]"
+                options={[
+                  { value: 'all', label: t('s.tous_les_magasins') },
+                  ...stores.map(s => ({ value: String(s.id), label: s.name }))
+                ]}
+              />
+            )}
+            {!cashierOnly && !cashierFilter && (
+              <Select 
+                value={selectedCashier}
+                onChange={setSelectedCashier}
+                className="custom-select min-w-[160px]"
+                options={[
+                  { value: 'all', label: t('s.tous_les_caissiers') },
+                  ...users.filter(u => u.role === 'cashier').map(u => ({ value: u.name, label: u.name }))
+                ]}
+              />
+            )}
             <Button type="primary" icon={<PrinterOutlined style={{ fontSize: 16 }} />} onClick={handleExportPDF} >
               {t('s.imprimer_pdf')}
             </Button>
@@ -201,7 +221,7 @@ const ReleaseNotes = () => {
             <thead>
               <tr className="bg-black/[0.02] dark:bg-white/[0.02]">
                 <th className="px-8 py-4 text-[0.65rem] font-semibold text-text-muted uppercase tracking-widest">{t('s.dates_facture')}</th>
-                <th className="px-8 py-4 text-[0.65rem] font-semibold text-text-muted uppercase tracking-widest">{t('s.caissier_origine')}</th>
+                <th className="px-8 py-4 text-[0.65rem] font-semibold text-text-muted uppercase tracking-widest">CAISSIER / MAGASIN</th>
                 <th className="px-8 py-4 text-[0.65rem] font-semibold text-text-muted uppercase tracking-widest">{t('s.details_des_articles_livres_total')}</th>
                 <th className="px-8 py-4 text-[0.65rem] font-semibold text-text-muted uppercase tracking-widest text-right">{t('s.total_sortie')}</th>
               </tr>
@@ -213,11 +233,14 @@ const ReleaseNotes = () => {
                     <div className="text-sm font-semibold text-text-heading tracking-tight mb-2">{note.invoiceNumber || 'N/A'}</div>
                     <div className="space-y-1">
                       <div className="text-[0.65rem] font-bold text-text-secondary">
-                        Facturé : <span className="text-text-muted opacity-80">{note.date ? new Date(note.date).toLocaleString('fr-FR', {dateStyle: 'short', timeStyle: 'short'}) : 'Date inconnue'}</span>
+                        Facturé le : <span className="text-text-muted opacity-80">{note.date ? new Date(note.date).toLocaleString('fr-FR', {dateStyle: 'short', timeStyle: 'short'}) : 'Date inconnue'}</span>
+                      </div>
+                      <div className="text-[0.65rem] font-bold text-text-secondary">
+                        Livré le : <span className="text-emerald-600 dark:text-emerald-400 font-bold">{(note.deliveryDate || note.updatedAt) ? new Date(note.deliveryDate || note.updatedAt).toLocaleString('fr-FR', {dateStyle: 'short', timeStyle: 'short'}) : (note.date ? new Date(note.date).toLocaleString('fr-FR', {dateStyle: 'short', timeStyle: 'short'}) : 'Inconnue')}</span>
                       </div>
                       <div className="text-[0.65rem] font-bold text-text-secondary">
                         Statut : <span className={note.noteDeliveryStatus === 'delivered' ? "text-emerald-600 dark:text-emerald-500 font-black uppercase tracking-wider" : "text-orange-500 font-black uppercase tracking-wider"}>
-                          {note.noteDeliveryStatus === 'delivered' ? 'Livré' : 'Partiel'}
+                          {note.noteDeliveryStatus === 'delivered' ? 'Livré ✓' : 'Partiel 🟡'}
                         </span>
                       </div>
                     </div>
@@ -230,12 +253,12 @@ const ReleaseNotes = () => {
                     <div className="flex flex-col gap-1">
                       <div className="flex items-center gap-2">
                         <span className="text-[0.55rem] font-semibold uppercase tracking-widest text-text-muted">{t('s.caisse_2')}</span>
-                        <span className="text-[0.65rem] font-bold text-text-secondary">{stores.find(s => s.id === note.storeId)?.name || 'Magasin'}</span>
+                        <span className="text-[0.65rem] font-bold text-text-secondary">{stores.find(s => String(s.id) === String(note.storeId))?.name || 'Magasin'}</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="text-[0.55rem] font-semibold uppercase tracking-widest text-text-muted">{t('s.origine')}</span>
+                        <span className="text-[0.55rem] font-semibold uppercase tracking-widest text-text-muted">MAGASIN</span>
                         <span className={`text-[0.65rem] font-semibold uppercase tracking-wider ${note.releaseType === 'inter_store' ? 'text-orange-500' : 'text-primary'}`}>
-                          {stores.find(s => s.id === note.releaseStoreId)?.name || 'Magasin'}
+                          {stores.find(s => String(s.id) === String(note.releaseStoreId))?.name || 'Magasin'}
                         </span>
                       </div>
                     </div>

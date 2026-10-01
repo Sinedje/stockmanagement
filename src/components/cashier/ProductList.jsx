@@ -1,7 +1,7 @@
 import { useT } from '../../i18n/I18nContext';
 import React, { useMemo, useState } from 'react';
 import { AppstoreOutlined, UnorderedListOutlined, InboxOutlined, ShopOutlined } from '@ant-design/icons';
-import { Segmented } from 'antd';
+import { Segmented, Checkbox } from 'antd';
 import { formatPrice } from '../../context/StoreContext';
 import { useUsers, useStores } from '../../hooks';
 import { Toolbar, Panel, Table, SearchInput, Select } from '../ui';
@@ -41,6 +41,7 @@ const ProductList = () => {
   const [sortBy, setSortBy] = useState('name_asc');
   const [viewMode, setViewMode] = useState('list');
   const [zoomedImage, setZoomedImage] = useState(null);
+  const [hideEmptyStock, setHideEmptyStock] = useState(false);
 
   const categoryOptions = useMemo(() => {
     const cats = new Set((allCashierProducts || []).map(p => p.category).filter(Boolean));
@@ -62,10 +63,11 @@ const ProductList = () => {
       const pStoreId = String(p.storeId?._id || p.storeId?.id || p.storeId);
       const matchStore = selectedStore === 'Tous' || pStoreId === String(selectedStore);
       const matchCategory = selectedCategory === 'Toutes' || p.category === selectedCategory;
-      return matchSearch && matchStore && matchCategory;
+      const matchStock = !hideEmptyStock || (p.stock > 0 || p.physicalStock > 0);
+      return matchSearch && matchStore && matchCategory && matchStock;
     });
     return result.sort(SORTERS[sortBy] || SORTERS.name_asc);
-  }, [allCashierProducts, searchTerm, selectedStore, selectedCategory, sortBy]);
+  }, [allCashierProducts, searchTerm, selectedStore, selectedCategory, sortBy, hideEmptyStock]);
 
   const columns = [
     {
@@ -123,6 +125,13 @@ const ProductList = () => {
         <Select value={selectedCategory} onChange={setSelectedCategory} options={categoryOptions} width={160} />
         <Select value={selectedStore} onChange={setSelectedStore} options={storeOptions} width={175} />
         <Select value={sortBy} onChange={setSortBy} options={sortOptions(t)} width={175} />
+        <Checkbox 
+          checked={hideEmptyStock} 
+          onChange={e => setHideEmptyStock(e.target.checked)}
+          className="text-[0.72rem] text-text-heading ml-2"
+        >
+          Masquer stock zéro
+        </Checkbox>
         <span className="text-[0.72rem] text-text-muted tabular-nums pl-1">{products.length} articles</span>
       </Toolbar>
 
