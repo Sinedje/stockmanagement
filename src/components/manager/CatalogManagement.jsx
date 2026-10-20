@@ -7,7 +7,7 @@ import Modal from '../common/Modal';
 import Input from '../common/Input';
 import ImageUploader from '../common/ImageUploader';
 import { parseProductsExcel } from '../../utils/excelImport';
-import { CheckCircleOutlined, CopyOutlined, DeleteOutlined, EditOutlined, FileExcelOutlined, InboxOutlined, PlusOutlined } from '@ant-design/icons';
+import { CheckCircleOutlined, CopyOutlined, DeleteOutlined, EditOutlined, FileExcelOutlined, InboxOutlined, PlusOutlined, SyncOutlined } from '@ant-design/icons';
 import { Space, Popconfirm, message } from 'antd';
 
 const emptyProduct = { 
@@ -16,6 +16,7 @@ const emptyProduct = {
   category: '', 
   price: '', 
   cost: '', 
+  minPrice: '', 
   stock: '', 
   minStock: '', 
   image: '',
@@ -26,8 +27,9 @@ const emptyProduct = {
 
 const CatalogManagement = () => {
   const t = useT();
-  const { products, categories, addProduct, importProducts, updateProduct, deleteProduct, addCategory } = useProducts();
+  const { products, categories, addProduct, importProducts, updateProduct, deleteProduct, addCategory, replicateStoreProducts } = useProducts();
   const { stores } = useStores();
+  const [replicating, setReplicating] = useState(false);
   const [search, setSearch] = useState('');
   const [filterCat, setFilterCat] = useState('Tous');
   const [showModal, setShowModal] = useState(false);
@@ -65,6 +67,7 @@ const CatalogManagement = () => {
       designation: p.designation || p.name || '',
       price: String(p.price || 0), 
       cost: String(p.cost || 0), 
+      minPrice: String(p.minPrice ?? p.price ?? 0),
       stock: String(p.stock || 0), 
       minStock: String(p.minStock || 0),
       image: p.image || '',
@@ -82,6 +85,7 @@ const CatalogManagement = () => {
       designation: `${p.designation || p.name} (Copie)`,
       price: String(p.price || 0),
       cost: String(p.cost || 0),
+      minPrice: String(p.minPrice ?? p.price ?? 0),
       stock: String(p.stock || 0),
       minStock: String(p.minStock || 0),
       image: p.image || '',
@@ -99,12 +103,16 @@ const CatalogManagement = () => {
       finalCategory = newCategory.trim();
     }
 
+    const priceNum = Number(form.price);
+    const minPriceNum = form.minPrice !== '' && form.minPrice !== undefined ? Number(form.minPrice) : priceNum;
+
     const data = { 
       ...form, 
       category: finalCategory,
       designation: form.designation || form.name,
-      price: Number(form.price), 
+      price: priceNum, 
       cost: Number(form.cost), 
+      minPrice: minPriceNum,
       stock: Number(form.stock) || 0, 
       minStock: Number(form.minStock) || 0,
       isNonInventory: !!form.isNonInventory
@@ -197,6 +205,9 @@ const CatalogManagement = () => {
     { key: 'designation', title: t('s.designation'), render: (val, row) => <span className="text-sm font-medium">{val || row.name}</span> },
     { key: 'category', title: t('s.categorie'), render: (val) => <span className="px-2 py-0.5 rounded-md bg-primary/10 text-primary text-[0.65rem] font-bold uppercase">{val}</span> },
     { key: 'price', title: t('s.prix'), render: (val) => <span className="font-bold text-primary">{formatPrice(val)}</span> },
+    { key: 'minPrice', title: 'Prix Min.', render: (val, row) => (
+      <span className="font-bold text-amber-500">{formatPrice(val ?? row.price)}</span>
+    )},
     { key: 'cost', title: t('s.cout'), render: (val) => formatPrice(val) },
     { key: 'stock', title: t('s.stock'), render: (val, row) => (
       row.isNonInventory ? <span className="text-xs text-text-muted italic">{t('s.hors_stock')}</span> :
@@ -221,12 +232,44 @@ const CatalogManagement = () => {
     )},
   ];
 
+  const handleReplicateMokolo = () => {
+    setReplicating(true);
+    try {
+      const res = replicateStoreProducts('Mokolo');
+      if (res.success) {
+        if (res.count > 0) {
+          message.success(`${res.count} article(s) de "${res.sourceName}" répliqué(s) vers les autres magasins avec stock = 0 !`);
+        } else {
+          message.info(`Tous les articles de "${res.sourceName}" existent déjà dans les autres magasins (aucun doublon créé).`);
+        }
+      } else {
+        message.warning(res.message);
+      }
+    } catch (err) {
+      console.error(err);
+      message.error(`Erreur lors de la réplication: ${err.message}`);
+    } finally {
+      setReplicating(false);
+    }
+  };
+
   return (
     <div className="animate-fade-in space-y-4">
       {/* Commandes — carte distincte du tableau */}
       <Toolbar
         right={
           <>
+            <Popconfirm
+              title="Répliquer les articles de Mokolo"
+              description="Créer tous les articles de Mokolo dans tous les autres magasins avec stock = 0 (sans écraser les existants) ?"
+              onConfirm={handleReplicateMokolo}
+              okText="Oui, répliquer"
+              cancelText="Annuler"
+            >
+              <Button icon={<SyncOutlined spin={replicating} />} loading={replicating} title="Répliquer les articles de Mokolo vers tous les autres magasins avec un stock à 0">
+                Répliquer Mokolo (Stock 0)
+              </Button>
+            </Popconfirm>
             <Button icon={<FileExcelOutlined />} loading={importingExcel} onClick={() => excelInputRef.current?.click()}>
               Importer Excel
             </Button>
@@ -325,8 +368,9 @@ const CatalogManagement = () => {
               </label>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               <Input label={t('s.prix_de_vente')} type="number" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} />
+              <Input label="Prix Minimum" type="number" value={form.minPrice} onChange={e => setForm({ ...form, minPrice: e.target.value })} placeholder={form.price || "0"} />
               <Input label={t('s.prix_d_achat')} type="number" value={form.cost} onChange={e => setForm({ ...form, cost: e.target.value })} />
             </div>
             <div className="grid grid-cols-2 gap-4">

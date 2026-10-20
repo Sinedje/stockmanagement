@@ -182,12 +182,15 @@ export const parseProductsExcel = async (file) => {
       }
     }
 
+    const minPrice = Number(getVal(colIndexMap.price)) || 0;
+
     products.push({
       name,
       designation,
       category,
       price,
       cost,
+      minPrice: minPrice || price,
       stock,
       minStock,
       image,

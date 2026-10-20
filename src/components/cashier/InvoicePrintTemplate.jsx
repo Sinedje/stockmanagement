@@ -194,7 +194,39 @@ const InvoicePrintTemplate = ({ sale }) => {
       {/* ── TOTAL ── */}
       <table style={{ width: '100%', borderCollapse: 'collapse', borderTop: '1.5px solid #000' }}>
         <tbody>
-          <tr>
+          {/* Sous-total brut — affiché uniquement s'il y a une remise */}
+          {sale.discount > 0 && (
+            <tr>
+              <td style={{ padding: '2px 6px', width: '50%', fontSize: '9px', color: '#555' }}>
+                &nbsp;
+              </td>
+              <td style={{ padding: '2px 6px', textAlign: 'right', fontSize: '9px', color: '#555', borderLeft: '1px solid #000', width: '22%' }}>
+                SOUS-TOTAL
+              </td>
+              <td style={{ padding: '2px 6px', textAlign: 'right', fontSize: '9px', color: '#555', borderLeft: '1px solid #000', width: '28%' }}>
+                {(sale.itemsTotal || (netTotal + sale.discount)).toLocaleString('fr-FR', { minimumFractionDigits: 2 })} FCFA
+              </td>
+            </tr>
+          )}
+          {/* Ligne remise */}
+          {sale.discount > 0 && (
+            <tr>
+              <td style={{ padding: '2px 6px', width: '50%', fontSize: '9px', color: '#c00' }}>
+                &nbsp;
+              </td>
+              <td style={{ padding: '2px 6px', textAlign: 'right', fontSize: '9px', fontWeight: 'bold', color: '#c00', borderLeft: '1px solid #000', width: '22%' }}>
+                REMISE
+                {sale.itemsTotal > 0
+                  ? ` (${((sale.discount / sale.itemsTotal) * 100).toFixed(0)}%)`
+                  : ''}
+              </td>
+              <td style={{ padding: '2px 6px', textAlign: 'right', fontSize: '9px', fontWeight: 'bold', color: '#c00', borderLeft: '1px solid #000', width: '28%' }}>
+                - {sale.discount.toLocaleString('fr-FR', { minimumFractionDigits: 2 })} FCFA
+              </td>
+            </tr>
+          )}
+          {/* NET À PAYER */}
+          <tr style={{ borderTop: sale.discount > 0 ? '1px dashed #bbb' : 'none' }}>
             <td style={{ padding: '4px 6px', width: '50%', fontSize: '10px', fontStyle: 'italic' }}>
               {amountInWords}
             </td>

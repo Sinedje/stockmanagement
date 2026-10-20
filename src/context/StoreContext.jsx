@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, useMemo } from 'react';
 import AuthContext from './AuthContext';
-import { fetchProducts } from '../services/productService';
+import { fetchProducts, importProducts as apiImportProducts } from '../services/productService';
 import { fetchSales } from '../services/saleService';
 import { fetchUsers } from '../services/userService';
 import { fetchStores } from '../services/storeService';
@@ -440,17 +440,115 @@ export const StoreProvider = ({ children }) => {
   }, []);
 
   const addProduct = useCallback((product) => {
-    // If called with server-returned product, it already has id set.
-    // Otherwise (offline/mock mode) generate a local id.
     const hasServerId = product.id || product._id;
-    const normalized = {
+    const targetStoreId = product.storeId || activeStoreId;
+    const minP = product.minPrice !== undefined ? product.minPrice : product.price;
+
+    const mainProduct = {
       ...product,
       id: product._id || product.id || (Date.now()),
-      storeId: product.storeId || activeStoreId,
+      minPrice: minP,
+      storeId: targetStoreId,
       physicalStock: product.physicalStock ?? product.stock
     };
-    setAllProducts(prev => [...prev, normalized]);
-  }, [activeStoreId]);
+
+    // Créer également la référence avec un stock de 0 dans tous les autres magasins s'ils n'en disposent pas
+    const otherStoreProducts = (stores || [])
+      .filter(s => String(s.id) !== String(targetStoreId))
+      .map((s, idx) => ({
+        ...product,
+        id: `clone-${Date.now()}-${idx}-${s.id}`,
+        minPrice: minP,
+        storeId: s.id,
+        stock: product.isNonInventory ? 0 : 0,
+        physicalStock: product.isNonInventory ? 0 : 0
+      }));
+
+    setAllProducts(prev => {
+      // Filtrer pour éviter les doublons si déjà existant dans un autre magasin
+      const existingKeySet = new Set(prev.map(p => `${p.name.toLowerCase().trim()}_${String(p.storeId)}`));
+      const toAdd = [mainProduct];
+
+      otherStoreProducts.forEach(op => {
+        const key = `${op.name.toLowerCase().trim()}_${String(op.storeId)}`;
+        if (!existingKeySet.has(key)) {
+          toAdd.push(op);
+        }
+      });
+
+      return [...prev, ...toAdd];
+    });
+  }, [activeStoreId, stores]);
+
+  // Réplication en masse des articles d'un magasin source vers tous les autres magasins (stock à 0, sans écraser l'existant)
+  const replicateStoreProducts = useCallback((sourceStoreIdentifier) => {
+    // Identifier peut être un nom ("Mokolo") ou un ID
+    const sourceStore = (stores || []).find(s => 
+      String(s.id) === String(sourceStoreIdentifier) ||
+      (s.name && s.name.toLowerCase().trim() === String(sourceStoreIdentifier).toLowerCase().trim()) ||
+      (s.name && s.name.toLowerCase().includes(String(sourceStoreIdentifier).toLowerCase().trim()))
+    );
+
+    if (!sourceStore) {
+      console.warn(`Magasin source "${sourceStoreIdentifier}" non trouvé.`);
+      return { success: false, message: `Magasin "${sourceStoreIdentifier}" introuvable.` };
+    }
+
+    const otherStores = (stores || []).filter(s => String(s.id) !== String(sourceStore.id));
+    if (otherStores.length === 0) {
+      return { success: false, message: 'Aucun autre magasin vers lequel répliquer.' };
+    }
+
+    let addedCount = 0;
+
+    setAllProducts(prev => {
+      // Articles du magasin source
+      const sourceProducts = prev.filter(p => isSameStore(p.storeId, sourceStore.id));
+      if (sourceProducts.length === 0) return prev;
+
+      // Clés existantes dans toute la base (name + storeId)
+      const existingMap = new Set(prev.map(p => `${(p.name || '').toLowerCase().trim()}_${String(p.storeId)}`));
+      const newItems = [];
+
+      otherStores.forEach(targetStore => {
+        sourceProducts.forEach(sp => {
+          const key = `${(sp.name || '').toLowerCase().trim()}_${String(targetStore.id)}`;
+          if (!existingMap.has(key)) {
+            existingMap.add(key);
+            addedCount++;
+            newItems.push({
+              ...sp,
+              id: `repl-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+              storeId: targetStore.id,
+              stock: sp.isNonInventory ? 0 : 0,
+              physicalStock: sp.isNonInventory ? 0 : 0,
+            });
+          }
+        });
+      });
+
+      const updated = [...prev, ...newItems];
+      // Mettre à jour le cache local pour persister immédiatement
+      putCache('products', updated);
+
+      // Si Supabase / API est connecté, insérer également en base distante
+      if (newItems.length > 0) {
+        apiImportProducts(newItems).catch(err => {
+          console.warn('Persistance distante des articles répliqués différée :', err.message);
+        });
+      }
+
+      return updated;
+    });
+
+    return { 
+      success: true, 
+      count: addedCount, 
+      sourceName: sourceStore.name,
+      targetCount: otherStores.length 
+    };
+  }, [stores, isSameStore]);
+
 
   const updateProduct = useCallback((id, updates) => {
     setAllProducts(prev => prev.map(p =>
@@ -1385,7 +1483,7 @@ export const StoreProvider = ({ children }) => {
   const value = {
     currentUser,
     stores, activeStoreId, activeStore, addStore, switchStore, updateStore, deleteStore,
-    products, allProducts, refreshProducts, refreshSales, addProduct, updateProduct, deleteProduct, bulkUpdateStock, categories, addCategory,
+    products, allProducts, refreshProducts, refreshSales, addProduct, updateProduct, deleteProduct, bulkUpdateStock, categories, addCategory, replicateStoreProducts,
     cart, addToCart, removeFromCart, updateCartQuantity, clearCart, cartTotal, completeSale,
     sales, totalRevenue, todaySales, todayRevenue, lowStockProducts, totalStockValue,
     users, addUser, updateUser, toggleUserStatus,

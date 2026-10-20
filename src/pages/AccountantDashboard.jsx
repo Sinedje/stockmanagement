@@ -9,7 +9,8 @@ import ReleaseNotes from '../components/manager/ReleaseNotes';
 import ClosureHistory from '../components/common/ClosureHistory';
 import CEODashboardHome from '../components/ceo/DashboardHome';
 import PendingInvoicesPanel from '../components/manager/PendingInvoicesPanel';
-import { BankOutlined, BarChartOutlined, CarOutlined, CompassOutlined, ExclamationCircleOutlined, FileDoneOutlined, FileTextOutlined, ProfileOutlined, RiseOutlined } from '@ant-design/icons';
+import BelowMinPriceSurveillance from '../components/common/BelowMinPriceSurveillance';
+import { AlertOutlined, BankOutlined, BarChartOutlined, CarOutlined, CompassOutlined, ExclamationCircleOutlined, FileDoneOutlined, FileTextOutlined, ProfileOutlined, RiseOutlined } from '@ant-design/icons';
 
 // Navigation groupée : chaque section se déplie / replie dans la barre latérale.
 const sidebarItems = [
@@ -29,6 +30,7 @@ const sidebarItems = [
     children: [
       { id: 'transactions', label: 'Transactions', icon: FileDoneOutlined },
       { id: 'pending_invoices', labelKey: 'nav.pending_invoices', icon: ExclamationCircleOutlined },
+      { id: 'price_surveillance', labelKey: 'nav.price_surveillance', icon: AlertOutlined },
       { id: 'movements', labelKey: 'nav.movements', icon: CarOutlined },
     ],
   },
@@ -68,6 +70,7 @@ const AccountantDashboard = () => {
     strategic: t('s.performances_globales_stocks_et_analyse_du_c'),
     transactions: t('s.details_de_toutes_les_transactions'),
     pending_invoices: t('s.suivi_des_factures_impayees_et_non_livrees'),
+    price_surveillance: 'Surveiller les factures dont des articles ont été vendus sous le prix minimum',
     movements: 'Entrées fournisseurs et transferts inter-magasins avec prix d\'achat',
     reports: t('s.historique_des_clotures_journalieres_par_cai'),
     releases: t('s.suivi_et_export_des_sorties_marchandises'),
@@ -86,6 +89,7 @@ const AccountantDashboard = () => {
         {activeTab === 'strategic' && <CEODashboardHome onNavigate={setActiveTab} availableTabs={availableTabs} />}
         {activeTab === 'transactions' && <TransactionsTable />}
         {activeTab === 'pending_invoices' && <PendingInvoicesPanel />}
+        {activeTab === 'price_surveillance' && <BelowMinPriceSurveillance />}
         {activeTab === 'movements' && <StockMovementsPanel />}
         {activeTab === 'reports' && <ClosureHistory />}
         {activeTab === 'releases' && <ReleaseNotes />}

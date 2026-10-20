@@ -40,6 +40,7 @@ export const translations = {
     'nav.summary': 'Résumé financier',
     'nav.transactions': 'Transactions',
     'nav.movements': 'Mouvements de stock',
+    'nav.price_surveillance': 'Surveillance Prix Bas',
 
     // — Barre latérale —
     'sidebar.myStores': 'Mes magasins',

@@ -33,6 +33,8 @@ const useProducts = () => {
     lowStockProducts,
     totalStockValue,
     activeStoreId,
+    stores,
+    replicateStoreProducts: storeReplicateStoreProducts,
   } = useStore();
 
   const [loading, setLoading] = useState(false);
@@ -43,7 +45,8 @@ const useProducts = () => {
     setLoading(true);
     setError(null);
     try {
-      const payload = { ...productData, storeId: productData.storeId || activeStoreId };
+      const targetStoreId = productData.storeId || activeStoreId;
+      const payload = { ...productData, storeId: targetStoreId };
       // apiCreateProduct route déjà vers Supabase si session existe
       const saved = await apiCreateProduct(payload);
       if (saved?.id) {
@@ -51,6 +54,23 @@ const useProducts = () => {
       } else {
         storeAddProduct(payload);
       }
+
+      // Créer également le produit dans tous les autres magasins avec stock = 0
+      const otherStores = (stores || []).filter(s => String(s.id) !== String(targetStoreId));
+      for (const s of otherStores) {
+        try {
+          const zeroStockPayload = {
+            ...productData,
+            storeId: s.id,
+            stock: productData.isNonInventory ? 0 : 0,
+            physicalStock: productData.isNonInventory ? 0 : 0,
+          };
+          await apiCreateProduct(zeroStockPayload);
+        } catch (e) {
+          console.warn(`Création auto magasin ${s.name} ignorée/échouée :`, e.message);
+        }
+      }
+
       // Rafraîchir pour avoir les vrais IDs UUID de la BDD
       await storeRefreshProducts();
     } catch (err) {
@@ -59,15 +79,33 @@ const useProducts = () => {
     } finally {
       setLoading(false);
     }
-  }, [storeAddProduct, storeRefreshProducts, activeStoreId]);
+  }, [storeAddProduct, storeRefreshProducts, activeStoreId, stores]);
 
   // ── Import Excel ────────────────────────────────────────────────────────
   const importProducts = useCallback(async (productsData) => {
     setLoading(true);
     setError(null);
     try {
-      const payload = productsData.map(p => ({ ...p, storeId: p.storeId || activeStoreId }));
-      await apiImportProducts(payload);
+      const targetStoreId = activeStoreId;
+      // Produits pour le magasin actif
+      const mainPayload = productsData.map(p => ({ ...p, storeId: p.storeId || targetStoreId }));
+      
+      // Produits pour tous les autres magasins avec stock = 0
+      const otherStores = (stores || []).filter(s => String(s.id) !== String(targetStoreId));
+      const extraPayload = [];
+      otherStores.forEach(s => {
+        productsData.forEach(p => {
+          extraPayload.push({
+            ...p,
+            storeId: s.id,
+            stock: p.isNonInventory ? 0 : 0,
+            physicalStock: p.isNonInventory ? 0 : 0,
+          });
+        });
+      });
+
+      const fullPayload = [...mainPayload, ...extraPayload];
+      await apiImportProducts(fullPayload);
       await storeRefreshProducts();
     } catch (err) {
       setError(err.message);
@@ -75,7 +113,7 @@ const useProducts = () => {
     } finally {
       setLoading(false);
     }
-  }, [storeRefreshProducts, activeStoreId]);
+  }, [storeRefreshProducts, activeStoreId, stores]);
 
   // ── Modifier un produit ─────────────────────────────────────────────────
   const updateProduct = useCallback(async (id, updates) => {
@@ -175,6 +213,7 @@ const useProducts = () => {
     bulkUpdateStock,
     receiveStock,
     addCategory,
+    replicateStoreProducts: storeReplicateStoreProducts,
     refreshProducts: storeRefreshProducts,
   };
 };

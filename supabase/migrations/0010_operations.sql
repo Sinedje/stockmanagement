@@ -76,6 +76,7 @@ begin
     if nullif(v_item->>'product_id', '') is not null then
       update public.products
          set stock = stock - coalesce((v_item->>'quantity')::integer, 0),
+             physical_stock = physical_stock - coalesce((v_item->>'quantity')::integer, 0),
              updated_at = now()
        where id = (v_item->>'product_id')::uuid
          and is_non_inventory = false;
@@ -120,6 +121,7 @@ begin
 
   update public.products p
      set stock = p.stock + si.quantity,
+         physical_stock = p.physical_stock + si.quantity,
          updated_at = now()
     from public.sale_items si
    where si.sale_id = p_sale_id
@@ -219,6 +221,7 @@ begin
     if nullif(v_item->>'product_id', '') is not null then
       update public.products
          set stock = stock + coalesce((v_item->>'quantity')::integer, 0),
+             physical_stock = physical_stock + coalesce((v_item->>'quantity')::integer, 0),
              -- Le dernier coût d'achat fait foi pour la marge.
              cost = coalesce(nullif((v_item->>'cost')::numeric, 0), cost),
              updated_at = now()
@@ -275,7 +278,9 @@ begin
     -- magasin de destination qu'à la réception. Entre les deux, il est en route.
     if nullif(v_item->>'product_id', '') is not null then
       update public.products
-         set stock = stock - coalesce((v_item->>'quantity')::integer, 0), updated_at = now()
+         set stock = stock - coalesce((v_item->>'quantity')::integer, 0),
+             physical_stock = physical_stock - coalesce((v_item->>'quantity')::integer, 0),
+             updated_at = now()
        where id = (v_item->>'product_id')::uuid and store_id = v_from;
     end if;
   end loop;
@@ -316,14 +321,16 @@ begin
 
     if v_target is null and v_item.product_id is not null then
       insert into public.products (company_id, store_id, name, designation, category,
-                                   price, cost, stock, min_stock, supplier, is_non_inventory)
+                                   price, cost, stock, physical_stock, min_stock, supplier, is_non_inventory)
       select company_id, v_to, name, designation, category,
-             price, cost, v_item.quantity, min_stock, supplier, is_non_inventory
+             price, cost, v_item.quantity, v_item.quantity, min_stock, supplier, is_non_inventory
         from public.products where id = v_item.product_id
       returning id into v_target;
     elsif v_target is not null then
       update public.products
-         set stock = stock + v_item.quantity, updated_at = now()
+         set stock = stock + v_item.quantity,
+             physical_stock = physical_stock + v_item.quantity,
+             updated_at = now()
        where id = v_target;
     end if;
   end loop;

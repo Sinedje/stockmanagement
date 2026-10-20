@@ -6,13 +6,15 @@ import DeliveriesPanel from '../components/storekeeper/DeliveriesPanel';
 import StorekeeperInvoices from '../components/storekeeper/StorekeeperInvoices';
 import ProductList from '../components/cashier/ProductList';
 import ReleaseNotes from '../components/manager/ReleaseNotes';
+import BelowMinPriceSurveillance from '../components/common/BelowMinPriceSurveillance';
 import { useAuth } from '../context/AuthContext';
-import { CarOutlined, DashboardOutlined, FileTextOutlined, HistoryOutlined, InboxOutlined, ProfileOutlined } from '@ant-design/icons';
+import { AlertOutlined, CarOutlined, DashboardOutlined, FileTextOutlined, HistoryOutlined, InboxOutlined, ProfileOutlined } from '@ant-design/icons';
 
 const sidebarItems = [
   { id: 'deliveries', label: 'Livraisons', icon: CarOutlined },
   { id: 'releases', label: 'Bons de sortie', icon: ProfileOutlined },
   { id: 'invoices', labelKey: 's.liste_des_factures', icon: FileTextOutlined },
+  { id: 'price_surveillance', label: 'Surveillance Prix Bas', icon: AlertOutlined },
   { id: 'inventory', labelKey: 's.etat_du_stock', icon: InboxOutlined },
 ];
 
@@ -28,6 +30,7 @@ const StorekeeperDashboard = () => {
     deliveries: t('s.gestion_des_livraisons'), 
     releases: 'Bons de sortie de votre magasin',
     invoices: t('s.journal_des_factures'),
+    price_surveillance: 'Surveillance Prix Bas',
     inventory: t('s.consultation_du_stock'),
   };
   
@@ -35,6 +38,7 @@ const StorekeeperDashboard = () => {
     deliveries: t('s.valider_la_sortie_physique_des_marchandises'), 
     releases: 'Consulter et imprimer les bons de sortie des marchandises de votre magasin',
     invoices: 'Consulter l\'historique des ventes de votre magasin',
+    price_surveillance: 'Surveiller les factures avec articles vendus sous le prix minimum',
     inventory: t('s.visualiser_les_quantites_disponibles_en_maga'),
   };
 
@@ -49,6 +53,7 @@ const StorekeeperDashboard = () => {
       {activeTab === 'deliveries' && <DeliveriesPanel />}
       {activeTab === 'releases' && <ReleaseNotes storeIdFilter={currentUser?.storeId} />}
       {activeTab === 'invoices' && <StorekeeperInvoices />}
+      {activeTab === 'price_surveillance' && <BelowMinPriceSurveillance />}
       {activeTab === 'inventory' && <ProductList />}
     </DashboardLayout>
   );

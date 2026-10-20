@@ -10,30 +10,37 @@ import ReceiptView from './ReceiptView';
 const PriceInput = ({ value, minPrice, onChange, isFlexiblePrice }) => {
   const t = useT();
   const [raw, setRaw] = useState(String(value));
-  const belowMin = !isFlexiblePrice && parseFloat(raw) < minPrice;
+  const numValue = parseFloat(raw);
+  const belowMin = !isFlexiblePrice && minPrice > 0 && !isNaN(numValue) && numValue < minPrice;
 
   return (
     <div className="flex flex-col items-end gap-0.5">
       <input
         type="number"
-        min={isFlexiblePrice ? 0 : minPrice}
+        min={0}
         className={`w-28 text-right bg-white dark:bg-black/20 border rounded-lg px-2 py-1 font-black focus:outline-none transition-colors
-          ${belowMin ? 'border-red-500/60 text-red-500 dark:text-red-400 focus:border-red-500' : 'border-black/15 dark:border-white/10 text-primary focus:border-primary/50'}`}
+          ${belowMin ? 'border-amber-500/80 bg-amber-500/10 text-amber-600 dark:text-amber-400 focus:border-amber-500 ring-1 ring-amber-500/30' : 'border-black/15 dark:border-white/10 text-primary focus:border-primary/50'}`}
         value={raw}
-        onChange={e => setRaw(e.target.value)}
+        onChange={e => {
+          setRaw(e.target.value);
+          const num = parseFloat(e.target.value);
+          if (!isNaN(num) && num >= 0) {
+            onChange(num);
+          }
+        }}
         onBlur={() => {
           const num = parseFloat(raw);
-          const clamped = isNaN(num) || (!isFlexiblePrice && num < minPrice) ? minPrice : num;
-          setRaw(String(clamped));
-          onChange(clamped);
+          const safeNum = isNaN(num) || num < 0 ? (minPrice || 0) : num;
+          setRaw(String(safeNum));
+          onChange(safeNum);
         }}
       />
       {belowMin && (
-        <span className="text-[0.55rem] text-red-400 flex items-center gap-1">
-          <WarningOutlined style={{ fontSize: 8 }} /> min {formatPrice(minPrice)}
+        <span className="text-[0.62rem] text-amber-600 dark:text-amber-400 font-bold flex items-center gap-1 bg-amber-500/10 px-1 rounded">
+          <WarningOutlined style={{ fontSize: 9 }} /> &lt; min {formatPrice(minPrice)}
         </span>
       )}
-      {!belowMin && !isFlexiblePrice && (
+      {!belowMin && !isFlexiblePrice && minPrice > 0 && (
         <span className="text-[0.55rem] text-text-muted opacity-40">min {formatPrice(minPrice)}</span>
       )}
       {isFlexiblePrice && (
@@ -327,6 +334,7 @@ const InvoiceBuilder = () => {
         name: product.name,
         cost: product.cost,
         price: product.price,
+        minPrice: product.minPrice ?? product.price,
         quantity: 1,
         storeId: product.storeId,
         storeName: product.storeName,
@@ -597,7 +605,7 @@ const InvoiceBuilder = () => {
                   <td className="px-3 py-3 text-right">
                     <PriceInput
                       value={line.price}
-                      minPrice={line.cost}
+                      minPrice={line.minPrice !== undefined ? line.minPrice : line.cost}
                       onChange={price => updatePrice(line.productId, price)}
                       isFlexiblePrice={line.isNonInventory || line.isBreakage || line.isRepackaged}
                     />

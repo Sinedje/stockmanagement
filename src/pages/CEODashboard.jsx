@@ -18,7 +18,8 @@ import BreakagePanel from '../components/manager/BreakagePanel';
 import PendingInvoicesPanel from '../components/manager/PendingInvoicesPanel';
 import UserManagement from '../components/ceo/UserManagement';
 import CompanySettings from '../components/ceo/CompanySettings';
-import { AppstoreOutlined, AuditOutlined, BankOutlined, BarChartOutlined, CarOutlined, CompassOutlined, DashboardOutlined, DropboxOutlined, FileDoneOutlined, FileTextOutlined, HistoryOutlined, HomeOutlined, PlusCircleOutlined, RiseOutlined, SafetyCertificateOutlined, SettingOutlined, ShopOutlined, ShoppingOutlined, SwapOutlined, TeamOutlined, WalletOutlined } from '@ant-design/icons';
+import BelowMinPriceSurveillance from '../components/common/BelowMinPriceSurveillance';
+import { AlertOutlined, AppstoreOutlined, AuditOutlined, BankOutlined, BarChartOutlined, CarOutlined, CompassOutlined, DashboardOutlined, DropboxOutlined, FileDoneOutlined, FileTextOutlined, HistoryOutlined, HomeOutlined, PlusCircleOutlined, RiseOutlined, SafetyCertificateOutlined, SettingOutlined, ShopOutlined, ShoppingOutlined, SwapOutlined, TeamOutlined, WalletOutlined } from '@ant-design/icons';
 import { useAuth } from '../context/AuthContext';
 import { useT } from '../i18n/I18nContext';
 import { useStores, useProducts } from '../hooks';
@@ -54,6 +55,7 @@ const sidebarItems = [
     children: [
       { id: 'sales', labelKey: 'nav.sales', icon: HistoryOutlined },
       { id: 'pending_invoices', labelKey: 'nav.pending_invoices', icon: FileTextOutlined },
+      { id: 'price_surveillance', labelKey: 'nav.price_surveillance', icon: AlertOutlined },
       { id: 'deliveries', labelKey: 'nav.deliveries', icon: CarOutlined },
       { id: 'releases', labelKey: 'nav.releases', icon: FileTextOutlined },
     ],
@@ -135,6 +137,7 @@ const CEODashboard = () => {
     stock_entry: t('s.gerer_le_catalogue_produits_et_les_reception'),
     sales: t('s.consulter_toutes_les_transactions'),
     pending_invoices: t('s.suivi_des_factures_impayees_et_non_livrees'),
+    price_surveillance: 'Surveiller les factures dont des articles ont été vendus sous le prix minimum',
     deliveries: t('s.suivi_en_temps_reel_des_sorties_de_stock_par'),
     financial: t('s.suivi_financier_de_tous_les_points_de_vente_'),
     reports: 'Consulter l\'historique des clôtures journalières',
@@ -163,6 +166,7 @@ const CEODashboard = () => {
       {activeTab === 'articles' && <ProductList />}
       {activeTab === 'sales' && <SalesHistory />}
       {activeTab === 'pending_invoices' && <PendingInvoicesPanel />}
+      {activeTab === 'price_surveillance' && <BelowMinPriceSurveillance />}
       {activeTab === 'deliveries' && <ManagerDeliveries />}
       {activeTab === 'financial' && <GlobalFinancialReport />}
       {activeTab === 'reports' && <ClosureHistory />}
